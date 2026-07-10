@@ -1,7 +1,7 @@
 ---
 name: last30days
 description: Research what people actually said about a topic in the last ~30 days across Reddit, Hacker News, Polymarket, and GitHub — using only keyless public endpoints and Hermes's own web/browser tools. No paid API keys. For recency checks, sentiment, "what are people saying about X", launch reactions, trend spotting.
-version: 1.0.0
+version: 1.1.0
 author: Hermes Agent (keyless port of mvanhorn/last30days-skill, MIT)
 license: MIT
 platforms: [linux, macos, windows]
@@ -24,6 +24,26 @@ cookie backends — **skip them**; state the coverage limit in the answer.
 - "What are people saying about X (lately / this month)?"
 - Launch / earnings / release reaction, sentiment, emerging complaints.
 - Sanity-check a claim's recency before deep research.
+
+## Quickstart / scripts
+A runnable CLI ships alongside this doc — `scripts/last30days.py` (stdlib
+only, no API keys) actually fetches from the sources below instead of just
+documenting them:
+```bash
+python3 scripts/last30days.py search "TOPIC" --sources all --limit 15
+python3 scripts/last30days.py search "TOPIC" --sources reddit,hn --json
+python3 scripts/last30days.py hn "TOPIC" --limit 10   # per-source: reddit|hn|polymarket|github
+```
+`search` prints a merged table (source/title/metric/date/link) with a
+per-source count line; `--json` gives a structured `{entries, counts,
+errors}` payload. Each source is fetched with error isolation — one failing
+doesn't drop the others — and the process exits 2 only if every requested
+source fails. See `scripts/README.md` for the full CLI shape.
+
+**Model wiring**: run dedup/date-normalization over the merged results with
+`agent1` (`:11434`, temp 0) — deterministic cleanup, not judgment. Run the
+"what's the sentiment / what changed" synthesis step with `ornith`
+(`:1235`, `enable_thinking: false`) over the deduped set.
 
 ## Sources (all keyless)
 
