@@ -16,12 +16,14 @@ import html.parser
 import json
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 DEFAULT_TIMEOUT_SECONDS = 15
 MODEL_TIMEOUT_SECONDS = 120
 MAX_CHARS_FOR_MODEL = 8000
 MAX_RESPONSE_BYTES = 10_000_000
+ALLOWED_SCHEMES = {"http", "https"}
 USER_AGENT = "Mozilla/5.0 (compatible; hermes-scrapling-extract/1.1)"
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
@@ -100,8 +102,19 @@ def _handle_urllib_response(response):
     sys.exit(2)
 
 
+def _require_http_scheme(url):
+    """Exit with an error unless url is http(s) — blocks file:// local-file reads
+    and other schemes urllib/scrapling would otherwise happily fetch."""
+    scheme = urllib.parse.urlparse(url).scheme.lower()
+    if scheme not in ALLOWED_SCHEMES:
+        print(f"error: unsupported URL scheme {scheme!r} (only http/https allowed)", file=sys.stderr)
+        sys.exit(2)
+
+
 def fetch_page(url):
     """Fetch page HTML. Prefers scrapling.Fetcher, falls back to urllib."""
+    _require_http_scheme(url)
+
     if SCRAPLING_AVAILABLE:
         try:
             page = Fetcher.get(url, timeout=DEFAULT_TIMEOUT_SECONDS)

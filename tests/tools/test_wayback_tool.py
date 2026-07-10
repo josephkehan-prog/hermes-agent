@@ -112,6 +112,20 @@ class TestWaybackSnapshotsRequestBuilding:
         assert result["ok"] is False
         assert "CDX request failed" in result["error"]
 
+    def test_oversized_response_is_rejected(self):
+        import tools.wayback_tool as wayback_tool
+
+        oversized = MagicMock()
+        oversized.read.return_value = b"x" * (wayback_tool._MAX_RESPONSE_BYTES + 1)
+        oversized.__enter__ = lambda s: s
+        oversized.__exit__ = MagicMock(return_value=False)
+
+        with patch("tools.wayback_tool.urllib.request.urlopen", return_value=oversized):
+            result = wayback_snapshots("https://example.com")
+
+        assert result["ok"] is False
+        assert "exceeds" in result["error"]
+
 
 class TestWaybackLatest:
     def test_invalid_url_no_network_call(self):
@@ -186,6 +200,7 @@ class TestWaybackSaveConfirmGate:
         assert result["archive_url"] == "https://web.archive.org/web/20240101000000/https://example.com"
 
 
+@pytest.mark.skip(reason="live network — run manually")
 class TestLiveWaybackLatest:
     """Live integration test against the real availability API. Skipped if offline."""
 

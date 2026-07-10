@@ -101,6 +101,20 @@ class TestHandleUrllibResponse:
         assert exc_info.value.code == 2
 
 
+class TestRequireHttpScheme:
+    def test_file_scheme_exits_with_code_2(self):
+        with pytest.raises(SystemExit) as exc_info:
+            extract._require_http_scheme("file:///etc/passwd")
+
+        assert exc_info.value.code == 2
+
+    def test_http_scheme_is_allowed(self):
+        extract._require_http_scheme("http://example.com")
+
+    def test_https_scheme_is_allowed(self):
+        extract._require_http_scheme("https://example.com")
+
+
 class TestPrettyJson:
     def test_invalid_json_falls_back_to_raw_text_without_crashing(self):
         raw = "  not valid json  "

@@ -33,6 +33,7 @@ _SAVE_ENDPOINT = "https://web.archive.org/save/"
 _MIN_LIMIT = 1
 _MAX_LIMIT = 100
 _DEFAULT_LIMIT = 25
+_MAX_RESPONSE_BYTES = 10_000_000
 
 
 def _validate_url(url: Any) -> Optional[str]:
@@ -55,11 +56,21 @@ def _validate_limit(limit: Any) -> int:
     return max(_MIN_LIMIT, min(_MAX_LIMIT, limit_int))
 
 
+class _ResponseTooLarge(Exception):
+    """Raised by _get_json when a response body exceeds _MAX_RESPONSE_BYTES."""
+
+
 def _get_json(url: str) -> Any:
-    """GET url with an honest UA and a bounded timeout, decode JSON."""
+    """GET url with an honest UA and a bounded timeout, decode JSON.
+
+    Raises _ResponseTooLarge instead of buffering an unbounded body.
+    """
     req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
     with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as resp:
-        return json.loads(resp.read())
+        raw = resp.read(_MAX_RESPONSE_BYTES + 1)
+    if len(raw) > _MAX_RESPONSE_BYTES:
+        raise _ResponseTooLarge(f"response exceeds {_MAX_RESPONSE_BYTES} byte limit")
+    return json.loads(raw)
 
 
 def wayback_snapshots(
@@ -91,6 +102,8 @@ def wayback_snapshots(
 
     try:
         rows = _get_json(request_url)
+    except _ResponseTooLarge as exc:
+        return {"ok": False, "error": str(exc)}
     except urllib.error.URLError as exc:
         return {"ok": False, "error": f"CDX request failed: {exc}"}
     except (json.JSONDecodeError, ValueError) as exc:
@@ -136,6 +149,8 @@ def wayback_latest(url: Any) -> Dict[str, Any]:
 
     try:
         data = _get_json(request_url)
+    except _ResponseTooLarge as exc:
+        return {"ok": False, "error": str(exc)}
     except urllib.error.URLError as exc:
         return {"ok": False, "error": f"availability request failed: {exc}"}
     except (json.JSONDecodeError, ValueError) as exc:
