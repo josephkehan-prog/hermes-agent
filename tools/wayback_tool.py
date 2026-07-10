@@ -23,6 +23,7 @@ import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional
 
+from tools import _net_guard
 from tools.registry import registry
 
 _USER_AGENT = "hermes-agent-wayback-tool/1.0"
@@ -33,7 +34,7 @@ _SAVE_ENDPOINT = "https://web.archive.org/save/"
 _MIN_LIMIT = 1
 _MAX_LIMIT = 100
 _DEFAULT_LIMIT = 25
-_MAX_RESPONSE_BYTES = 10_000_000
+_MAX_RESPONSE_BYTES = _net_guard.MAX_RESPONSE_BYTES
 
 
 def _validate_url(url: Any) -> Optional[str]:
@@ -67,9 +68,10 @@ def _get_json(url: str) -> Any:
     """
     req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
     with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as resp:
-        raw = resp.read(_MAX_RESPONSE_BYTES + 1)
-    if len(raw) > _MAX_RESPONSE_BYTES:
-        raise _ResponseTooLarge(f"response exceeds {_MAX_RESPONSE_BYTES} byte limit")
+        try:
+            raw = _net_guard.read_capped(resp)
+        except _net_guard.NetGuardError as exc:
+            raise _ResponseTooLarge(str(exc)) from exc
     return json.loads(raw)
 
 

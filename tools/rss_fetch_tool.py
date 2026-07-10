@@ -17,8 +17,11 @@ ever reaches ``ElementTree.fromstring`` (defusedxml-style guard), rather than
 relying on ElementTree's default behavior alone.
 
 SSRF note: only ``http``/``https`` URLs are accepted (``file://``, ``ftp://``,
-etc. are rejected). Blocking requests to internal/private IPs is the caller's
-responsibility — this module does not resolve hostnames or inspect IP ranges.
+etc. are rejected), and the resolved host is rejected if it's private/
+reserved/loopback/link-local/multicast/unspecified (blocks loopback,
+RFC1918, and cloud metadata endpoints like 169.254.169.254) via
+``tools._net_guard``. Redirects are re-validated hop-by-hop through
+``_net_guard.build_safe_opener`` rather than followed blindly.
 """
 
 import codecs
@@ -29,6 +32,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
 
+from tools import _net_guard
 from tools.registry import registry
 
 _USER_AGENT = "Hermes-Agent (https://github.com/NousResearch/hermes-agent)"
@@ -38,7 +42,7 @@ _DEFAULT_LIMIT = 20
 _MIN_LIMIT = 1
 _MAX_LIMIT = 100
 _DEFAULT_LIMIT_PER_FEED = 10
-_MAX_RESPONSE_BYTES = 10_000_000
+_MAX_RESPONSE_BYTES = _net_guard.MAX_RESPONSE_BYTES
 _ATOM_NS = "{http://www.w3.org/2005/Atom}"
 _DANGEROUS_XML_MARKERS = ("<!doctype", "<!entity")
 _DANGEROUS_XML_MARKERS_BYTES = tuple(marker.encode("ascii") for marker in _DANGEROUS_XML_MARKERS)
@@ -193,21 +197,26 @@ def fetch_feed(url: Any, limit: Any = _DEFAULT_LIMIT) -> Dict[str, Any]:
     if valid_url is None:
         return {"ok": False, "error": f"invalid or disallowed url: {url!r} (http/https only)"}
 
+    try:
+        _net_guard.reject_private_target(valid_url)
+    except _net_guard.NetGuardError as exc:
+        return {"ok": False, "error": str(exc)}
+
     limit_int = _validate_limit(limit, _DEFAULT_LIMIT)
 
     req = urllib.request.Request(valid_url, headers={"User-Agent": _USER_AGENT})
+    opener = _net_guard.build_safe_opener()
     try:
-        with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as resp:
-            raw_bytes = resp.read(_MAX_RESPONSE_BYTES + 1)
+        with opener.open(req, timeout=_TIMEOUT_S) as resp:
+            raw_bytes = _net_guard.read_capped(resp)
+    except _net_guard.NetGuardError:
+        return {"ok": False, "error": f"feed body exceeds {_MAX_RESPONSE_BYTES} byte limit"}
     except urllib.error.HTTPError as exc:
         return {"ok": False, "error": f"http error {exc.code}: {exc.reason}"}
     except urllib.error.URLError as exc:
         return {"ok": False, "error": f"could not reach feed: {exc.reason}"}
     except (TimeoutError, OSError) as exc:
         return {"ok": False, "error": str(exc)}
-
-    if len(raw_bytes) > _MAX_RESPONSE_BYTES:
-        return {"ok": False, "error": f"feed body exceeds {_MAX_RESPONSE_BYTES} byte limit"}
 
     danger = _reject_dangerous_xml_bytes(raw_bytes)
     if danger is not None:
@@ -257,8 +266,8 @@ registry.register(
             "Fetch and parse a single RSS 2.0 or Atom feed over http/https. "
             "Returns the feed title and up to `limit` entries, each with "
             "title, link, published date, and summary. Stdlib-only "
-            "(urllib + xml.etree), with XXE and SSRF-scheme guards. Use "
-            "`fetch_feeds` instead to pull several feeds in one call."
+            "(urllib + xml.etree), with XXE and SSRF (private-IP) guards. "
+            "Use `fetch_feeds` instead to pull several feeds in one call."
         ),
         "parameters": {
             "type": "object",

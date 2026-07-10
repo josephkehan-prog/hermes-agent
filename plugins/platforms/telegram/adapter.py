@@ -431,6 +431,31 @@ try:
     _UPDATER_START_TIMEOUT = float(os.getenv("HERMES_TELEGRAM_UPDATER_START_TIMEOUT", "30.0"))
 except (TypeError, ValueError):
     _UPDATER_START_TIMEOUT = 30.0
+# Cadence of the polling health-monitor loop (_polling_heartbeat): how often it
+# probes get_me() on the general request path, and how long each probe may run
+# before the path is declared dead. Env-overridable, same helper-mirroring
+# rationale as the _UPDATER_* timeouts above.
+try:
+    _POLLING_HEARTBEAT_INTERVAL = float(os.getenv("HERMES_TELEGRAM_POLLING_HEARTBEAT_INTERVAL", "90.0"))
+except (TypeError, ValueError):
+    _POLLING_HEARTBEAT_INTERVAL = 90.0
+try:
+    _POLLING_PROBE_TIMEOUT = float(os.getenv("HERMES_TELEGRAM_POLLING_PROBE_TIMEOUT", "15.0"))
+except (TypeError, ValueError):
+    _POLLING_PROBE_TIMEOUT = 15.0
+# Webhook-mode health probe (_webhook_heartbeat). After a reconnect, sleep this
+# long so a healthy dispatch cycle can complete, then probe the bot endpoint
+# with a tight timeout. _WEBHOOK_PROBE_TIMEOUT is intentionally distinct from
+# the polling heartbeat's probe timeout above. Env-overridable, same
+# helper-mirroring rationale as the _UPDATER_* timeouts.
+try:
+    _WEBHOOK_HEARTBEAT_PROBE_DELAY = float(os.getenv("HERMES_TELEGRAM_WEBHOOK_HEARTBEAT_PROBE_DELAY", "60.0"))
+except (TypeError, ValueError):
+    _WEBHOOK_HEARTBEAT_PROBE_DELAY = 60.0
+try:
+    _WEBHOOK_PROBE_TIMEOUT = float(os.getenv("HERMES_TELEGRAM_WEBHOOK_PROBE_TIMEOUT", "10.0"))
+except (TypeError, ValueError):
+    _WEBHOOK_PROBE_TIMEOUT = 10.0
 # Telegram Bot API max caption length (characters) for media messages
 # (photo/video/audio/voice/document/animation and media groups). Captions
 # longer than this are silently truncated to this bound before sending.
@@ -2210,8 +2235,8 @@ class TelegramAdapter(BasePlatformAdapter):
         of the polling connection, so it catches a socket that wedges during
         steady-state operation without any prior error event.
         """
-        HEARTBEAT_INTERVAL = 90   # seconds between probes
-        PROBE_TIMEOUT = 15        # seconds before declaring the path dead
+        HEARTBEAT_INTERVAL = _POLLING_HEARTBEAT_INTERVAL   # seconds between probes
+        PROBE_TIMEOUT = _POLLING_PROBE_TIMEOUT             # seconds before declaring the path dead
 
         while True:
             try:
@@ -2375,8 +2400,8 @@ class TelegramAdapter(BasePlatformAdapter):
         On any failure, re-enter the reconnect ladder so the existing
         MAX_NETWORK_RETRIES path can ultimately escalate to fatal-error.
         """
-        HEARTBEAT_PROBE_DELAY = 60
-        PROBE_TIMEOUT = 10
+        HEARTBEAT_PROBE_DELAY = _WEBHOOK_HEARTBEAT_PROBE_DELAY
+        PROBE_TIMEOUT = _WEBHOOK_PROBE_TIMEOUT
 
         await asyncio.sleep(HEARTBEAT_PROBE_DELAY)
 

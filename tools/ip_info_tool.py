@@ -27,11 +27,12 @@ import urllib.parse
 import urllib.request
 from typing import Any, Callable, Dict, List, Optional
 
+from tools import _net_guard
 from tools.registry import registry
 
 _USER_AGENT = "hermes-agent-ip-info-tool/1.0"
 _TIMEOUT_S = 15
-_MAX_RESPONSE_BYTES = 10_000_000
+_MAX_RESPONSE_BYTES = _net_guard.MAX_RESPONSE_BYTES
 _MAX_BULK_ITEMS = 100
 _IPAPI_CO_ENDPOINT = "https://ipapi.co/{ip}/json/"
 _IP_API_COM_ENDPOINT = "http://ip-api.com/json/{ip}"
@@ -77,9 +78,10 @@ def _get_json(url: str) -> Any:
     """
     req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Accept": "application/json"})
     with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as resp:
-        raw = resp.read(_MAX_RESPONSE_BYTES + 1)
-    if len(raw) > _MAX_RESPONSE_BYTES:
-        raise _ResponseTooLarge(f"response exceeds {_MAX_RESPONSE_BYTES} byte limit")
+        try:
+            raw = _net_guard.read_capped(resp)
+        except _net_guard.NetGuardError as exc:
+            raise _ResponseTooLarge(str(exc)) from exc
     return json.loads(raw)
 
 

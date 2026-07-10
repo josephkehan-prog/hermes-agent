@@ -1,6 +1,7 @@
 """Tests for tools/rss_fetch_tool.py — RSS 2.0 / Atom feed fetch+parse."""
 
 import textwrap
+from unittest.mock import patch
 
 from tools import rss_fetch_tool
 
@@ -58,7 +59,7 @@ DOCTYPE_SAMPLE = textwrap.dedent(
 
 
 class _FakeResponse:
-    """Minimal stand-in for the object urllib.request.urlopen returns."""
+    """Minimal stand-in for the object opener.open() returns."""
 
     def __init__(self, body: str, encoding: str = "utf-8"):
         self._body = body.encode(encoding)
@@ -73,14 +74,25 @@ class _FakeResponse:
         return False
 
 
+def _patch_opener(monkeypatch, open_impl):
+    """Patch _net_guard.build_safe_opener() to return a fake opener whose
+    .open(req, ...) delegates to open_impl(req), and no-op the private-target
+    check so unit tests never touch real DNS/network."""
+    monkeypatch.setattr(rss_fetch_tool._net_guard, "reject_private_target", lambda *a, **kw: None)
+
+    class _FakeOpener:
+        def open(self, req, *a, **kw):
+            return open_impl(req)
+
+    monkeypatch.setattr(rss_fetch_tool._net_guard, "build_safe_opener", lambda: _FakeOpener())
+
+
 class TestFetchFeedParsing:
-    """fetch_feed parses RSS2/Atom XML with no network involved — urlopen is
-    monkeypatched to return an in-memory sample."""
+    """fetch_feed parses RSS2/Atom XML with no network involved — the safe
+    opener is monkeypatched to return an in-memory sample."""
 
     def test_parses_rss2_feed(self, monkeypatch):
-        monkeypatch.setattr(
-            rss_fetch_tool.urllib.request, "urlopen", lambda *a, **kw: _FakeResponse(RSS2_SAMPLE)
-        )
+        _patch_opener(monkeypatch, lambda req: _FakeResponse(RSS2_SAMPLE))
 
         result = rss_fetch_tool.fetch_feed("https://example.com/feed.xml")
 
@@ -93,9 +105,7 @@ class TestFetchFeedParsing:
         assert result["entries"][0]["summary"] == "Widgets are on sale."
 
     def test_parses_atom_feed(self, monkeypatch):
-        monkeypatch.setattr(
-            rss_fetch_tool.urllib.request, "urlopen", lambda *a, **kw: _FakeResponse(ATOM_SAMPLE)
-        )
+        _patch_opener(monkeypatch, lambda req: _FakeResponse(ATOM_SAMPLE))
 
         result = rss_fetch_tool.fetch_feed("https://example.com/atom.xml")
 
@@ -108,9 +118,7 @@ class TestFetchFeedParsing:
         assert result["entries"][0]["summary"] == "A post about widgets."
 
     def test_limit_enforced(self, monkeypatch):
-        monkeypatch.setattr(
-            rss_fetch_tool.urllib.request, "urlopen", lambda *a, **kw: _FakeResponse(RSS2_SAMPLE)
-        )
+        _patch_opener(monkeypatch, lambda req: _FakeResponse(RSS2_SAMPLE))
 
         result = rss_fetch_tool.fetch_feed("https://example.com/feed.xml", limit=1)
 
@@ -120,7 +128,7 @@ class TestFetchFeedParsing:
 
 
 class TestFetchFeedGuards:
-    """Input validation and XXE defense run before any parsing occurs."""
+    """Input validation, SSRF, and XXE defense run before any parsing occurs."""
 
     def test_rejects_disallowed_scheme(self):
         result = rss_fetch_tool.fetch_feed("file:///etc/passwd")
@@ -140,10 +148,27 @@ class TestFetchFeedGuards:
         assert result["ok"] is False
         assert "invalid or disallowed url" in result["error"]
 
-    def test_rejects_doctype_before_parsing(self, monkeypatch):
+    def test_rejects_private_target_no_network_call(self, monkeypatch):
+        """SSRF: a scheme-valid URL whose host resolves to a private/loopback
+        address must be refused before any request is made."""
         monkeypatch.setattr(
-            rss_fetch_tool.urllib.request, "urlopen", lambda *a, **kw: _FakeResponse(DOCTYPE_SAMPLE)
+            rss_fetch_tool._net_guard.socket, "gethostbyname", lambda host: "127.0.0.1"
         )
+        with patch.object(rss_fetch_tool._net_guard, "build_safe_opener") as mock_build_opener:
+            result = rss_fetch_tool.fetch_feed("http://internal.example.com/feed.xml")
+
+        assert result["ok"] is False
+        assert "non-public address" in result["error"]
+        mock_build_opener.assert_not_called()
+
+    def test_rejects_loopback_ip_literal(self):
+        result = rss_fetch_tool.fetch_feed("http://127.0.0.1:8765/")
+
+        assert result["ok"] is False
+        assert "non-public address" in result["error"]
+
+    def test_rejects_doctype_before_parsing(self, monkeypatch):
+        _patch_opener(monkeypatch, lambda req: _FakeResponse(DOCTYPE_SAMPLE))
 
         result = rss_fetch_tool.fetch_feed("https://example.com/evil.xml")
 
@@ -156,11 +181,7 @@ class TestFetchFeedGuards:
         as byte+0x00), so the old guard let this through to the parser. The
         raw-bytes NUL-stripped scan must catch it before decoding happens.
         """
-        monkeypatch.setattr(
-            rss_fetch_tool.urllib.request,
-            "urlopen",
-            lambda *a, **kw: _FakeResponse(DOCTYPE_SAMPLE, encoding="utf-16"),
-        )
+        _patch_opener(monkeypatch, lambda req: _FakeResponse(DOCTYPE_SAMPLE, encoding="utf-16"))
 
         result = rss_fetch_tool.fetch_feed("https://example.com/evil-utf16.xml")
 
@@ -171,11 +192,7 @@ class TestFetchFeedGuards:
         """A legitimate UTF-16 feed (BOM + no DOCTYPE/ENTITY) must still
         decode and parse — the XXE guard shouldn't collaterally break valid
         non-UTF-8 feeds."""
-        monkeypatch.setattr(
-            rss_fetch_tool.urllib.request,
-            "urlopen",
-            lambda *a, **kw: _FakeResponse(RSS2_SAMPLE, encoding="utf-16"),
-        )
+        _patch_opener(monkeypatch, lambda req: _FakeResponse(RSS2_SAMPLE, encoding="utf-16"))
 
         result = rss_fetch_tool.fetch_feed("https://example.com/feed-utf16.xml")
 
@@ -189,12 +206,12 @@ class TestFetchFeeds:
     """fetch_feeds isolates per-feed errors so one bad feed doesn't sink the batch."""
 
     def test_mixed_success_and_failure(self, monkeypatch):
-        def fake_urlopen(req, *a, **kw):
+        def open_impl(req):
             if "good" in req.full_url:
                 return _FakeResponse(RSS2_SAMPLE)
             raise rss_fetch_tool.urllib.error.URLError("boom")
 
-        monkeypatch.setattr(rss_fetch_tool.urllib.request, "urlopen", fake_urlopen)
+        _patch_opener(monkeypatch, open_impl)
 
         result = rss_fetch_tool.fetch_feeds(
             ["https://example.com/good.xml", "https://example.com/bad.xml"]

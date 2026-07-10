@@ -26,11 +26,12 @@ import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional
 
+from tools import _net_guard
 from tools.registry import registry
 
 _USER_AGENT = "hermes-agent-dns-recon-tool/1.0"
 _TIMEOUT_S = 15
-_MAX_RESPONSE_BYTES = 10_000_000
+_MAX_RESPONSE_BYTES = _net_guard.MAX_RESPONSE_BYTES
 _CLOUDFLARE_ENDPOINT = "https://cloudflare-dns.com/dns-query"
 _GOOGLE_ENDPOINT = "https://dns.google/resolve"
 _MAX_BULK_ITEMS = 100
@@ -55,6 +56,10 @@ _RECORD_TYPES = frozenset(_RECORD_TYPE_NUMS)
 _DEFAULT_BULK_TYPES = ("A", "AAAA", "MX", "NS", "TXT")
 
 _MAX_DOMAIN_LENGTH = 253
+# Kept local rather than swapped for _net_guard.validate_hostname: this
+# regex's exact permissiveness (vs. cert_transparency_tool's stricter one)
+# is intentional per-tool and shouldn't change as a side effect of the
+# _net_guard adoption pass.
 _HOSTNAME_RE = re.compile(
     r"^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
     r"(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
@@ -98,9 +103,10 @@ def _doh_query(endpoint: str, domain: str, record_type: str) -> Any:
         headers={"User-Agent": _USER_AGENT, "Accept": "application/dns-json"},
     )
     with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as resp:
-        raw = resp.read(_MAX_RESPONSE_BYTES + 1)
-    if len(raw) > _MAX_RESPONSE_BYTES:
-        raise _ResponseTooLarge(f"response exceeds {_MAX_RESPONSE_BYTES} byte limit")
+        try:
+            raw = _net_guard.read_capped(resp)
+        except _net_guard.NetGuardError as exc:
+            raise _ResponseTooLarge(str(exc)) from exc
     return json.loads(raw)
 
 

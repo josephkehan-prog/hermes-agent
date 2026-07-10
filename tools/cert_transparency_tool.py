@@ -33,12 +33,13 @@ import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import quote
 
+from tools import _net_guard
 from tools.registry import registry
 
 _USER_AGENT = "hermes-agent-cert-transparency-tool/1.0"
 _TIMEOUT_S = 20
 _CRT_SH_ENDPOINT = "https://crt.sh/"
-_MAX_RESPONSE_BYTES = 10_000_000
+_MAX_RESPONSE_BYTES = _net_guard.MAX_RESPONSE_BYTES
 
 _MIN_LIMIT = 1
 _DEFAULT_SUBDOMAIN_LIMIT = 200
@@ -49,6 +50,9 @@ _MAX_CERT_LIMIT = 500
 # Plain dotted hostname: labels of 1-63 chars (letters/digits/hyphen, no
 # leading/trailing hyphen), at least one dot, 253 chars max overall. No
 # wildcards, no scheme, no path — rejects anything that isn't a hostname.
+# Intentionally stricter than dns_recon_tool's _HOSTNAME_RE and not swapped
+# for _net_guard.validate_hostname — that per-tool difference is deliberate
+# and shouldn't change as a side effect of the _net_guard adoption pass.
 _HOSTNAME_RE = re.compile(
     r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))+$"
 )
@@ -86,11 +90,10 @@ def _fetch_crt_sh_json(query: str) -> Any:
     url = f"{_CRT_SH_ENDPOINT}?q={quote(query, safe='')}&output=json"
     req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
     with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as resp:
-        raw = resp.read(_MAX_RESPONSE_BYTES + 1)
-    if len(raw) > _MAX_RESPONSE_BYTES:
-        raise _ResponseTooLarge(
-            f"response exceeds {_MAX_RESPONSE_BYTES} byte limit — use a more specific query"
-        )
+        try:
+            raw = _net_guard.read_capped(resp)
+        except _net_guard.NetGuardError as exc:
+            raise _ResponseTooLarge(f"{exc} — use a more specific query") from exc
     if not raw.strip():
         return []
     return json.loads(raw)
