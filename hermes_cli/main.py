@@ -281,6 +281,9 @@ from hermes_cli.subcommands.status import build_status_parser
 from hermes_cli.subcommands.webhook import build_webhook_parser
 from hermes_cli.subcommands.hooks import build_hooks_parser
 from hermes_cli.subcommands.doctor import build_doctor_parser
+from hermes_cli.subcommands.config_drift import build_config_drift_parser
+from hermes_cli.subcommands.model_eval import build_model_eval_parser
+from hermes_cli.subcommands.nightly import build_nightly_parser
 from hermes_cli.subcommands.security import build_security_parser
 from hermes_cli.subcommands.dump import build_dump_parser
 from hermes_cli.subcommands.debug import build_debug_parser
@@ -4273,6 +4276,27 @@ def cmd_doctor(args):
     from hermes_cli.doctor import run_doctor
 
     run_doctor(args)
+
+
+def cmd_config_drift(args):
+    """Check config.yaml for drift against the saved baseline."""
+    from hermes_cli.config_drift import cmd_config_drift as _impl
+
+    _impl(args)
+
+
+def cmd_model_eval(args):
+    """Smoke-test the local model stack with canned prompts."""
+    from hermes_cli.model_eval import cmd_model_eval as _impl
+
+    _impl(args)
+
+
+def cmd_nightly(args):
+    """Write a dated self-health digest (doctor + config-drift)."""
+    from hermes_cli.nightly import cmd_nightly as _impl
+
+    _impl(args)
 
 
 def cmd_security(args):
@@ -12230,8 +12254,9 @@ _BUILTIN_SUBCOMMANDS = frozenset(
     {
         "acp", "auth", "backup", "bundles", "checkpoints", "claw", "completion",
         "computer-use",
-        "config", "console", "cron", "curator", "dashboard", "serve", "debug", "doctor",
+        "config", "config-drift", "console", "cron", "curator", "dashboard", "serve", "debug", "doctor",
         "dump", "fallback", "gateway", "hooks", "import", "insights",
+        "model-eval", "nightly",
         "gui", "desktop", "kanban", "login", "logout", "logs", "lsp", "mcp", "memory", "migrate", "moa",
         "journey", "memory-graph", "learning",
         "model", "pairing", "pets", "plugins", "portal", "postinstall", "profile",
@@ -13029,6 +13054,21 @@ def main():
     # doctor command  (parser built in hermes_cli/subcommands/doctor.py)
     # =========================================================================
     build_doctor_parser(subparsers, cmd_doctor=cmd_doctor)
+
+    # =========================================================================
+    # config-drift command  (parser built in hermes_cli/subcommands/config_drift.py)
+    # =========================================================================
+    build_config_drift_parser(subparsers, cmd_config_drift=cmd_config_drift)
+
+    # =========================================================================
+    # model-eval command  (parser built in hermes_cli/subcommands/model_eval.py)
+    # =========================================================================
+    build_model_eval_parser(subparsers, cmd_model_eval=cmd_model_eval)
+
+    # =========================================================================
+    # nightly command  (parser built in hermes_cli/subcommands/nightly.py)
+    # =========================================================================
+    build_nightly_parser(subparsers, cmd_nightly=cmd_nightly)
 
     # =========================================================================
     # security command — on-demand supply-chain audit

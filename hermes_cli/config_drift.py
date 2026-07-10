@@ -21,6 +21,7 @@ baseline.
 import difflib
 import logging
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import List, Optional, TypedDict
@@ -131,3 +132,39 @@ def check_drift(
     )
 
     return DriftResult(baseline_exists=True, drifted=bool(diff), diff=diff)
+
+
+def cmd_config_drift(args) -> None:
+    """``hermes config-drift`` -- thin CLI wrapper over this module.
+
+    Default: check the live config against the stored baseline and print
+    the result. Exit 0 when there is no baseline yet or no drift, exit 2
+    when drift is detected.
+
+    ``--rebaseline``: snapshot the current config as the new baseline and
+    exit 0. Does not also run a drift check in the same invocation -- run
+    ``hermes config-drift`` again afterward if a report is wanted.
+
+    Read-only on the live config in all cases; ``--rebaseline`` only ever
+    writes to the baseline snapshot path (``hermes_cli.config_drift.baseline_path``),
+    never to ``config.yaml`` itself.
+    """
+    if getattr(args, "rebaseline", False):
+        path = create_baseline()
+        print(f"baseline created: {path}")
+        return
+
+    result = check_drift()
+
+    if not result["baseline_exists"]:
+        print("no baseline (run 'hermes config-drift --rebaseline' to create one)")
+        return
+
+    if not result["drifted"]:
+        print("no drift")
+        return
+
+    print("drift detected")
+    for line in result["diff"]:
+        sys.stdout.write(line if line.endswith("\n") else line + "\n")
+    sys.exit(2)
