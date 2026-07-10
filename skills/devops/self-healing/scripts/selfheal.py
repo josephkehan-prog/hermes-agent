@@ -335,7 +335,19 @@ def run_destructive_command(command, confirm):
 def clear_temp(remediation, confirm):
     target = _validate_clear_temp_path(remediation.get("path"))
     pattern = remediation.get("pattern", "*")
-    matches = [p for p in target.glob(pattern) if p.is_file()]
+    # The glob pattern is caller/runbook-controlled. Reject path separators and
+    # parent refs outright — `target.glob("../x")` would walk OUTSIDE the
+    # validated temp root and delete arbitrary files. A clear-temp pattern is a
+    # filename glob, never a path.
+    if not isinstance(pattern, str) or "/" in pattern or "\\" in pattern or ".." in pattern:
+        _fail(f"clear-temp pattern must be a plain filename glob (no path separators or '..'): {pattern!r}")
+    # Defense-in-depth: even with a clean pattern, confine every match to under
+    # the validated target (resolve symlinks, reject anything that escapes).
+    matches = [
+        p
+        for p in target.glob(pattern)
+        if p.is_file() and p.resolve() != target and p.resolve().is_relative_to(target)
+    ]
     if not confirm:
         return {"ok": True, "dry_run": True, "detail": f"would delete {len(matches)} file(s) matching {pattern!r} in {target}"}
     deleted = 0
