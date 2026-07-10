@@ -30,6 +30,10 @@ DEFAULT_MANAGER_BOT = "HermesSetupBot"
 DEFAULT_BOT_NAME = "Hermes Agent"
 DEFAULT_POLL_TIMEOUT = 180
 POLL_INTERVAL = 2
+# Per-HTTP-request cap inside polling loops: keep each poll short so a hung
+# backend request fails back to the retry loop instead of eating the whole
+# DEFAULT_POLL_TIMEOUT deadline in a single blocked call.
+REQUEST_TIMEOUT = 10
 
 _USERNAME_SLUG_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567"
 _TELEGRAM_BOT_TOKEN_RE = re.compile(r"^\d+:[A-Za-z0-9_-]{30,}$")
@@ -256,7 +260,10 @@ def poll_for_setup_result(
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            result = poll_pairing_result_once(api_url, pairing, timeout=timeout)
+            remaining = deadline - time.monotonic()
+            result = poll_pairing_result_once(
+                api_url, pairing, timeout=min(REQUEST_TIMEOUT, max(remaining, 1.0))
+            )
             if result:
                 return result
         except (httpx.HTTPError, ValueError):
@@ -324,8 +331,11 @@ def auto_setup_telegram_bot_result(
         idx += 1
 
         try:
+            request_budget = deadline - time.monotonic()
             result = poll_pairing_result_once(
-                resolved_api_url, pairing, timeout=poll_timeout
+                resolved_api_url,
+                pairing,
+                timeout=min(REQUEST_TIMEOUT, max(request_budget, 1.0)),
             )
             if result:
                 sys.stdout.write(
