@@ -267,7 +267,7 @@ class TestPollForToken:
                 with patch(
                     "hermes_cli.telegram_managed_bot.time.monotonic"
                 ) as mock_time:
-                    mock_time.side_effect = [0, 0, 999]
+                    mock_time.side_effect = [0, 0, 0.5, 999]
                     assert (
                         poll_for_token(
                             "https://api.example.com", self.pairing(), timeout=1
@@ -285,11 +285,35 @@ class TestPollForToken:
                 with patch(
                     "hermes_cli.telegram_managed_bot.time.monotonic"
                 ) as mock_time:
-                    mock_time.side_effect = [0, 0, 999]
+                    mock_time.side_effect = [0, 0, 0.5, 999]
                     token = poll_for_token(
                         "https://api.example.com", self.pairing(), timeout=1
                     )
                     assert token is None
+
+    def test_per_request_timeout_capped_below_loop_deadline(self):
+        """Each poll request must be capped at REQUEST_TIMEOUT, not the 180s
+        loop deadline — a hung backend request should fail back to the retry
+        loop quickly (regression test for the loop-budget-as-request-timeout
+        bug fixed after batch 8c72ad6c0)."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"status": "waiting"}
+
+        with patch(
+            "hermes_cli.telegram_managed_bot.httpx.get", return_value=mock_resp
+        ) as mock_get:
+            with patch("hermes_cli.telegram_managed_bot.time.sleep"):
+                with patch(
+                    "hermes_cli.telegram_managed_bot.time.monotonic"
+                ) as mock_time:
+                    mock_time.side_effect = [0, 0, 0.5, 999]
+                    poll_for_setup_result(
+                        "https://api.example.com", self.pairing(), timeout=180
+                    )
+        assert mock_get.call_count == 1
+        request_timeout = mock_get.call_args.kwargs["timeout"]
+        assert request_timeout <= 10
 
     def test_eventual_success(self):
         not_ready = MagicMock()
