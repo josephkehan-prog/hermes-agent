@@ -62,6 +62,12 @@ def _validate_query(query: Any) -> Optional[str]:
         return None
     if any(ord(ch) < 0x20 for ch in candidate):
         return None
+    # Defense-in-depth: URL-structural metacharacters never belong in a
+    # free-text market search term. urllib.parse.quote already escapes them
+    # (inert), but rejecting them outright keeps the query safe even if a
+    # future refactor changes the encoding path.
+    if any(ch in candidate for ch in "/\\?#&"):
+        return None
     return candidate
 
 
