@@ -256,7 +256,7 @@ def poll_for_setup_result(
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            result = poll_pairing_result_once(api_url, pairing)
+            result = poll_pairing_result_once(api_url, pairing, timeout=timeout)
             if result:
                 return result
         except (httpx.HTTPError, ValueError):
@@ -324,7 +324,9 @@ def auto_setup_telegram_bot_result(
         idx += 1
 
         try:
-            result = poll_pairing_result_once(resolved_api_url, pairing)
+            result = poll_pairing_result_once(
+                resolved_api_url, pairing, timeout=poll_timeout
+            )
             if result:
                 sys.stdout.write(
                     "\r  ✓ Bot created successfully!                              \n"
