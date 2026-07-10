@@ -98,8 +98,13 @@ def json_diff(old: Any, new: Any) -> Dict[str, Any]:
         json.dumps(new)
     except (TypeError, ValueError) as exc:
         return {"ok": False, "error": f"inputs must be JSON-compatible: {exc}"}
+    except RecursionError:
+        return {"ok": False, "error": "input nesting too deep"}
 
-    added, removed, modified = _diff_values(old, new, "")
+    try:
+        added, removed, modified = _diff_values(old, new, "")
+    except RecursionError:
+        return {"ok": False, "error": "input nesting too deep"}
     return {
         "ok": True,
         "changed": bool(added or removed or modified),
@@ -123,10 +128,14 @@ def json_diff_text(old_json_str: str, new_json_str: str) -> Dict[str, Any]:
         old = json.loads(old_json_str)
     except json.JSONDecodeError as exc:
         return {"ok": False, "error": f"invalid JSON in old_json_str: {exc}"}
+    except RecursionError:
+        return {"ok": False, "error": "old_json_str nesting too deep"}
     try:
         new = json.loads(new_json_str)
     except json.JSONDecodeError as exc:
         return {"ok": False, "error": f"invalid JSON in new_json_str: {exc}"}
+    except RecursionError:
+        return {"ok": False, "error": "new_json_str nesting too deep"}
 
     return json_diff(old, new)
 
