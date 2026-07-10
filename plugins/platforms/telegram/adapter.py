@@ -415,13 +415,26 @@ def _rich_normalize_linebreaks(text: str) -> str:
 # never wakes, so an unguarded stop() hangs indefinitely and wedges the whole
 # reconnect/teardown ladder. This is an internal safety bound (not a user knob),
 # applied identically at every stop() site so no path can hang on a dead socket.
-_UPDATER_STOP_TIMEOUT = 15.0
+# Env-overridable; the `_env_float` helper lives inside a method (defined far
+# below), so it isn't callable at module load. Inline os.getenv + try/except
+# mirrors that helper's error handling exactly.
+try:
+    _UPDATER_STOP_TIMEOUT = float(os.getenv("HERMES_TELEGRAM_UPDATER_STOP_TIMEOUT", "15.0"))
+except (TypeError, ValueError):
+    _UPDATER_STOP_TIMEOUT = 15.0
 # start_polling() can also hang when the connection pool is in a degraded state
 # after _drain_polling_connections(), particularly when both primary and fallback
 # Telegram endpoints are unreachable. Bounding start_polling() prevents the
 # reconnect ladder from stalling indefinitely and allows the heartbeat loop to
 # trigger its own recovery path. Refs: NousResearch/hermes-agent#59614
-_UPDATER_START_TIMEOUT = 30.0
+try:
+    _UPDATER_START_TIMEOUT = float(os.getenv("HERMES_TELEGRAM_UPDATER_START_TIMEOUT", "30.0"))
+except (TypeError, ValueError):
+    _UPDATER_START_TIMEOUT = 30.0
+# Telegram Bot API max caption length (characters) for media messages
+# (photo/video/audio/voice/document/animation and media groups). Captions
+# longer than this are silently truncated to this bound before sending.
+_TELEGRAM_CAPTION_LIMIT = 1024
 
 
 class TelegramAdapter(BasePlatformAdapter):
@@ -5860,7 +5873,7 @@ class TelegramAdapter(BasePlatformAdapter):
                         {
                             "chat_id": normalize_telegram_chat_id(chat_id),
                             "voice": audio_file,
-                            "caption": caption[:1024] if caption else None,
+                            "caption": caption[:_TELEGRAM_CAPTION_LIMIT] if caption else None,
                             "reply_to_message_id": reply_to_id,
                             **voice_thread_kwargs,
                             **self._notification_kwargs(metadata),
@@ -5886,7 +5899,7 @@ class TelegramAdapter(BasePlatformAdapter):
                         {
                             "chat_id": normalize_telegram_chat_id(chat_id),
                             "audio": audio_file,
-                            "caption": caption[:1024] if caption else None,
+                            "caption": caption[:_TELEGRAM_CAPTION_LIMIT] if caption else None,
                             "reply_to_message_id": reply_to_id,
                             **audio_thread_kwargs,
                             **self._notification_kwargs(metadata),
@@ -5982,7 +5995,7 @@ class TelegramAdapter(BasePlatformAdapter):
             opened_files: List[Any] = []
             try:
                 for image_url, alt_text in chunk:
-                    caption = alt_text[:1024] if alt_text else None
+                    caption = alt_text[:_TELEGRAM_CAPTION_LIMIT] if alt_text else None
                     if image_url.startswith("file://"):
                         local_path = _unquote(image_url[7:])
                         if not os.path.exists(local_path):
@@ -6083,7 +6096,7 @@ class TelegramAdapter(BasePlatformAdapter):
                     {
                         "chat_id": normalize_telegram_chat_id(chat_id),
                         "photo": image_file,
-                        "caption": caption[:1024] if caption else None,
+                        "caption": caption[:_TELEGRAM_CAPTION_LIMIT] if caption else None,
                         "reply_to_message_id": reply_to_id,
                         **thread_kwargs,
                         **self._notification_kwargs(metadata),
@@ -6180,7 +6193,7 @@ class TelegramAdapter(BasePlatformAdapter):
                         "chat_id": normalize_telegram_chat_id(chat_id),
                         "document": f,
                         "filename": display_name,
-                        "caption": caption[:1024] if caption else None,
+                        "caption": caption[:_TELEGRAM_CAPTION_LIMIT] if caption else None,
                         "reply_to_message_id": reply_to_id,
                         **thread_kwargs,
                         **self._notification_kwargs(metadata),
@@ -6230,7 +6243,7 @@ class TelegramAdapter(BasePlatformAdapter):
                     {
                         "chat_id": normalize_telegram_chat_id(chat_id),
                         "video": f,
-                        "caption": caption[:1024] if caption else None,
+                        "caption": caption[:_TELEGRAM_CAPTION_LIMIT] if caption else None,
                         "reply_to_message_id": reply_to_id,
                         **thread_kwargs,
                         **self._notification_kwargs(metadata),
@@ -6285,7 +6298,7 @@ class TelegramAdapter(BasePlatformAdapter):
                 {
                     "chat_id": normalize_telegram_chat_id(chat_id),
                     "photo": image_url,
-                    "caption": caption[:1024] if caption else None,
+                    "caption": caption[:_TELEGRAM_CAPTION_LIMIT] if caption else None,
                     "reply_to_message_id": reply_to_id,
                     **photo_thread_kwargs,
                     **self._notification_kwargs(metadata),
@@ -6322,7 +6335,7 @@ class TelegramAdapter(BasePlatformAdapter):
                     {
                         "chat_id": normalize_telegram_chat_id(chat_id),
                         "photo": image_data,
-                        "caption": caption[:1024] if caption else None,
+                        "caption": caption[:_TELEGRAM_CAPTION_LIMIT] if caption else None,
                         "reply_to_message_id": reply_to_id,
                         **upload_thread_kwargs,
                         **self._notification_kwargs(metadata),
@@ -6369,7 +6382,7 @@ class TelegramAdapter(BasePlatformAdapter):
                 {
                     "chat_id": normalize_telegram_chat_id(chat_id),
                     "animation": animation_url,
-                    "caption": caption[:1024] if caption else None,
+                    "caption": caption[:_TELEGRAM_CAPTION_LIMIT] if caption else None,
                     "reply_to_message_id": reply_to_id,
                     **animation_thread_kwargs,
                     **self._notification_kwargs(metadata),
