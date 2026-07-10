@@ -1216,3 +1216,26 @@ class TestLingerTimeoutEnvOverride:
             assert mod._LINGER_TIMEOUT == 30.0
         finally:
             importlib.reload(gateway)
+
+
+class TestSystemctlTimeoutEnvOverride:
+    """_SYSTEMCTL_TIMEOUT is read from HERMES_GATEWAY_SYSTEMCTL_TIMEOUT at
+    import time, mirroring the same try/except-guarded env pattern as
+    _SUBPROCESS_TIMEOUT (see TestSubprocessTimeoutEnvOverride above).
+    """
+
+    def test_honors_env_override(self, monkeypatch):
+        monkeypatch.setenv("HERMES_GATEWAY_SYSTEMCTL_TIMEOUT", "99.0")
+        try:
+            mod = importlib.reload(gateway)
+            assert mod._SYSTEMCTL_TIMEOUT == 99.0
+        finally:
+            importlib.reload(gateway)
+
+    def test_invalid_value_falls_back_to_default(self, monkeypatch):
+        monkeypatch.setenv("HERMES_GATEWAY_SYSTEMCTL_TIMEOUT", "not-a-number")
+        try:
+            mod = importlib.reload(gateway)
+            assert mod._SYSTEMCTL_TIMEOUT == 30.0
+        finally:
+            importlib.reload(gateway)

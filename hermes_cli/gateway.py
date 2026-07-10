@@ -78,6 +78,14 @@ try:
 except (TypeError, ValueError):
     _LINGER_TIMEOUT = 30.0
 
+# Timeout for systemctl/loginctl/launchctl service-management subprocess calls
+# (install, enable, disable, daemon-reload, bootstrap, kickstart, etc).
+# Env-overridable using the same try/except pattern.
+try:
+    _SYSTEMCTL_TIMEOUT = float(os.getenv("HERMES_GATEWAY_SYSTEMCTL_TIMEOUT", "30.0"))
+except (TypeError, ValueError):
+    _SYSTEMCTL_TIMEOUT = 30.0
+
 # =============================================================================
 # Process Management (for manual gateway runs)
 # =============================================================================
@@ -1209,7 +1217,7 @@ def _recover_pending_systemd_restart(
             ["reset-failed", svc],
             system=system,
             check=False,
-            timeout=30,
+            timeout=_SYSTEMCTL_TIMEOUT,
         )
         _run_systemctl(
             ["start", svc],
@@ -2177,7 +2185,7 @@ def remove_legacy_hermes_units(
     for name, path in user_units:
         try:
             _run_systemctl(["stop", name], system=False, check=False, timeout=90)
-            _run_systemctl(["disable", name], system=False, check=False, timeout=30)
+            _run_systemctl(["disable", name], system=False, check=False, timeout=_SYSTEMCTL_TIMEOUT)
             path.unlink(missing_ok=True)
             print(f"  ✓ Removed {path}")
             removed += 1
@@ -2187,7 +2195,7 @@ def remove_legacy_hermes_units(
 
     if user_units:
         try:
-            _run_systemctl(["daemon-reload"], system=False, check=False, timeout=30)
+            _run_systemctl(["daemon-reload"], system=False, check=False, timeout=_SYSTEMCTL_TIMEOUT)
         except RuntimeError:
             pass
 
@@ -2204,7 +2212,7 @@ def remove_legacy_hermes_units(
                 try:
                     _run_systemctl(["stop", name], system=True, check=False, timeout=90)
                     _run_systemctl(
-                        ["disable", name], system=True, check=False, timeout=30
+                        ["disable", name], system=True, check=False, timeout=_SYSTEMCTL_TIMEOUT
                     )
                     path.unlink(missing_ok=True)
                     print(f"  ✓ Removed {path}")
@@ -2214,7 +2222,7 @@ def remove_legacy_hermes_units(
                     remaining.append(path)
 
             try:
-                _run_systemctl(["daemon-reload"], system=True, check=False, timeout=30)
+                _run_systemctl(["daemon-reload"], system=True, check=False, timeout=_SYSTEMCTL_TIMEOUT)
             except RuntimeError:
                 pass
 
@@ -2964,7 +2972,7 @@ def refresh_systemd_unit_if_needed(system: bool = False) -> bool:
         return False
 
     unit_path.write_text(new_unit, encoding="utf-8")
-    _run_systemctl(["daemon-reload"], system=system, check=True, timeout=30)
+    _run_systemctl(["daemon-reload"], system=system, check=True, timeout=_SYSTEMCTL_TIMEOUT)
     print(
         f"↻ Updated gateway {_service_scope_label(system)} service definition to match the current Hermes install"
     )
@@ -3014,7 +3022,7 @@ def _ensure_linger_enabled() -> None:
             capture_output=True,
             text=True,
             check=False,
-            timeout=30,
+            timeout=_LINGER_TIMEOUT,
         )
     except Exception as e:
         _print_linger_enable_warning(username, str(e))
@@ -3124,7 +3132,7 @@ def systemd_install(
             )
             refresh_systemd_unit_if_needed(system=system)
             if enable_on_startup:
-                _run_systemctl(["enable", get_service_name()], system=system, check=True, timeout=30)
+                _run_systemctl(["enable", get_service_name()], system=system, check=True, timeout=_SYSTEMCTL_TIMEOUT)
             print(f"✓ {_service_scope_label(system).capitalize()} service definition updated")
             return
         print(f"Service already installed at: {unit_path}")
@@ -3138,9 +3146,9 @@ def systemd_install(
     print(f"Installing {_service_scope_label(system)} systemd service to: {unit_path}")
     unit_path.write_text(new_unit, encoding="utf-8")
 
-    _run_systemctl(["daemon-reload"], system=system, check=True, timeout=30)
+    _run_systemctl(["daemon-reload"], system=system, check=True, timeout=_SYSTEMCTL_TIMEOUT)
     if enable_on_startup:
-        _run_systemctl(["enable", get_service_name()], system=system, check=True, timeout=30)
+        _run_systemctl(["enable", get_service_name()], system=system, check=True, timeout=_SYSTEMCTL_TIMEOUT)
 
     print()
     enable_label = "installed and enabled" if enable_on_startup else "installed"
@@ -3176,7 +3184,7 @@ def systemd_uninstall(system: bool = False):
 
     _run_systemctl(["stop", get_service_name()], system=system, check=False, timeout=90)
     _run_systemctl(
-        ["disable", get_service_name()], system=system, check=False, timeout=30
+        ["disable", get_service_name()], system=system, check=False, timeout=_SYSTEMCTL_TIMEOUT
     )
 
     unit_path = get_systemd_unit_path(system=system)
@@ -3184,7 +3192,7 @@ def systemd_uninstall(system: bool = False):
         unit_path.unlink()
         print(f"✓ Removed {unit_path}")
 
-    _run_systemctl(["daemon-reload"], system=system, check=True, timeout=30)
+    _run_systemctl(["daemon-reload"], system=system, check=True, timeout=_SYSTEMCTL_TIMEOUT)
     print(f"✓ {_service_scope_label(system).capitalize()} service uninstalled")
 
 
@@ -3208,7 +3216,7 @@ def systemd_start(system: bool = False):
         _preflight_user_systemd()
     _require_service_installed("start", system=system)
     refresh_systemd_unit_if_needed(system=system)
-    _run_systemctl(["start", get_service_name()], system=system, check=True, timeout=30)
+    _run_systemctl(["start", get_service_name()], system=system, check=True, timeout=_SYSTEMCTL_TIMEOUT)
     print(f"✓ {_service_scope_label(system).capitalize()} service started")
 
 
@@ -3267,7 +3275,7 @@ def systemd_restart(system: bool = False):
                 ["reset-failed", svc],
                 system=system,
                 check=False,
-                timeout=30,
+                timeout=_SYSTEMCTL_TIMEOUT,
             )
             _run_systemctl(
                 ["restart", svc],
@@ -3288,7 +3296,7 @@ def systemd_restart(system: bool = False):
             ["reset-failed", svc],
             system=system,
             check=False,
-            timeout=30,
+            timeout=_SYSTEMCTL_TIMEOUT,
         )
         try:
             _run_systemctl(["restart", svc], system=system, check=True, timeout=90)
@@ -3316,7 +3324,7 @@ def systemd_restart(system: bool = False):
         ["reset-failed", get_service_name()],
         system=system,
         check=False,
-        timeout=30,
+        timeout=_SYSTEMCTL_TIMEOUT,
     )
     try:
         _run_systemctl(
@@ -3588,7 +3596,7 @@ _LAUNCHCTL_BOOTSTRAP_EIO = 5
 
 
 def _launchctl_bootstrap(
-    domain: str, plist_path, label: str, *, timeout: int = 30
+    domain: str, plist_path, label: str, *, timeout: float = 30.0
 ) -> None:
     """Bootstrap a launchd job, recovering from a stale already-loaded label.
 
@@ -3686,7 +3694,7 @@ def _retry_launchctl_bootstrap_until_registered(
     while True:
         attempt += 1
         try:
-            _launchctl_bootstrap(domain, plist_path, label, timeout=30)
+            _launchctl_bootstrap(domain, plist_path, label, timeout=_SYSTEMCTL_TIMEOUT)
             if _launchctl_label_registered(label):
                 return True
             _append_launchd_reload_log(
@@ -4095,7 +4103,7 @@ def launchd_install(force: bool = False):
 
     try:
         _launchctl_bootstrap(
-            _launchd_domain(), plist_path, get_launchd_label(), timeout=30
+            _launchd_domain(), plist_path, get_launchd_label(), timeout=_SYSTEMCTL_TIMEOUT
         )
     except subprocess.CalledProcessError as e:
         if not _launchctl_domain_unsupported(e.returncode):
@@ -4143,11 +4151,11 @@ def launchd_start():
         plist_path.parent.mkdir(parents=True, exist_ok=True)
         plist_path.write_text(new_plist, encoding="utf-8")
         try:
-            _launchctl_bootstrap(_launchd_domain(), plist_path, label, timeout=30)
+            _launchctl_bootstrap(_launchd_domain(), plist_path, label, timeout=_SYSTEMCTL_TIMEOUT)
             subprocess.run(
                 ["launchctl", "kickstart", f"{_launchd_domain()}/{label}"],
                 check=True,
-                timeout=30,
+                timeout=_SYSTEMCTL_TIMEOUT,
             )
         except subprocess.CalledProcessError as e:
             if not _launchctl_domain_unsupported(e.returncode):
@@ -4163,7 +4171,7 @@ def launchd_start():
         subprocess.run(
             ["launchctl", "kickstart", f"{_launchd_domain()}/{label}"],
             check=True,
-            timeout=30,
+            timeout=_SYSTEMCTL_TIMEOUT,
         )
     except subprocess.CalledProcessError as e:
         if not _launchd_error_indicates_unloaded(e):
@@ -4171,11 +4179,11 @@ def launchd_start():
         # Job not loaded in this domain — re-bootstrap the plist and retry.
         print("↻ launchd job was unloaded; reloading service definition")
         try:
-            _launchctl_bootstrap(_launchd_domain(), plist_path, label, timeout=30)
+            _launchctl_bootstrap(_launchd_domain(), plist_path, label, timeout=_SYSTEMCTL_TIMEOUT)
             subprocess.run(
                 ["launchctl", "kickstart", f"{_launchd_domain()}/{label}"],
                 check=True,
-                timeout=30,
+                timeout=_SYSTEMCTL_TIMEOUT,
             )
         except subprocess.CalledProcessError as e2:
             # Even a fresh bootstrap can't manage the domain on this host —
@@ -4333,9 +4341,9 @@ def launchd_restart():
             subprocess.run(
                 ["launchctl", "bootstrap", _launchd_domain(), str(plist_path)],
                 check=True,
-                timeout=30,
+                timeout=_SYSTEMCTL_TIMEOUT,
             )
-            subprocess.run(["launchctl", "kickstart", target], check=True, timeout=30)
+            subprocess.run(["launchctl", "kickstart", target], check=True, timeout=_SYSTEMCTL_TIMEOUT)
         except subprocess.CalledProcessError as e2:
             if not _launchctl_domain_unsupported(e2.returncode):
                 raise

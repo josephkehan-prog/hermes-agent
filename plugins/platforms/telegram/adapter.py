@@ -463,6 +463,25 @@ try:
     _INIT_BACKOFF_MAX_SECONDS = float(os.getenv("HERMES_TELEGRAM_INIT_BACKOFF_MAX", "15.0"))
 except (TypeError, ValueError):
     _INIT_BACKOFF_MAX_SECONDS = 15.0
+# Number of attempts for the message-send retry loop (network errors, flood
+# control). Env-overridable, same helper-mirroring rationale as the
+# _UPDATER_* timeouts above.
+try:
+    _SEND_RETRY_ATTEMPTS = int(os.getenv("HERMES_TELEGRAM_SEND_RETRY_ATTEMPTS", "3"))
+except (TypeError, ValueError):
+    _SEND_RETRY_ATTEMPTS = 3
+# Base delay and per-attempt increment (seconds) for the polling-conflict
+# retry ladder in _handle_polling_conflict: delay = base + count * increment.
+# Env-overridable, same helper-mirroring rationale as the _UPDATER_* timeouts
+# above.
+try:
+    _POLLING_CONFLICT_BASE_DELAY = float(os.getenv("HERMES_TELEGRAM_CONFLICT_BASE_DELAY", "10.0"))
+except (TypeError, ValueError):
+    _POLLING_CONFLICT_BASE_DELAY = 10.0
+try:
+    _POLLING_CONFLICT_DELAY_INCREMENT = float(os.getenv("HERMES_TELEGRAM_CONFLICT_DELAY_INCREMENT", "10.0"))
+except (TypeError, ValueError):
+    _POLLING_CONFLICT_DELAY_INCREMENT = 10.0
 # Telegram Bot API max caption length (characters) for media messages
 # (photo/video/audio/voice/document/animation and media groups). Captions
 # longer than this are silently truncated to this bound before sending.
@@ -2529,7 +2548,9 @@ class TelegramAdapter(BasePlatformAdapter):
         # Telegram server-side getUpdates sessions typically expire within
         # 30s; the increasing back-off ensures we clear that window without
         # hammering the API on fast-restart loops.
-        RETRY_DELAY = 10 + (self._polling_conflict_count * 10)  # seconds
+        RETRY_DELAY = _POLLING_CONFLICT_BASE_DELAY + (
+            self._polling_conflict_count * _POLLING_CONFLICT_DELAY_INCREMENT
+        )  # seconds
 
         if self._polling_conflict_count <= MAX_CONFLICT_RETRIES:
             logger.warning(
@@ -2628,7 +2649,13 @@ class TelegramAdapter(BasePlatformAdapter):
             "or another process is using the same bot token. "
             "To recover: ensure no other Hermes or OpenClaw instance is running "
             "with this token, then restart the gateway with 'hermes gateway restart'."
-            % (MAX_CONFLICT_RETRIES, sum(10 + i * 10 for i in range(1, MAX_CONFLICT_RETRIES + 1)))
+            % (
+                MAX_CONFLICT_RETRIES,
+                sum(
+                    _POLLING_CONFLICT_BASE_DELAY + i * _POLLING_CONFLICT_DELAY_INCREMENT
+                    for i in range(1, MAX_CONFLICT_RETRIES + 1)
+                ),
+            )
         )
         logger.error(
             "[%s] %s Original error: %s",
@@ -3738,7 +3765,7 @@ class TelegramAdapter(BasePlatformAdapter):
                 effective_thread_id = thread_kwargs.get("message_thread_id")
 
                 msg = None
-                for _send_attempt in range(3):
+                for _send_attempt in range(_SEND_RETRY_ATTEMPTS):
                     try:
                         # Try Markdown first, fall back to plain text if it fails
                         try:
@@ -3862,22 +3889,23 @@ class TelegramAdapter(BasePlatformAdapter):
                             raise
                         if is_pool_timeout:
                             await self._drain_general_connections_after_pool_timeout()
-                        if _send_attempt < 2:
+                        if _send_attempt < _SEND_RETRY_ATTEMPTS - 1:
                             wait = 2 ** _send_attempt
                             safe_send_error = _redact_telegram_error_text(send_err)
-                            logger.warning("[%s] Network error on send (attempt %d/3), retrying in %ds: %s",
-                                           self.name, _send_attempt + 1, wait, safe_send_error)
+                            logger.warning(
+                                f"[%s] Network error on send (attempt %d/{_SEND_RETRY_ATTEMPTS}), retrying in %ds: %s",
+                                self.name, _send_attempt + 1, wait, safe_send_error)
                             await asyncio.sleep(wait)
                         else:
                             raise
                     except Exception as send_err:
                         retry_after = getattr(send_err, "retry_after", None)
                         if retry_after is not None or "retry after" in str(send_err).lower():
-                            if _send_attempt < 2:
+                            if _send_attempt < _SEND_RETRY_ATTEMPTS - 1:
                                 wait = float(retry_after) if retry_after is not None else 1.0
                                 safe_send_error = _redact_telegram_error_text(send_err)
                                 logger.warning(
-                                    "[%s] Telegram flood control on send (attempt %d/3), retrying in %.1fs: %s",
+                                    f"[%s] Telegram flood control on send (attempt %d/{_SEND_RETRY_ATTEMPTS}), retrying in %.1fs: %s",
                                     self.name,
                                     _send_attempt + 1,
                                     wait,

@@ -2284,6 +2284,10 @@ _BUSY_MAX_RETRIES = 5
 _BUSY_RETRY_MIN_S = 0.020  # 20ms
 _BUSY_RETRY_MAX_S = 0.150  # 150ms
 
+# Number of attempts to allocate a fresh task id before giving up on the
+# (extremely unlikely) id collision.
+_ID_COLLISION_MAX_ATTEMPTS = 2
+
 
 def _is_busy_error(exc: BaseException) -> bool:
     return isinstance(exc, sqlite3.OperationalError) and (
@@ -2574,7 +2578,7 @@ def create_task(
             workspace_path = str(board_default)
 
     # Retry once on the extremely unlikely id collision.
-    for attempt in range(2):
+    for attempt in range(_ID_COLLISION_MAX_ATTEMPTS):
         task_id = _new_task_id()
         try:
             with write_txn(conn):

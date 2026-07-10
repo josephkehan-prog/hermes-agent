@@ -1,0 +1,5 @@
+[
+  {"coin_id": "bitcoin", "amount": 0.05},
+  {"coin_id": "ethereum", "amount": 1.2},
+  {"coin_id": "usd-coin", "amount": 500}
+]
