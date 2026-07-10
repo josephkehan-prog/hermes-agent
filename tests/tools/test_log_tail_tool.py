@@ -1,8 +1,17 @@
 """Tests for tools/log_tail_tool.py — local log tailing and grep."""
 
+import json
+import logging
+import os
+import subprocess
+import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 from tools import log_tail_tool
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def _write_numbered_lines(tmp_path, count):
@@ -88,6 +97,41 @@ class TestGrepTail:
         assert result["count"] == 1
         assert result["matches"][0]["text"] == "ERROR boom"
 
+    def test_grep_tail_from_thread_pool_with_logging_contention_does_not_spuriously_time_out(self, tmp_path):
+        # Regression check for the fork-in-thread hazard: grep_tail is a
+        # registered tool handler and this repo dispatches tool handlers
+        # from daemon thread pools (tools/async_delegation.py,
+        # tools/daemon_pool.py), not just the main thread. fork() from a
+        # multithreaded process can inherit a lock (e.g. the logging
+        # module's lock) held by another thread at fork time, deadlocking
+        # the child silently and making a perfectly normal pattern report
+        # a spurious timeout. Drive grep_tail from a ThreadPoolExecutor
+        # worker while a second thread hammers logging in a tight loop, and
+        # assert it still matches normally instead of timing out.
+        path = tmp_path / "app.log"
+        path.write_text("\n".join([f"line {i}" for i in range(1, 51)] + ["ERROR boom"]) + "\n")
+
+        stop = threading.Event()
+
+        def _log_spam():
+            logger = logging.getLogger("test_log_tail_tool.spam")
+            while not stop.is_set():
+                logger.info("spam")
+
+        spammer = threading.Thread(target=_log_spam, daemon=True)
+        spammer.start()
+        try:
+            for _ in range(5):
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    result = pool.submit(log_tail_tool.grep_tail, str(path), r"ERROR", 1000).result(timeout=30)
+
+                assert result["ok"] is True, result
+                assert result["count"] == 1
+                assert result["matches"][0]["text"] == "ERROR boom"
+        finally:
+            stop.set()
+            spammer.join(timeout=5)
+
     def test_max_matches_caps_returned_matches(self, tmp_path):
         path = tmp_path / "app.log"
         path.write_text("\n".join(["ERROR fail"] * 10) + "\n")
@@ -147,3 +191,33 @@ class TestGrepTail:
         assert result["ok"] is True
         assert result["count"] == 1
         assert result["matches"][0]["text"] == "ERROR boom"
+
+    def test_grep_tail_works_when_caller_has_no_real_main_file(self, tmp_path):
+        # Regression check: grep_tail must not depend on multiprocessing's
+        # "spawn" start method, which re-execs the CALLING process's
+        # __main__ module in the child. A `python -c "..."` process has no
+        # real __main__ file (spawn would try to re-exec '<stdin>' and
+        # fail), so driving grep_tail from exactly that kind of caller is
+        # the regression guard for the fix (subprocess.run of a
+        # self-contained worker script instead of multiprocessing.Process).
+        path = tmp_path / "app.log"
+        path.write_text("\n".join([f"line {i}" for i in range(1, 21)] + ["ERROR boom"]) + "\n")
+
+        driver = (
+            "import json, sys\n"
+            "from tools import log_tail_tool\n"
+            f"print(json.dumps(log_tail_tool.grep_tail({str(path)!r}, r'ERROR', n=1000)))\n"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", driver],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=REPO_ROOT,
+        )
+
+        assert result.returncode == 0, result.stderr
+        payload = json.loads(result.stdout)
+        assert payload["ok"] is True
+        assert payload["count"] == 1
+        assert payload["matches"][0]["text"] == "ERROR boom"

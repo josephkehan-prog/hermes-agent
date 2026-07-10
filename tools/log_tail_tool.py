@@ -14,21 +14,40 @@ Two entry points:
 * ``grep_tail`` calls ``tail_lines`` first, then filters those lines with a
   compiled regex. Invalid patterns are rejected before any work starts.
   Catastrophic-backtracking patterns (e.g. ``(a+)+b``) are bounded by
-  running the actual regex scan in a killable child process under a
+  running the actual regex scan in a killable child *subprocess* under a
   wall-clock timeout (``GREP_TIMEOUT_SECONDS``); a plain ``except`` cannot
   stop runaway C-level regex backtracking mid-call — only terminating the
-  process running it can. If the scan doesn't finish in time, the child is
-  killed and ``grep_tail`` returns an error dict instead of hanging. Each
-  line is also capped at ``MAX_GREP_LINE_CHARS`` to bound cheap-pattern
-  cost on pathologically long lines.
+  process running it can. If the scan doesn't finish in time,
+  ``subprocess.run``'s own timeout handling kills the child and
+  ``grep_tail`` returns an error dict instead of hanging. Each line is
+  also capped at ``MAX_GREP_LINE_CHARS`` to bound cheap-pattern cost on
+  pathologically long lines.
+
+  This uses ``subprocess.run([sys.executable, "-c", ...])`` rather than
+  ``multiprocessing.Process`` on purpose. ``multiprocessing``'s "spawn"
+  start method re-execs the *parent's* ``__main__`` module in the child
+  to reconstruct its state — but grep_tail is invoked from callers whose
+  ``__main__`` isn't a real file (``python -c``, a heredoc, the REPL, or
+  any embedded/threaded caller), which makes the child fail with
+  ``FileNotFoundError: '<stdin>'`` instead of running. Even under a real
+  ``__main__`` (this repo's ``run_agent.py``), spawn would re-run that
+  module's top-level code in every child, which is slow and can be
+  side-effectful. ``fork()`` is not an option either: it's unsafe from
+  the daemon thread pools that dispatch this tool (tools/async_delegation.py,
+  tools/daemon_pool.py) — forking a multithreaded process can inherit a
+  lock (e.g. the logging module's lock) held by another thread that will
+  never be released in the child, deadlocking it silently. A plain
+  ``python -c <script>`` subprocess imports only stdlib, never re-execs
+  any module of ours, and works identically regardless of the parent's
+  ``__main__`` or which thread launched it.
 """
 
 import json
-import multiprocessing
 import os
 import re
 import stat
-import time
+import subprocess
+import sys
 from typing import Any, Dict, List
 
 from tools.registry import registry
@@ -41,13 +60,27 @@ DEFAULT_GREP_TAIL_LINES = 1_000
 DEFAULT_MAX_MATCHES = 200
 GREP_TIMEOUT_SECONDS = 5
 
-# "fork" is cheap (no re-import, shares memory via copy-on-write) and is
-# what POSIX (macOS/Linux) supports; fall back to "spawn" where fork isn't
-# available (e.g. Windows) rather than hard-failing at import time.
-try:
-    _MP_CTX = multiprocessing.get_context("fork")
-except ValueError:
-    _MP_CTX = multiprocessing.get_context("spawn")
+# Self-contained worker script run via `python -c`. Stdlib-only (json, re,
+# sys) — it deliberately imports nothing from this package, so there is no
+# __main__ to re-exec and no dependency on how/where it was launched from.
+# Reads a JSON payload from stdin, writes a JSON result to stdout.
+_WORKER_SRC = """
+import json, re, sys
+
+payload = json.loads(sys.stdin.read())
+compiled = re.compile(payload["pattern"])
+max_line_chars = payload["max_line_chars"]
+match_cap = payload["max_matches"]
+
+matches = []
+for line_no, text in enumerate(payload["lines"], start=1):
+    if len(matches) >= match_cap:
+        break
+    if compiled.search(text[:max_line_chars]):
+        matches.append({"line_no": line_no, "text": text})
+
+json.dump({"ok": True, "matches": matches}, sys.stdout)
+"""
 
 
 def _validate_readable_file(path: str) -> str:
@@ -124,59 +157,38 @@ def tail_lines(path: str, n: Any = DEFAULT_TAIL_LINES) -> Dict[str, Any]:
     }
 
 
-def _grep_worker(lines: List[str], pattern: str, match_cap: int, out_queue) -> None:
-    """Module-level target run in a child process: scan lines for pattern.
-    Must stay top-level (not a closure) so multiprocessing can pickle it.
+def _run_grep_subprocess(lines: List[str], pattern: str, match_cap: int) -> Dict[str, Any]:
+    """Run the regex scan in a killable child subprocess bounded by
+    GREP_TIMEOUT_SECONDS. subprocess.run's own timeout kills the child on
+    expiry, which actually stops runaway CPU — unlike a thread timeout or
+    signal.alarm (which only works on the main thread on POSIX, and tools
+    here may run in worker threads). See module docstring for why this is
+    a subprocess and not a multiprocessing.Process.
     """
-    compiled = re.compile(pattern)
-    matches: List[Dict[str, Any]] = []
-    for line_no, text in enumerate(lines, start=1):
-        scoped_text = text[:MAX_GREP_LINE_CHARS]
-        if compiled.search(scoped_text) and len(matches) < match_cap:
-            matches.append({"line_no": line_no, "text": text})
-    out_queue.put({"ok": True, "matches": matches})
-
-
-def _grep_inline_besteffort(lines: List[str], pattern: str, match_cap: int) -> Dict[str, Any]:
-    """Degraded fallback for when a child process can't be started at all
-    (e.g. a sandbox without fork/spawn permission). Can't kill a runaway
-    regex mid-line the way the subprocess path can — only bounds wall-clock
-    time between lines — so this is best-effort, not the primary defense.
-    """
-    compiled = re.compile(pattern)
-    deadline = time.monotonic() + GREP_TIMEOUT_SECONDS
-    matches: List[Dict[str, Any]] = []
-    for line_no, text in enumerate(lines, start=1):
-        if time.monotonic() > deadline:
-            return {"ok": False, "error": "pattern evaluation timed out (possible catastrophic backtracking)"}
-        scoped_text = text[:MAX_GREP_LINE_CHARS]
-        if compiled.search(scoped_text) and len(matches) < match_cap:
-            matches.append({"line_no": line_no, "text": text})
-    return {"ok": True, "matches": matches}
-
-
-def _run_grep_worker_bounded(lines: List[str], pattern: str, match_cap: int) -> Dict[str, Any]:
-    """Run _grep_worker in a killable child process bounded by
-    GREP_TIMEOUT_SECONDS. A terminated child actually stops the runaway
-    CPU, unlike a thread timeout or signal.alarm (which only works on the
-    main thread on POSIX and tools may run in worker threads).
-    """
+    payload = json.dumps({
+        "pattern": pattern,
+        "lines": lines,
+        "max_matches": match_cap,
+        "max_line_chars": MAX_GREP_LINE_CHARS,
+    })
     try:
-        queue = _MP_CTX.Queue()
-        process = _MP_CTX.Process(target=_grep_worker, args=(lines, pattern, match_cap, queue))
-        process.start()
-    except OSError:
-        return _grep_inline_besteffort(lines, pattern, match_cap)
-
-    process.join(GREP_TIMEOUT_SECONDS)
-    if process.is_alive():
-        process.terminate()
-        process.join()
+        result = subprocess.run(
+            [sys.executable, "-c", _WORKER_SRC],
+            input=payload,
+            capture_output=True,
+            text=True,
+            timeout=GREP_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
         return {"ok": False, "error": "pattern evaluation timed out (possible catastrophic backtracking)"}
 
-    if not queue.empty():
-        return queue.get()
-    return {"ok": False, "error": f"grep worker exited unexpectedly (code {process.exitcode})"}
+    if result.returncode != 0:
+        return {"ok": False, "error": f"grep worker failed: {result.stderr.strip()[:500]}"}
+
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return {"ok": False, "error": "grep worker returned malformed output"}
 
 
 def grep_tail(
@@ -200,7 +212,7 @@ def grep_tail(
         return {"ok": False, "path": path, "error": tail_result["error"]}
 
     match_cap = _clamp_n(max_matches, DEFAULT_MAX_MATCHES)
-    worker_result = _run_grep_worker_bounded(tail_result["lines"], pattern, match_cap)
+    worker_result = _run_grep_subprocess(tail_result["lines"], pattern, match_cap)
     if not worker_result["ok"]:
         return {"ok": False, "path": path, "error": worker_result["error"]}
 

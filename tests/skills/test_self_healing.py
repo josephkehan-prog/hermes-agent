@@ -210,6 +210,33 @@ class TestDestructiveActionGatedOnConfirm:
         assert outcome["ok"] is True
         assert "dry_run" not in outcome
 
+    def test_run_destructive_command_reports_timeout_not_failed_to_start(self, monkeypatch):
+        # subprocess.TimeoutExpired means the command DID start and run —
+        # it was killed for exceeding REMEDIATION_TIMEOUT_S. That must be
+        # reported distinctly from a real launch failure (e.g. ENOENT),
+        # since "failed to start" is misleading when the process ran.
+        def fake_run(command, **kwargs):
+            raise subprocess.TimeoutExpired(cmd=command, timeout=selfheal.REMEDIATION_TIMEOUT_S)
+
+        monkeypatch.setattr(selfheal.subprocess, "run", fake_run)
+
+        outcome = selfheal.run_destructive_command(["sleep", "999"], confirm=True)
+
+        assert outcome["ok"] is False
+        assert "timed out" in outcome["detail"]
+        assert "failed to start" not in outcome["detail"]
+
+    def test_run_destructive_command_reports_failed_to_start_for_oserror(self, monkeypatch):
+        def fake_run(command, **kwargs):
+            raise OSError("no such file or directory")
+
+        monkeypatch.setattr(selfheal.subprocess, "run", fake_run)
+
+        outcome = selfheal.run_destructive_command(["not-a-real-binary"], confirm=True)
+
+        assert outcome["ok"] is False
+        assert "failed to start" in outcome["detail"]
+
     def test_clear_temp_with_confirm_deletes_matching_files(self, tmp_path):
         target_file = tmp_path / "leftover.tmp"
         target_file.write_text("data")

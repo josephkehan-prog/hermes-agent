@@ -320,6 +320,12 @@ def run_destructive_command(command, confirm):
         return {"ok": True, "dry_run": True, "detail": f"would run: {command}"}
     try:
         proc = subprocess.run(command, capture_output=True, text=True, timeout=REMEDIATION_TIMEOUT_S)
+    except subprocess.TimeoutExpired as exc:
+        # TimeoutExpired means the command DID start and run — it was
+        # killed for exceeding REMEDIATION_TIMEOUT_S, not because it
+        # failed to launch. Report that distinctly from a real launch
+        # failure (e.g. binary not found).
+        return {"ok": False, "detail": f"command timed out after {REMEDIATION_TIMEOUT_S}s (killed): {exc}"}
     except (OSError, subprocess.SubprocessError) as exc:
         return {"ok": False, "detail": f"command failed to start: {exc}"}
     output = (proc.stdout or proc.stderr or "").strip()[:MAX_REMEDIATION_OUTPUT_CHARS]
