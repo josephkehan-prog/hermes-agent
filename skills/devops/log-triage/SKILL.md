@@ -125,6 +125,15 @@ req = urllib.request.Request(
 result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][0]["message"]["content"]
 ```
 
+**Verify wiring before relying on it:**
+
+```bash
+# agent1 (Ollama, deterministic extraction)
+curl -s http://localhost:11434/api/tags | grep -o 'Agents-A1[^"]*'
+# ornith (llama-swap, reasoning synthesis)
+curl -s http://localhost:1235/v1/models | grep -o 'ornith-uncensored'
+```
+
 ## Pitfalls
 
 - **Huge logs — always tail/cap.** Never point a generic file-read at a

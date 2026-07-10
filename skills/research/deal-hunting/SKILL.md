@@ -66,7 +66,7 @@ reliable keyless source from this environment. `old.reddit.com/.../*.rss`
 3. **Track**: switch to `deals.py watch <query> --out watchlist.json` on a recurring cadence (e.g. via the `cron`/`schedule` skill) to accumulate new matches over time, deduped by SHA-256 of the link so re-running never double-adds a deal.
 4. **Verify a standout deal**: for anything you're about to act on, open the link and, if price history matters, do a manual PCPartPicker/CamelCamelCamel check rather than trusting the listed price alone — deal titles are user-submitted and can be stale or wrong.
 
-## Model-Assisted Triage
+## Model Wiring
 
 For larger result sets, pipe the raw `search` output into a local model
 instead of hand-scanning every title. Two local endpoints, split by task
