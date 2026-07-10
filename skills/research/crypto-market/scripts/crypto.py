@@ -86,10 +86,13 @@ def cmd_price(args):
     }
     url = f"{COINGECKO_SIMPLE_PRICE}?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote)}"
     data = fetch_json(url)
+    if not isinstance(data, dict):
+        print("error: unexpected CoinGecko response shape", file=sys.stderr)
+        sys.exit(2)
 
     for coin_id in coin_ids:
         entry = data.get(coin_id)
-        if entry is None:
+        if not isinstance(entry, dict):
             print(f"{coin_id}: not found", file=sys.stderr)
             continue
         price = entry.get("usd")
@@ -148,10 +151,14 @@ def cmd_eth_balance(args):
         print(f"error: RPC error: {data['error']}", file=sys.stderr)
         sys.exit(2)
     result = data.get("result")
-    if result is None:
-        print("error: no result in RPC response", file=sys.stderr)
+    if not isinstance(result, str):
+        print("error: missing or malformed 'result' in RPC response", file=sys.stderr)
         sys.exit(2)
-    wei = int(result, 16)
+    try:
+        wei = int(result, 16)
+    except ValueError:
+        print(f"error: RPC result is not valid hex: {result!r}", file=sys.stderr)
+        sys.exit(2)
     eth = wei / 1e18
     print(f"{address}: {eth:.6f} ETH ({wei} wei)")
 

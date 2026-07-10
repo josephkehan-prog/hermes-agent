@@ -138,6 +138,34 @@ class TestPriceParsing:
         assert "not-a-real-coin: not found" in captured.err
 
 
+class TestPriceCrashRegressions:
+    """Regression tests for crash-class fixes in cmd_price's response-shape handling."""
+
+    def test_non_dict_top_level_response_exits_with_code_2(self, monkeypatch):
+        # Arrange: CoinGecko returns a list instead of the expected {coin_id: {...}} dict
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson(["unexpected", "list"]))
+        args = argparse.Namespace(coins=["bitcoin"])
+
+        # Act / Assert: guarded with a clean exit, not an AttributeError from data.get(...)
+        with pytest.raises(SystemExit) as exc_info:
+            crypto.cmd_price(args)
+
+        assert exc_info.value.code == 2
+
+    def test_non_dict_coin_entry_is_reported_not_found_without_crashing(self, monkeypatch, capsys):
+        # Arrange: bitcoin's entry is a list rather than the expected {"usd": ..., ...} dict
+        payload = {"bitcoin": ["not", "a", "dict"]}
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson(payload))
+        args = argparse.Namespace(coins=["bitcoin"])
+
+        # Act: no crash -- cmd_price returns normally, same as the existing not-found path
+        crypto.cmd_price(args)
+
+        # Assert
+        captured = capsys.readouterr()
+        assert "bitcoin: not found" in captured.err
+
+
 class TestFearGreedParsing:
     def test_parses_value_and_classification(self, monkeypatch, capsys):
         payload = {"data": [{"value": "72", "value_classification": "Greed"}]}
@@ -195,6 +223,47 @@ class TestEthBalanceConversion:
             crypto.cmd_eth_balance(args)
 
         assert exc_info.value.code == 2
+
+
+class TestEthBalanceCrashRegressions:
+    """Regression tests for crash-class fixes in cmd_eth_balance's result-shape handling."""
+
+    def test_non_string_result_exits_with_code_2(self, monkeypatch):
+        # Arrange: RPC "result" is an int instead of the expected hex string
+        payload = {"jsonrpc": "2.0", "id": 1, "result": 12345}
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson(payload))
+        args = argparse.Namespace(address="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
+
+        # Act / Assert: guarded with a clean exit, not a TypeError from int(result, 16)
+        with pytest.raises(SystemExit) as exc_info:
+            crypto.cmd_eth_balance(args)
+
+        assert exc_info.value.code == 2
+
+    def test_non_hex_result_exits_with_code_2(self, monkeypatch):
+        # Arrange: "result" is a string but not valid hex
+        payload = {"jsonrpc": "2.0", "id": 1, "result": "0xNOTHEX"}
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson(payload))
+        args = argparse.Namespace(address="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
+
+        # Act / Assert: guarded with a clean exit, not an uncaught ValueError from int(result, 16)
+        with pytest.raises(SystemExit) as exc_info:
+            crypto.cmd_eth_balance(args)
+
+        assert exc_info.value.code == 2
+
+    def test_valid_hex_result_still_parses_correctly(self, monkeypatch, capsys):
+        # Arrange: 2 ETH = 0x1bc16d674ec80000 wei -- happy path must still work after the guards
+        payload = {"jsonrpc": "2.0", "id": 1, "result": "0x1bc16d674ec80000"}
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson(payload))
+        args = argparse.Namespace(address="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
+
+        # Act
+        crypto.cmd_eth_balance(args)
+
+        # Assert
+        out = capsys.readouterr().out
+        assert "2.000000 ETH" in out
 
 
 class TestResponseCap:
