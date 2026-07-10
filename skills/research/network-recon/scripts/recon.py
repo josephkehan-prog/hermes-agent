@@ -28,7 +28,9 @@ import urllib.parse
 import urllib.request
 
 MAX_RESPONSE_BYTES = 10_000_000
+MAX_WHOIS_BYTES = 1_000_000
 DEFAULT_TIMEOUT_SECONDS = 15
+MAX_REDIRECTS = 3
 ALLOWED_SCHEMES = {"http", "https"}
 USER_AGENT = "Mozilla/5.0 (compatible; hermes-network-recon/1.0)"
 
@@ -83,6 +85,13 @@ def _reject_private_target(url):
     link-local ranges, or a cloud metadata endpoint (169.254.169.254) and read
     back the response. Hostnames are resolved via DNS before the check; if
     resolution fails, the request is refused rather than allowed through.
+
+    NOTE: there's a TOCTOU/DNS-rebinding window here — the hostname is
+    resolved again (independently) when the actual connection is made, so a
+    hostname could theoretically re-resolve to a private address between
+    this check and the real request. Fully closing that gap would mean
+    pinning the validated IP and connecting to it directly instead of
+    letting the hostname re-resolve; out of scope for this pass.
     """
     hostname = urllib.parse.urlparse(url).hostname
     if not hostname:
@@ -206,11 +215,30 @@ def audit_security_headers(headers):
     return {"present": present, "missing": missing}
 
 
+class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Re-validates every redirect hop before following it.
+
+    The default urllib redirect handling blindly follows 301/302/303/307/308
+    Location headers, so a public URL that redirects to a private/loopback/
+    link-local/metadata address would bypass the pre-request
+    _reject_private_target check below. This handler re-runs that same
+    validation on each hop's resolved target before it's allowed through.
+    """
+
+    max_redirections = MAX_REDIRECTS
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _require_http_scheme(newurl)
+        _reject_private_target(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def fetch_fingerprint(url):
     _require_http_scheme(url)
     _reject_private_target(url)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT}, method="GET")
-    with urllib.request.urlopen(request, timeout=DEFAULT_TIMEOUT_SECONDS) as response:
+    opener = urllib.request.build_opener(_SafeRedirectHandler())
+    with opener.open(request, timeout=DEFAULT_TIMEOUT_SECONDS) as response:
         _read_capped(response)
         headers = dict(response.headers.items())
         status = response.status
@@ -246,7 +274,8 @@ def run_whois(domain):
         _fail(f"whois lookup for {domain} timed out")
     if completed.returncode != 0 and not completed.stdout:
         _fail(f"whois lookup failed: {completed.stderr.strip()}")
-    return completed.stdout
+    # Cap output size to match the "cap everywhere" contract applied to HTTP responses.
+    return completed.stdout[:MAX_WHOIS_BYTES]
 
 
 def cmd_whois(args):

@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import urllib.request
+from http.client import HTTPMessage
 from pathlib import Path
 
 import pytest
@@ -178,6 +180,112 @@ class TestRejectPrivateTarget:
             recon.fetch_fingerprint("http://127.0.0.1/")
 
         assert exc_info.value.code == 2
+
+
+class TestSafeRedirectHandler:
+    """A public URL that 30x-redirects to a private/loopback/metadata address
+    must not be followed — the redirect handler has to re-validate each hop,
+    not just the original request URL."""
+
+    def test_redirect_to_loopback_target_is_refused(self):
+        handler = recon._SafeRedirectHandler()
+        req = urllib.request.Request("https://public.example.com/")
+
+        with pytest.raises(SystemExit) as exc_info:
+            handler.redirect_request(
+                req, None, 302, "Found", HTTPMessage(), "http://127.0.0.1/"
+            )
+
+        assert exc_info.value.code == 2
+
+    def test_redirect_to_metadata_target_is_refused(self):
+        handler = recon._SafeRedirectHandler()
+        req = urllib.request.Request("https://public.example.com/")
+
+        with pytest.raises(SystemExit) as exc_info:
+            handler.redirect_request(
+                req,
+                None,
+                302,
+                "Found",
+                HTTPMessage(),
+                "http://169.254.169.254/latest/meta-data/",
+            )
+
+        assert exc_info.value.code == 2
+
+    def test_redirect_to_public_target_is_followed(self, monkeypatch):
+        monkeypatch.setattr(recon.socket, "gethostbyname", lambda host: "93.184.216.34")
+        handler = recon._SafeRedirectHandler()
+        req = urllib.request.Request("https://public.example.com/")
+
+        new_request = handler.redirect_request(
+            req, None, 302, "Found", HTTPMessage(), "https://example.com/next"
+        )
+
+        assert new_request.full_url == "https://example.com/next"
+
+    def test_fetch_fingerprint_follows_redirect_to_public_host_and_returns_response(
+        self, monkeypatch
+    ):
+        """End-to-end: a public URL that redirects to another public URL still
+        resolves normally through fetch_fingerprint's opener."""
+        monkeypatch.setattr(recon.socket, "gethostbyname", lambda host: "93.184.216.34")
+
+        class FakeResponse:
+            status = 200
+            headers = HTTPMessage()
+
+            def read(self, n=-1):
+                return b""
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc_info):
+                return False
+
+        def fake_open(self, req, timeout=None):
+            return FakeResponse()
+
+        monkeypatch.setattr(urllib.request.OpenerDirector, "open", fake_open)
+
+        result = recon.fetch_fingerprint("https://public.example.com/")
+
+        assert result["status"] == 200
+
+    def test_fetch_fingerprint_rejects_redirect_chain_to_private_host(self, monkeypatch):
+        """Simulate the opener actually walking a redirect hop to a private
+        target: the _SafeRedirectHandler must refuse it mid-chain rather
+        than returning a fetched response."""
+        monkeypatch.setattr(recon.socket, "gethostbyname", lambda host: "93.184.216.34")
+
+        def fake_open(opener_self, req, timeout=None):
+            handler = recon._SafeRedirectHandler()
+            handler.redirect_request(
+                req, None, 302, "Found", HTTPMessage(), "http://127.0.0.1/admin"
+            )
+            raise AssertionError("should not reach here — redirect must be refused")
+
+        monkeypatch.setattr(urllib.request.OpenerDirector, "open", fake_open)
+
+        with pytest.raises(SystemExit) as exc_info:
+            recon.fetch_fingerprint("https://public.example.com/")
+
+        assert exc_info.value.code == 2
+
+
+class TestRunWhoisOutputCap:
+    def test_whois_output_is_truncated_to_max_bytes(self, monkeypatch, tmp_path):
+        fake_whois = tmp_path / "whois"
+        fake_whois.write_text("#!/bin/sh\necho fake output\n")
+        fake_whois.chmod(0o755)
+        monkeypatch.setattr(recon.shutil, "which", lambda name: str(fake_whois))
+        monkeypatch.setattr(recon, "MAX_WHOIS_BYTES", 5)
+
+        output = recon.run_whois("example.com")
+
+        assert len(output) == 5
 
 
 class TestFetchCrtshSubdomains:
