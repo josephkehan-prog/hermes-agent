@@ -456,6 +456,13 @@ try:
     _WEBHOOK_PROBE_TIMEOUT = float(os.getenv("HERMES_TELEGRAM_WEBHOOK_PROBE_TIMEOUT", "10.0"))
 except (TypeError, ValueError):
     _WEBHOOK_PROBE_TIMEOUT = 10.0
+# Upper bound (seconds) for the exponential backoff between Telegram init
+# connect retries: the delay is min(2 ** attempt, this). Env-overridable, same
+# helper-mirroring rationale as the _UPDATER_* timeouts above.
+try:
+    _INIT_BACKOFF_MAX_SECONDS = float(os.getenv("HERMES_TELEGRAM_INIT_BACKOFF_MAX", "15.0"))
+except (TypeError, ValueError):
+    _INIT_BACKOFF_MAX_SECONDS = 15.0
 # Telegram Bot API max caption length (characters) for media messages
 # (photo/video/audio/voice/document/animation and media groups). Captions
 # longer than this are silently truncated to this bound before sending.
@@ -3284,7 +3291,7 @@ class TelegramAdapter(BasePlatformAdapter):
                     break
                 except asyncio.TimeoutError:
                     if _attempt < _max_connect - 1:
-                        wait = min(2 ** _attempt, 15)
+                        wait = min(2 ** _attempt, _INIT_BACKOFF_MAX_SECONDS)
                         logger.warning(
                             "[%s] Connect attempt %d/%d timed out after %.0fs — retrying in %ds",
                             self.name, _attempt + 1, _max_connect, _init_timeout, wait,
@@ -3298,7 +3305,7 @@ class TelegramAdapter(BasePlatformAdapter):
                         )
                 except (NetworkError, TimedOut, OSError) as init_err:
                     if _attempt < _max_connect - 1:
-                        wait = min(2 ** _attempt, 15)
+                        wait = min(2 ** _attempt, _INIT_BACKOFF_MAX_SECONDS)
                         logger.warning(
                             "[%s] Connect attempt %d/%d failed: %s — retrying in %ds",
                             self.name, _attempt + 1, _max_connect, init_err, wait,

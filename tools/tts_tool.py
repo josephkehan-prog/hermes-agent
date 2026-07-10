@@ -223,8 +223,17 @@ DEFAULT_OUTPUT_DIR = _get_default_output_dir()
 # context window.  Users can override any of these via
 # ``tts.<provider>.max_text_length`` in config.yaml.
 # ---------------------------------------------------------------------------
+# edge-tts practical sync char limit. Env-overridable so deployments hitting
+# longer inputs can raise it without a code change. Inline os.getenv +
+# try/except mirrors the env-config pattern used elsewhere (see the telegram
+# adapter's _UPDATER_STOP_TIMEOUT).
+try:
+    _EDGE_SYNC_LIMIT = int(os.getenv("HERMES_TTS_EDGE_SYNC_LIMIT", "5000"))
+except (TypeError, ValueError):
+    _EDGE_SYNC_LIMIT = 5000
+
 PROVIDER_MAX_TEXT_LENGTH: Dict[str, int] = {
-    "edge": 5000,         # edge-tts practical sync limit
+    "edge": _EDGE_SYNC_LIMIT,  # edge-tts practical sync limit (env-overridable)
     "openai": 4096,       # https://platform.openai.com/docs/guides/text-to-speech
     "xai": 15000,         # https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
     "minimax": 10000,     # https://platform.minimax.io/docs/api-reference/speech-t2a-http (sync)

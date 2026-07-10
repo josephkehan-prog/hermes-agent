@@ -70,6 +70,14 @@ try:
 except (TypeError, ValueError):
     _SUBPROCESS_TIMEOUT = 5.0
 
+# Timeout for `loginctl enable-linger`, which can block on polkit prompts or
+# a slow systemd-logind — longer than the quick probes above. Env-overridable
+# using the same try/except pattern.
+try:
+    _LINGER_TIMEOUT = float(os.getenv("HERMES_GATEWAY_LINGER_TIMEOUT", "30.0"))
+except (TypeError, ValueError):
+    _LINGER_TIMEOUT = 30.0
+
 # =============================================================================
 # Process Management (for manual gateway runs)
 # =============================================================================
@@ -1613,7 +1621,7 @@ def _systemd_operational(system: bool = False) -> bool:
             system=system,
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=_SUBPROCESS_TIMEOUT,
         )
         # "running", "degraded", "starting" all mean systemd is PID 1
         status = result.stdout.strip().lower()
@@ -1923,7 +1931,7 @@ def _preflight_user_systemd(*, auto_enable_linger: bool = True) -> None:
                 capture_output=True,
                 text=True,
                 check=False,
-                timeout=30,
+                timeout=_LINGER_TIMEOUT,
             )
         except Exception as exc:
             _raise_user_systemd_unavailable(

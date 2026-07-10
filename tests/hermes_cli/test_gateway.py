@@ -1193,3 +1193,26 @@ class TestSubprocessTimeoutEnvOverride:
             assert mod._SUBPROCESS_TIMEOUT == 5.0
         finally:
             importlib.reload(gateway)
+
+
+class TestLingerTimeoutEnvOverride:
+    """_LINGER_TIMEOUT is read from HERMES_GATEWAY_LINGER_TIMEOUT at import
+    time, mirroring the same try/except-guarded env pattern as
+    _SUBPROCESS_TIMEOUT (see TestSubprocessTimeoutEnvOverride above).
+    """
+
+    def test_honors_env_override(self, monkeypatch):
+        monkeypatch.setenv("HERMES_GATEWAY_LINGER_TIMEOUT", "45.0")
+        try:
+            mod = importlib.reload(gateway)
+            assert mod._LINGER_TIMEOUT == 45.0
+        finally:
+            importlib.reload(gateway)
+
+    def test_invalid_value_falls_back_to_default(self, monkeypatch):
+        monkeypatch.setenv("HERMES_GATEWAY_LINGER_TIMEOUT", "not-a-number")
+        try:
+            mod = importlib.reload(gateway)
+            assert mod._LINGER_TIMEOUT == 30.0
+        finally:
+            importlib.reload(gateway)
