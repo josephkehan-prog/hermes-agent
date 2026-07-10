@@ -1474,3 +1474,120 @@ def test_npm_audit_fix_hint_avoids_crashing_workspace_flag(monkeypatch, tmp_path
     assert "build-time tooling" in out
     assert "known npm bug" in out
     assert "lockfile bump" in out
+
+
+# ── Local model stack section (llama-server / Ollama / RAM / disk) ──────────
+
+
+class TestDoctorLocalModelStack:
+    """`hermes doctor`'s ◆ Local model stack section is entirely optional
+    local infra (llama-server, Ollama, host RAM/disk). All probes must be
+    best-effort: a down local server should never crash the doctor, and
+    should never block `hermes doctor --fix` since plenty of installs never
+    run a local model at all."""
+
+    def _fake_httpx_get(self, monkeypatch, llama_response=None, ollama_response=None):
+        import httpx
+
+        def fake_get(url, timeout=None):
+            if "1235" in url:
+                if llama_response is None:
+                    raise httpx.ConnectError("connection refused")
+                return llama_response
+            if "11434" in url:
+                if ollama_response is None:
+                    raise httpx.ConnectError("connection refused")
+                return ollama_response
+            raise AssertionError(f"unexpected URL probed: {url}")
+
+        monkeypatch.setattr(httpx, "get", fake_get)
+
+    def test_reports_reachable_servers_with_model_details(self, monkeypatch, tmp_path, capsys):
+        import psutil
+
+        self._fake_httpx_get(
+            monkeypatch,
+            llama_response=SimpleNamespace(
+                status_code=200,
+                json=lambda: {"data": [{"id": "ornith-uncensored"}]},
+            ),
+            ollama_response=SimpleNamespace(
+                status_code=200,
+                json=lambda: {"models": [{"name": "a"}, {"name": "b"}]},
+            ),
+        )
+        monkeypatch.setattr(
+            psutil, "virtual_memory",
+            lambda: SimpleNamespace(total=64 * 1024**3, available=40 * 1024**3),
+        )
+        home = tmp_path / ".hermes"
+        home.mkdir()
+        monkeypatch.setattr(doctor_mod, "HERMES_HOME", home)
+        monkeypatch.setattr(
+            doctor_mod.shutil, "disk_usage",
+            lambda path: SimpleNamespace(total=0, used=0, free=100 * 1024**3),
+        )
+
+        issues = []
+        doctor_mod._check_local_model_stack(issues)
+        out = capsys.readouterr().out
+
+        assert "Local model stack" in out
+        assert "llama-server reachable" in out
+        assert "model=ornith-uncensored" in out
+        assert "Ollama reachable" in out
+        assert "2 model(s)" in out
+        assert "System RAM" in out
+        assert "Disk space" in out
+        assert "✗" not in out
+        # Optional local infra should never block --fix.
+        assert issues == []
+
+    def test_warns_without_raising_when_servers_unreachable(self, monkeypatch, tmp_path, capsys):
+        import psutil
+
+        self._fake_httpx_get(monkeypatch, llama_response=None, ollama_response=None)
+        monkeypatch.setattr(
+            psutil, "virtual_memory",
+            lambda: SimpleNamespace(total=64 * 1024**3, available=40 * 1024**3),
+        )
+        home = tmp_path / ".hermes"
+        home.mkdir()
+        monkeypatch.setattr(doctor_mod, "HERMES_HOME", home)
+        monkeypatch.setattr(
+            doctor_mod.shutil, "disk_usage",
+            lambda path: SimpleNamespace(total=0, used=0, free=100 * 1024**3),
+        )
+
+        issues = []
+        doctor_mod._check_local_model_stack(issues)
+        out = capsys.readouterr().out
+
+        assert "llama-server not reachable" in out
+        assert "Ollama not reachable" in out
+        assert issues == []
+
+    def test_warns_on_low_ram_and_low_disk(self, monkeypatch, tmp_path, capsys):
+        import psutil
+
+        self._fake_httpx_get(monkeypatch, llama_response=None, ollama_response=None)
+        monkeypatch.setattr(
+            psutil, "virtual_memory",
+            lambda: SimpleNamespace(total=16 * 1024**3, available=2 * 1024**3),
+        )
+        home = tmp_path / ".hermes"
+        home.mkdir()
+        monkeypatch.setattr(doctor_mod, "HERMES_HOME", home)
+        monkeypatch.setattr(
+            doctor_mod.shutil, "disk_usage",
+            lambda path: SimpleNamespace(total=0, used=0, free=1 * 1024**3),
+        )
+
+        issues = []
+        doctor_mod._check_local_model_stack(issues)
+        out = capsys.readouterr().out
+
+        assert "System RAM low" in out
+        assert "Disk space low" in out
+        # Still best-effort/non-blocking even when resources are low.
+        assert issues == []

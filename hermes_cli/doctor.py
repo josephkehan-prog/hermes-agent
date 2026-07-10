@@ -388,6 +388,78 @@ def _check_gateway_service_linger(issues: list[str]) -> None:
         check_warn("Could not verify systemd linger", f"({linger_detail})")
 
 
+def _check_local_model_stack(issues: list[str]) -> None:
+    """Report health of the local on-device model stack.
+
+    Ports the unique checks from the workspace ``hermes-health`` script
+    (llama-server / Ollama reachability, host RAM, disk headroom) into the
+    product doctor. Every probe here is read-only, keyless, and best-effort:
+    running a local model server is optional (not every Hermes install has
+    one), so a down/unreachable server is reported as a warning here rather
+    than appended to ``issues`` — it shouldn't block ``hermes doctor --fix``
+    or read as a broken install for users who don't run local models at all.
+    """
+    _section("Local model stack")
+
+    try:
+        import httpx
+
+        try:
+            r = httpx.get("http://127.0.0.1:1235/v1/models", timeout=2)
+            if r.status_code == 200:
+                body = r.json() if callable(getattr(r, "json", None)) else {}
+                models = body.get("data") or body.get("models") or []
+                model_id = models[0].get("id") if models and isinstance(models[0], dict) else None
+                check_ok(
+                    "llama-server reachable",
+                    f"(127.0.0.1:1235{f', model={model_id}' if model_id else ''})",
+                )
+            else:
+                check_warn("llama-server not reachable", f"(127.0.0.1:1235 returned HTTP {r.status_code})")
+        except Exception:
+            check_warn("llama-server not reachable", "(127.0.0.1:1235 — not running or unreachable)")
+
+        try:
+            r = httpx.get("http://127.0.0.1:11434/api/tags", timeout=2)
+            if r.status_code == 200:
+                models = r.json().get("models") or []
+                check_ok("Ollama reachable", f"(127.0.0.1:11434, {len(models)} model(s))")
+            else:
+                check_warn("Ollama not reachable", f"(127.0.0.1:11434 returned HTTP {r.status_code})")
+        except Exception:
+            check_warn("Ollama not reachable", "(127.0.0.1:11434 — not running or unreachable)")
+    except Exception as e:
+        check_warn("Local model server checks failed", str(e))
+
+    try:
+        import psutil  # type: ignore
+
+        vm = psutil.virtual_memory()
+        total_gb = vm.total / (1024 ** 3)
+        available_gb = vm.available / (1024 ** 3)
+        detail = f"({available_gb:.1f} GB available / {total_gb:.1f} GB total)"
+        if available_gb < 8:
+            check_warn("System RAM low", detail + " — tight for local models (64GB boxes run one at a time)")
+        else:
+            check_ok("System RAM", detail)
+    except Exception as e:
+        check_warn("Could not determine system RAM", str(e))
+
+    try:
+        disk_path = HERMES_HOME
+        while not disk_path.exists() and disk_path != disk_path.parent:
+            disk_path = disk_path.parent
+        usage = shutil.disk_usage(str(disk_path))
+        free_gb = usage.free / (1024 ** 3)
+        detail = f"({free_gb:.1f} GB free on {disk_path})"
+        if free_gb < 5:
+            check_warn("Disk space low", detail)
+        else:
+            check_ok("Disk space", detail)
+    except Exception as e:
+        check_warn("Could not determine disk free space", str(e))
+
+
 _APIKEY_PROVIDERS_CACHE: list | None = None
 
 
@@ -2165,6 +2237,8 @@ def run_doctor(args):
             _issues_to_add = []
         for _issue in _issues_to_add:
             issues.append(_issue)
+
+    _check_local_model_stack(issues)
 
     _section("Tool Availability")
     try:

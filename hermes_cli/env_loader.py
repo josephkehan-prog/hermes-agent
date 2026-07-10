@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
+import tempfile
 from pathlib import Path
 
 from dotenv import load_dotenv
+from hermes_constants import get_env_path
 from utils import atomic_replace, fast_safe_load
 
 
@@ -394,3 +397,149 @@ def _load_secrets_config(home_path: Path) -> dict:
     except Exception:  # noqa: BLE001
         return {}
     return data.get("secrets") or {}
+
+
+# ─── Secret distribution (inbox → canonical .env + routed extras) ─────────────
+#
+# SECURITY: every function below is written under one hard rule — secret
+# VALUES are never printed, logged, or included in a return value. Only key
+# NAMES, actions ("added"/"updated"), and destination paths ever leave this
+# module. This mirrors the tested upsert/route semantics of the
+# `bin/hermes-tokens` bash tool, reimplemented natively so callers (setup
+# flows, `hermes tokens`-style commands) don't have to shell out.
+
+_ENV_KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def upsert_env_var(dest_path: str | os.PathLike, key: str, value: str) -> str:
+    """Upsert ``KEY=value`` into an .env-style file at *dest_path*, atomically.
+
+    Replaces an existing ``KEY=`` line in place; appends a new ``KEY=value``
+    line if absent. Every other line in the file is preserved verbatim
+    (comments, blank lines, unrelated keys, ordering). Creates *dest_path*
+    (chmod 600) if it doesn't exist yet. A leading ``~/`` in *dest_path* is
+    expanded.
+
+    Writes are atomic: content is written to a chmod-600 temp file in the
+    same directory, fsync'd, then swapped into place with ``os.replace``
+    (via :func:`utils.atomic_replace`, which also preserves symlinks — e.g.
+    a managed ``.env`` symlinked from a dotfiles repo). A crash mid-write
+    leaves the previous file intact.
+
+    *value* is never printed, logged, or returned — only the action taken.
+
+    Returns ``"updated"`` if an existing ``KEY=`` line was replaced,
+    ``"added"`` if a new line was appended.
+
+    Raises ``FileNotFoundError`` if *dest_path*'s parent directory doesn't
+    exist (we refuse to silently create arbitrary directory trees for a
+    typo'd route path).
+    """
+    dest = Path(dest_path).expanduser()
+    if not dest.parent.is_dir():
+        raise FileNotFoundError(
+            f"destination directory does not exist: {dest.parent} (for key {key})"
+        )
+
+    if dest.exists():
+        with open(dest, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    else:
+        lines = []
+
+    prefix = f"{key}="
+    new_line = f"{key}={value}\n"
+    found = False
+    new_lines: list[str] = []
+    for line in lines:
+        if line.startswith(prefix):
+            new_lines.append(new_line)
+            found = True
+        else:
+            new_lines.append(line)
+    if not found:
+        # Make sure the prior last line is newline-terminated before we
+        # append, so the new key doesn't get glued onto it.
+        if new_lines and not new_lines[-1].endswith("\n"):
+            new_lines[-1] = new_lines[-1] + "\n"
+        new_lines.append(new_line)
+
+    fd, tmp_path = tempfile.mkstemp(
+        dir=str(dest.parent), prefix=f".{dest.name}_", suffix=".tmp"
+    )
+    try:
+        os.chmod(tmp_path, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+            f.flush()
+            os.fsync(f.fileno())
+        real_path = atomic_replace(tmp_path, dest)
+    except BaseException:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+    os.chmod(real_path, 0o600)
+
+    return "updated" if found else "added"
+
+
+def distribute_secrets(
+    inbox_path: str | os.PathLike,
+    routes: dict[str, list[str | os.PathLike]] | None = None,
+) -> list[dict[str, str]]:
+    """Distribute ``KEY=value`` secrets from an inbox file to their destinations.
+
+    Reads *inbox_path* line by line. Blank lines and full-line ``#`` comments
+    are ignored. Each remaining line must be ``KEY=value`` where ``KEY``
+    matches ``^[A-Za-z_][A-Za-z0-9_]*$`` and ``value`` is non-empty;
+    malformed lines raise ``ValueError`` naming only the offending KEY (never
+    any value, including on the failing line itself).
+
+    For each valid key, the value is upserted (see :func:`upsert_env_var`)
+    into the canonical Hermes store — ``hermes_constants.get_env_path()``,
+    i.e. ``HERMES_HOME/.env`` — plus any extra destination paths named for
+    that key in the optional *routes* mapping (``KEY -> [path, ...]``). A
+    leading ``~/`` in a routed path is expanded.
+
+    Returns a list of ``{"key": ..., "action": ..., "dest": ...}`` entries —
+    one per (key, destination) pair, in processing order — where ``action``
+    is ``"added"`` or ``"updated"``. This is a receipt: key NAMES and
+    destinations only. Values never appear in the return value, and this
+    function never prints or logs anything.
+    """
+    inbox = Path(inbox_path).expanduser()
+    if not inbox.exists():
+        raise FileNotFoundError(f"secret inbox not found: {inbox}")
+
+    routes = routes or {}
+    canonical = get_env_path()
+
+    summary: list[dict[str, str]] = []
+    with open(inbox, "r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.rstrip("\n")
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if "=" not in line:
+                key_guess = line.strip() or "<blank>"
+                raise ValueError(f"malformed inbox line (no '='): {key_guess}")
+
+            key, _, value = line.partition("=")
+            key = key.strip()
+            if not _ENV_KEY_RE.match(key):
+                raise ValueError(f"invalid key name: {key!r}")
+            if not value:
+                raise ValueError(f"empty value for key: {key}")
+
+            dests: list[Path] = [canonical]
+            for extra in routes.get(key, []):
+                dests.append(Path(extra).expanduser())
+
+            for dest in dests:
+                action = upsert_env_var(dest, key, value)
+                summary.append({"key": key, "action": action, "dest": str(dest)})
+
+    return summary
