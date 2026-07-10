@@ -32,6 +32,7 @@ MAX_RESPONSE_BYTES = 10_000_000
 COINGECKO_SIMPLE_PRICE = "https://api.coingecko.com/api/v3/simple/price"
 
 COIN_ID_RE = re.compile(r"^[a-z0-9-]{1,64}$")
+VS_CURRENCY_RE = re.compile(r"^[a-z]{2,10}$")
 
 
 def fetch_json(url):
@@ -139,6 +140,9 @@ def cmd_value(args):
     """Load holdings, fetch prices in one batched call, print a value table."""
     holdings = load_holdings(args.holdings_file)
     vs = args.vs.lower()
+    if not VS_CURRENCY_RE.match(vs):
+        print(f"error: invalid --vs currency {args.vs!r} (expected 2-10 letters)", file=sys.stderr)
+        sys.exit(2)
     unique_coin_ids = sorted({h["coin_id"] for h in holdings})
     prices = fetch_prices(unique_coin_ids, vs)
 
