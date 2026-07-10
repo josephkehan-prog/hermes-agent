@@ -1,0 +1,29 @@
+{
+  "name": "local-model-watchdog",
+  "checks": [
+    {"id": "agent1-up", "type": "local_model", "name": "agent1"},
+    {"id": "ornith-up", "type": "local_model", "name": "ornith"},
+    {"id": "worker-alive", "type": "process", "pattern": "hermes-worker"},
+    {"id": "disk-free", "type": "disk", "path": "/", "min_free_pct": 10},
+    {"id": "load-ok", "type": "load", "max_1min": 8.0}
+  ],
+  "remediations": [
+    {
+      "check_id": "worker-alive",
+      "action": "restart",
+      "command": ["echo", "restart hermes-worker here"]
+    },
+    {
+      "check_id": "disk-free",
+      "action": "clear-temp",
+      "path": "/tmp/hermes-selfheal-scratch",
+      "pattern": "*.tmp"
+    },
+    {
+      "check_id": "ornith-up",
+      "action": "alert-only",
+      "topic": "hermes-selfheal-CHANGE-ME",
+      "message": "ornith (:1235) is down"
+    }
+  ]
+}

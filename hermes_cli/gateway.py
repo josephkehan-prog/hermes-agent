@@ -61,6 +61,15 @@ from hermes_cli.colors import Colors, color
 
 logger = logging.getLogger(__name__)
 
+# Timeout for subprocess probes of systemd/launchd service state (list-units,
+# show, launchctl list) in _get_service_pids(). Env-overridable, mirroring the
+# try/except pattern used by plugins/platforms/telegram/adapter.py's
+# _UPDATER_*/_POLLING_*/_WEBHOOK_* timeouts.
+try:
+    _SUBPROCESS_TIMEOUT = float(os.getenv("HERMES_GATEWAY_SUBPROCESS_TIMEOUT", "5.0"))
+except (TypeError, ValueError):
+    _SUBPROCESS_TIMEOUT = 5.0
+
 # =============================================================================
 # Process Management (for manual gateway runs)
 # =============================================================================
@@ -115,7 +124,7 @@ def _get_service_pids() -> set:
                     ],
                     capture_output=True,
                     text=True,
-                    timeout=5,
+                    timeout=_SUBPROCESS_TIMEOUT,
                 )
                 for line in result.stdout.strip().splitlines():
                     parts = line.split()
@@ -127,7 +136,7 @@ def _get_service_pids() -> set:
                             scope_args + ["show", svc, "--property=MainPID", "--value"],
                             capture_output=True,
                             text=True,
-                            timeout=5,
+                            timeout=_SUBPROCESS_TIMEOUT,
                         )
                         pid = int(show.stdout.strip())
                         if pid > 0:
@@ -145,7 +154,7 @@ def _get_service_pids() -> set:
                 ["launchctl", "list", label],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=_SUBPROCESS_TIMEOUT,
             )
             if result.returncode == 0:
                 # Try plist format first (macOS 26+): "PID" = <N>;
@@ -299,6 +308,12 @@ def _graceful_restart_via_sigusr1(pid: int, drain_timeout: float) -> bool:
     return False
 
 
+# Cap on ancestor-chain walk iterations in _get_ancestor_pids(), to avoid
+# infinite loops on exotic platforms where the parent chain never terminates
+# at PID 1 (e.g. a broken or cyclic ppid() report).
+_MAX_ANCESTOR_SCAN_ITERATIONS = 64
+
+
 def _get_ancestor_pids() -> set[int]:
     """Return the set of PIDs in the current process's ancestor chain.
 
@@ -310,7 +325,7 @@ def _get_ancestor_pids() -> set[int]:
     ancestors: set[int] = set()
     pid = os.getpid()
     # Cap iterations to avoid infinite loops on exotic platforms.
-    for _ in range(64):
+    for _ in range(_MAX_ANCESTOR_SCAN_ITERATIONS):
         ancestors.add(pid)
         parent = _get_parent_pid(pid)
         if parent is None or parent <= 0 or parent in ancestors:

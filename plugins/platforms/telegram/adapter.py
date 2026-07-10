@@ -460,6 +460,11 @@ except (TypeError, ValueError):
 # (photo/video/audio/voice/document/animation and media groups). Captions
 # longer than this are silently truncated to this bound before sending.
 _TELEGRAM_CAPTION_LIMIT = 1024
+# Telegram document size caps used to gate media downloads. The public
+# api.telegram.org Bot API caps getFile at 20MB; a locally-hosted
+# telegram-bot-api server (opted into via extra.base_url) raises that to 2GB.
+_MAX_DOC_BYTES_PUBLIC = 20 * 1024 * 1024  # Telegram Bot API document limit for the public api.telegram.org
+_MAX_DOC_BYTES_LOCAL = 2 * 1024 * 1024 * 1024  # limit when using a local Bot API server
 
 
 class TelegramAdapter(BasePlatformAdapter):
@@ -667,9 +672,9 @@ class TelegramAdapter(BasePlatformAdapter):
         # locally-hosted telegram-bot-api server (configured via extra.base_url)
         # raises that to 2GB, so the presence of base_url is the opt-in.
         self._max_doc_bytes: int = (
-            2 * 1024 * 1024 * 1024
+            _MAX_DOC_BYTES_LOCAL
             if self.config.extra.get("base_url")
-            else 20 * 1024 * 1024
+            else _MAX_DOC_BYTES_PUBLIC
         )
         # Interactive model picker state per chat
         self._model_picker_state: Dict[str, dict] = {}
@@ -5851,7 +5856,7 @@ class TelegramAdapter(BasePlatformAdapter):
 
     def _telegram_media_size_allowed(self, source: Any, label: str) -> tuple[bool, Optional[str]]:
         """Validate Telegram media size before downloading into memory."""
-        max_bytes = int(getattr(self, "_max_doc_bytes", 20 * 1024 * 1024) or 20 * 1024 * 1024)
+        max_bytes = int(getattr(self, "_max_doc_bytes", _MAX_DOC_BYTES_PUBLIC) or _MAX_DOC_BYTES_PUBLIC)
         file_size = getattr(source, "file_size", None)
         try:
             size = int(file_size or 0)
@@ -7211,7 +7216,7 @@ class TelegramAdapter(BasePlatformAdapter):
         if source is None:
             return
 
-        max_bytes = getattr(self, "_max_doc_bytes", 20 * 1024 * 1024)
+        max_bytes = getattr(self, "_max_doc_bytes", _MAX_DOC_BYTES_PUBLIC)
         file_size = getattr(source, "file_size", None)
         try:
             size = int(file_size or 0)
@@ -7265,7 +7270,7 @@ class TelegramAdapter(BasePlatformAdapter):
         if source is None:
             return
 
-        max_bytes = getattr(self, "_max_doc_bytes", 20 * 1024 * 1024)
+        max_bytes = getattr(self, "_max_doc_bytes", _MAX_DOC_BYTES_PUBLIC)
         file_size = getattr(source, "file_size", None)
         try:
             size = int(file_size or 0)

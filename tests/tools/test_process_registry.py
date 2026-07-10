@@ -169,6 +169,22 @@ def test_request_close_terminal_invokes_sink_without_killing(registry):
     assert s.id in registry._running
 
 
+def test_emit_output_swallows_raising_sink(registry, caplog):
+    """A misbehaving on_output sink must not break the emit path — the caller
+    (a reader thread) never expects _emit_output to raise."""
+    s = _make_session(sid="proc_emit_bad_sink")
+
+    def _bad_sink(_session, _chunk):
+        raise RuntimeError("sink exploded")
+
+    registry.on_output = _bad_sink
+
+    with caplog.at_level("DEBUG", logger="tools.process_registry"):
+        registry._emit_output(s, "chunk")  # must not raise
+
+    assert "sink exploded" in caplog.text
+
+
 def test_close_terminal_tool_requires_process_id():
     """The desktop-gated close_terminal tool rejects a missing process_id."""
     from tools.close_terminal_tool import close_terminal_tool

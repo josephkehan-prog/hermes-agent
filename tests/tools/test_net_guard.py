@@ -88,6 +88,33 @@ class TestRejectPrivateTarget:
         with pytest.raises(_net_guard.NetGuardError, match="could not determine hostname"):
             _net_guard.reject_private_target("file:///etc/passwd")
 
+    def test_rejects_leading_zero_octal_octet(self):
+        """0177.0.0.1: ipaddress.ip_address() correctly refuses to guess
+        whether the leading zero means octal, so this must be rejected
+        outright rather than falling through to socket.gethostbyname(),
+        whose octal interpretation is glibc/platform-dependent and can
+        resolve this straight to 127.0.0.1 on Linux (classic SSRF bypass)."""
+        with pytest.raises(_net_guard.NetGuardError, match="ambiguous numeric host"):
+            _net_guard.reject_private_target("http://0177.0.0.1/")
+
+    def test_rejects_bare_decimal_integer_host(self):
+        with pytest.raises(_net_guard.NetGuardError, match="ambiguous numeric host"):
+            _net_guard.reject_private_target("http://2130706433/")  # == 127.0.0.1
+
+    def test_rejects_hex_literal_host(self):
+        with pytest.raises(_net_guard.NetGuardError, match="ambiguous numeric host"):
+            _net_guard.reject_private_target("http://0x7f000001/")  # == 127.0.0.1
+
+    def test_rejects_short_dotted_form_host(self):
+        with pytest.raises(_net_guard.NetGuardError, match="ambiguous numeric host"):
+            _net_guard.reject_private_target("http://127.1/")  # inet_aton shorthand for 127.0.0.1
+
+    def test_does_not_flag_ordinary_hostname_as_ambiguous(self):
+        """A normal hostname (letters present) must never hit the
+        ambiguous-numeric pre-filter — only resolve/private-IP checks apply."""
+        with patch.object(_net_guard.socket, "gethostbyname", return_value="93.184.216.34"):
+            _net_guard.reject_private_target("http://example.com/")  # does not raise
+
 
 class TestSafeRedirectHandler:
     def test_refuses_redirect_to_loopback(self):

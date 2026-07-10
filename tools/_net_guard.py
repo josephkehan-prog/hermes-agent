@@ -73,6 +73,23 @@ def _is_ip_address(text: str) -> bool:
         return False
 
 
+# A hostname made up of nothing but digits, dots, and an optional "0x" hex
+# prefix is trying to *be* an IP address literal. If ipaddress.ip_address()
+# (called just before this regex is consulted) already rejected it as not a
+# canonical dotted-quad, it's an ambiguous numeric form: a leading-zero octet
+# ("0177.0.0.1"), a bare decimal integer ("2130706433"), a hex literal
+# ("0x7f000001"), or a short/partial dotted form ("127.1"). Python's
+# ipaddress module deliberately refuses to guess what these mean (since
+# Python 3.9.5, in response to CVE-2021-29921) — but a hostname like this
+# would otherwise fall through to socket.gethostbyname(), whose octal/
+# decimal/hex interpretation is glibc/platform-dependent (some resolvers
+# treat "0177.0.0.1" as 127.0.0.1 via inet_aton-style parsing). That
+# disagreement between our strict parser and the platform resolver is a
+# classic SSRF filter bypass, so these forms are rejected outright rather
+# than resolved. No legitimate DNS hostname looks like this.
+_AMBIGUOUS_NUMERIC_HOST_RE = re.compile(r"^(0x[0-9a-fA-F]+|[0-9.]+)$", re.IGNORECASE)
+
+
 def reject_private_target(url: str) -> None:
     """Resolve url's host and raise NetGuardError if it maps to a
     private/reserved/loopback/link-local/multicast/unspecified address.
@@ -95,6 +112,8 @@ def reject_private_target(url: str) -> None:
         raise NetGuardError(f"could not determine hostname from {url!r}")
     if _is_ip_address(hostname):
         ip_text = hostname
+    elif _AMBIGUOUS_NUMERIC_HOST_RE.match(hostname):
+        raise NetGuardError(f"ambiguous numeric host rejected: {hostname!r}")
     else:
         previous_timeout = socket.getdefaulttimeout()
         socket.setdefaulttimeout(DEFAULT_TIMEOUT_SECONDS)

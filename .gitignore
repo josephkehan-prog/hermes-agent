@@ -150,3 +150,6 @@ apps/desktop/demo/
 # PR body is the archive. See the hermes-agent-dev skill's
 # pr-infographic-workflow reference (storage rule + lapse #8 / #COMMIT-1).
 infographic/
+
+# Squish local memory DB (machine-local state, never commit)
+.squish/

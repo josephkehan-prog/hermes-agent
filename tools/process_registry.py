@@ -59,6 +59,7 @@ MAX_OUTPUT_CHARS = 200_000      # 200KB rolling output buffer
 FINISHED_TTL_SECONDS = 1800     # Keep finished processes for 30 minutes
 MAX_PROCESSES = 64              # Max concurrent tracked processes (LRU pruning)
 MAX_ACTIVE_PROCESS_AGE = 86400  # 24h default — see session_reset.bg_process_max_age_hours (#29177)
+PROC_WAIT_TIMEOUT_SECONDS = 5   # Grace period for reaping a child after kill/exit
 
 # Watch pattern rate limiting — PER SESSION.
 # Hard rule: at most ONE watch-match notification every WATCH_MIN_INTERVAL_SECONDS.
@@ -222,8 +223,12 @@ class ProcessRegistry:
             return
         try:
             sink(session, chunk)
-        except Exception:
-            pass
+        except Exception as e:
+            # A misbehaving sink must never break output emission — this is a
+            # driver-supplied callback (e.g. the desktop gateway) and can raise
+            # anything. Swallow it, but log at debug so a broken sink is
+            # diagnosable instead of silently dropping output forever.
+            logger.debug("Live-output sink raised for session %s: %s", session.id, e)
 
     def _check_watch_patterns(self, session: ProcessSession, new_text: str) -> None:
         """Scan new output for watch patterns and queue notifications.
@@ -811,7 +816,7 @@ class ProcessRegistry:
             except Exception:
                 pass
             try:
-                proc.wait(timeout=5)
+                proc.wait(timeout=PROC_WAIT_TIMEOUT_SECONDS)
             except Exception:
                 pass
             raise
@@ -962,7 +967,7 @@ class ProcessRegistry:
         finally:
             # Always reap the child to prevent zombie processes.
             try:
-                session.process.wait(timeout=5)
+                session.process.wait(timeout=PROC_WAIT_TIMEOUT_SECONDS)
             except Exception as e:
                 logger.debug("Process wait timed out or failed: %s", e)
             session.exited = True

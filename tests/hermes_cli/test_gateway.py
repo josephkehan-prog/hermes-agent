@@ -1,6 +1,7 @@
 """Tests for hermes_cli.gateway."""
 
 import argparse
+import importlib
 import signal
 import sys
 from types import ModuleType, SimpleNamespace
@@ -1169,3 +1170,26 @@ def test_module_has_logger():
     """Verify module has a logger instance (regression guard for #27154)."""
     assert hasattr(gateway, "logger")
     assert gateway.logger.name == "hermes_cli.gateway"
+
+
+class TestSubprocessTimeoutEnvOverride:
+    """_SUBPROCESS_TIMEOUT is read from HERMES_GATEWAY_SUBPROCESS_TIMEOUT at
+    import time, mirroring the try/except-guarded env pattern used by
+    plugins/platforms/telegram/adapter.py's _UPDATER_*/_POLLING_* timeouts.
+    """
+
+    def test_honors_env_override(self, monkeypatch):
+        monkeypatch.setenv("HERMES_GATEWAY_SUBPROCESS_TIMEOUT", "9.0")
+        try:
+            mod = importlib.reload(gateway)
+            assert mod._SUBPROCESS_TIMEOUT == 9.0
+        finally:
+            importlib.reload(gateway)
+
+    def test_invalid_value_falls_back_to_default(self, monkeypatch):
+        monkeypatch.setenv("HERMES_GATEWAY_SUBPROCESS_TIMEOUT", "not-a-number")
+        try:
+            mod = importlib.reload(gateway)
+            assert mod._SUBPROCESS_TIMEOUT == 5.0
+        finally:
+            importlib.reload(gateway)
