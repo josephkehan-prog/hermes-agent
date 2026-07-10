@@ -302,6 +302,84 @@ class TestTrendingParsing:
         assert "WIF" in out
 
 
+class TestTrendingCrashRegressions:
+    """Regression tests for crash-class fixes in cmd_trending's response-shape handling."""
+
+    def test_non_dict_top_level_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson([1, 2, 3]))
+
+        with pytest.raises(SystemExit) as exc_info:
+            crypto.cmd_trending(argparse.Namespace())
+
+        assert exc_info.value.code == 2
+
+    def test_none_top_level_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson(None))
+
+        with pytest.raises(SystemExit) as exc_info:
+            crypto.cmd_trending(argparse.Namespace())
+
+        assert exc_info.value.code == 2
+
+    def test_non_list_coins_field_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson({"coins": "not-a-list"}))
+
+        with pytest.raises(SystemExit) as exc_info:
+            crypto.cmd_trending(argparse.Namespace())
+
+        assert exc_info.value.code == 2
+
+
+class TestFearGreedCrashRegressions:
+    """Regression tests for crash-class fixes in cmd_feargreed's response-shape handling."""
+
+    def test_non_dict_top_level_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson([1, 2, 3]))
+
+        with pytest.raises(SystemExit) as exc_info:
+            crypto.cmd_feargreed(argparse.Namespace())
+
+        assert exc_info.value.code == 2
+
+    def test_none_top_level_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson(None))
+
+        with pytest.raises(SystemExit) as exc_info:
+            crypto.cmd_feargreed(argparse.Namespace())
+
+        assert exc_info.value.code == 2
+
+    def test_non_dict_entry_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson({"data": ["not-a-dict"]}))
+
+        with pytest.raises(SystemExit) as exc_info:
+            crypto.cmd_feargreed(argparse.Namespace())
+
+        assert exc_info.value.code == 2
+
+
+class TestEthBalanceResponseShapeRegressions:
+    """Regression tests for crash-class fixes in cmd_eth_balance's top-level response-shape handling."""
+
+    def test_non_dict_top_level_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson([1, 2, 3]))
+        args = argparse.Namespace(address="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
+
+        with pytest.raises(SystemExit) as exc_info:
+            crypto.cmd_eth_balance(args)
+
+        assert exc_info.value.code == 2
+
+    def test_none_top_level_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(crypto, "fetch_json", _RecordingFetchJson(None))
+        args = argparse.Namespace(address="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
+
+        with pytest.raises(SystemExit) as exc_info:
+            crypto.cmd_eth_balance(args)
+
+        assert exc_info.value.code == 2
+
+
 class TestArgparseWiring:
     def test_price_subcommand_accepts_multiple_coins(self):
         parser = crypto.build_parser()

@@ -194,3 +194,91 @@ class TestUrlBuildersUseQuote:
 
         url = recorder.calls[0][0]
         assert "example.com%2Fa%20b%3Fx%3D1%26y%3D2" in url
+
+
+class TestResponseShapeCrashRegressions:
+    """Regression tests: each cmd_* must exit(2) on an unexpected top-level response
+    shape rather than raising an uncaught AttributeError from .get()/indexing."""
+
+    def test_openalex_non_dict_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(dbquery, "fetch_json", _RecordingFetchJson([1, 2, 3]))
+        args = argparse.Namespace(query="q", type="works", limit=5)
+
+        with pytest.raises(SystemExit) as exc_info:
+            dbquery.cmd_openalex(args)
+
+        assert exc_info.value.code == 2
+
+    def test_openalex_none_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(dbquery, "fetch_json", _RecordingFetchJson(None))
+        args = argparse.Namespace(query="q", type="works", limit=5)
+
+        with pytest.raises(SystemExit) as exc_info:
+            dbquery.cmd_openalex(args)
+
+        assert exc_info.value.code == 2
+
+    def test_crossref_non_dict_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(dbquery, "fetch_json", _RecordingFetchJson([1, 2, 3]))
+        args = argparse.Namespace(query="q", limit=5)
+
+        with pytest.raises(SystemExit) as exc_info:
+            dbquery.cmd_crossref(args)
+
+        assert exc_info.value.code == 2
+
+    def test_crossref_none_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(dbquery, "fetch_json", _RecordingFetchJson(None))
+        args = argparse.Namespace(query="q", limit=5)
+
+        with pytest.raises(SystemExit) as exc_info:
+            dbquery.cmd_crossref(args)
+
+        assert exc_info.value.code == 2
+
+    def test_wikidata_non_dict_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(dbquery, "fetch_json", _RecordingFetchJson([1, 2, 3]))
+        args = argparse.Namespace(query="SELECT ?s WHERE { ?s ?p ?o }", query_file=None)
+
+        with pytest.raises(SystemExit) as exc_info:
+            dbquery.cmd_wikidata(args)
+
+        assert exc_info.value.code == 2
+
+    def test_wikidata_none_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(dbquery, "fetch_json", _RecordingFetchJson(None))
+        args = argparse.Namespace(query="SELECT ?s WHERE { ?s ?p ?o }", query_file=None)
+
+        with pytest.raises(SystemExit) as exc_info:
+            dbquery.cmd_wikidata(args)
+
+        assert exc_info.value.code == 2
+
+    def test_edgar_non_dict_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(dbquery, "fetch_json", _RecordingFetchJson([1, 2, 3]))
+        args = argparse.Namespace(query="q", forms=None, limit=10)
+
+        with pytest.raises(SystemExit) as exc_info:
+            dbquery.cmd_edgar(args)
+
+        assert exc_info.value.code == 2
+
+    def test_edgar_none_response_exits_with_code_2(self, monkeypatch):
+        monkeypatch.setattr(dbquery, "fetch_json", _RecordingFetchJson(None))
+        args = argparse.Namespace(query="q", forms=None, limit=10)
+
+        with pytest.raises(SystemExit) as exc_info:
+            dbquery.cmd_edgar(args)
+
+        assert exc_info.value.code == 2
+
+    def test_wayback_non_list_dict_response_exits_with_code_2(self, monkeypatch):
+        # A dict is truthy so it skips the `if not data` early return, and previously
+        # fell into `header, *records = data`, silently unpacking dict keys as garbage.
+        monkeypatch.setattr(dbquery, "fetch_json", _RecordingFetchJson({"unexpected": "shape"}))
+        args = argparse.Namespace(url="https://example.com", limit=20)
+
+        with pytest.raises(SystemExit) as exc_info:
+            dbquery.cmd_wayback(args)
+
+        assert exc_info.value.code == 2

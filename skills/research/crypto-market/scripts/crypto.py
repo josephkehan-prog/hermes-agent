@@ -107,13 +107,19 @@ def cmd_price(args):
 def cmd_trending(_args):
     """Show CoinGecko's currently trending coins."""
     data = fetch_json(COINGECKO_TRENDING)
+    if not isinstance(data, dict):
+        print("error: unexpected CoinGecko response shape", file=sys.stderr)
+        sys.exit(2)
     coins = data.get("coins", [])
+    if not isinstance(coins, list):
+        print("error: unexpected CoinGecko response shape", file=sys.stderr)
+        sys.exit(2)
     if not coins:
         print("(no trending data)")
         return
     print(f"Trending ({len(coins)}):\n")
     for i, item in enumerate(coins, 1):
-        c = item.get("item", {})
+        c = item.get("item", {}) if isinstance(item, dict) else {}
         name = c.get("name", "?")
         symbol = c.get("symbol", "?")
         rank = c.get("market_cap_rank", "?")
@@ -124,11 +130,17 @@ def cmd_feargreed(_args):
     """Show the current Crypto Fear & Greed Index and its classification."""
     url = f"{ALTERNATIVE_FNG}?limit=1&format=json"
     data = fetch_json(url)
+    if not isinstance(data, dict):
+        print("error: unexpected Fear & Greed response shape", file=sys.stderr)
+        sys.exit(2)
     entries = data.get("data", [])
-    if not entries:
+    if not isinstance(entries, list) or not entries:
         print("error: no fear & greed data returned", file=sys.stderr)
         sys.exit(2)
     entry = entries[0]
+    if not isinstance(entry, dict):
+        print("error: unexpected Fear & Greed response shape", file=sys.stderr)
+        sys.exit(2)
     value = entry.get("value", "?")
     classification = entry.get("value_classification", "?")
     print(f"Fear & Greed Index: {value}/100 ({classification})")
@@ -147,6 +159,9 @@ def cmd_eth_balance(args):
 
     payload = {"jsonrpc": "2.0", "method": "eth_getBalance", "params": [address, "latest"], "id": 1}
     data = fetch_json(CLOUDFLARE_ETH_RPC, method="POST", data=payload)
+    if not isinstance(data, dict):
+        print("error: unexpected RPC response shape", file=sys.stderr)
+        sys.exit(2)
     if "error" in data:
         print(f"error: RPC error: {data['error']}", file=sys.stderr)
         sys.exit(2)

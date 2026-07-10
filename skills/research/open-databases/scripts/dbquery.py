@@ -94,12 +94,19 @@ def cmd_openalex(args):
     params = {"search": args.query, "per-page": str(args.limit), "mailto": MAILTO}
     url = f"{base}?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote)}"
     data = fetch_json(url)
+    if not isinstance(data, dict):
+        print("error: unexpected OpenAlex response shape", file=sys.stderr)
+        sys.exit(2)
+    results = data.get("results", [])
+    if not isinstance(results, list):
+        print("error: unexpected OpenAlex response shape", file=sys.stderr)
+        sys.exit(2)
     if args.type == "works":
         columns = ["id", "display_name", "publication_year", "cited_by_count", "doi"]
-        rows = [{c: w.get(c, "") for c in columns} for w in data.get("results", [])]
+        rows = [{c: w.get(c, "") for c in columns} for w in results if isinstance(w, dict)]
     else:
         columns = ["id", "display_name", "works_count", "cited_by_count"]
-        rows = [{c: a.get(c, "") for c in columns} for a in data.get("results", [])]
+        rows = [{c: a.get(c, "") for c in columns} for a in results if isinstance(a, dict)]
     return rows, columns
 
 
@@ -108,9 +115,16 @@ def cmd_crossref(args):
     params = {"query": args.query, "rows": str(args.limit), "mailto": MAILTO}
     url = f"{CROSSREF_WORKS}?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote)}"
     data = fetch_json(url)
+    if not isinstance(data, dict):
+        print("error: unexpected Crossref response shape", file=sys.stderr)
+        sys.exit(2)
+    message = data.get("message", {})
+    items = message.get("items", []) if isinstance(message, dict) else []
     columns = ["doi", "title", "published", "type"]
     rows = []
-    for item in data.get("message", {}).get("items", []):
+    for item in items:
+        if not isinstance(item, dict):
+            continue
         title = "; ".join(item.get("title", []))
         parts = item.get("published", {}).get("date-parts", [[]])[0]
         published = "-".join(str(p) for p in parts)
@@ -144,9 +158,17 @@ def cmd_wikidata(args):
     params = {"query": query_text, "format": "json"}
     url = f"{WIKIDATA_SPARQL}?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote)}"
     data = fetch_json(url, headers={"Accept": "application/sparql-results+json"})
-    variables = data.get("head", {}).get("vars", [])
+    if not isinstance(data, dict):
+        print("error: unexpected Wikidata response shape", file=sys.stderr)
+        sys.exit(2)
+    head = data.get("head", {})
+    variables = head.get("vars", []) if isinstance(head, dict) else []
+    results_block = data.get("results", {})
+    bindings = results_block.get("bindings", []) if isinstance(results_block, dict) else []
     rows = []
-    for binding in data.get("results", {}).get("bindings", []):
+    for binding in bindings:
+        if not isinstance(binding, dict):
+            continue
         rows.append({v: binding.get(v, {}).get("value", "") for v in variables})
     return rows, variables
 
@@ -158,9 +180,16 @@ def cmd_edgar(args):
         params["forms"] = args.forms
     url = f"{EDGAR_FULLTEXT}?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote)}"
     data = fetch_json(url)
+    if not isinstance(data, dict):
+        print("error: unexpected EDGAR response shape", file=sys.stderr)
+        sys.exit(2)
+    hits_block = data.get("hits", {})
+    hits = hits_block.get("hits", []) if isinstance(hits_block, dict) else []
     columns = ["form", "display_names", "file_date", "adsh"]
     rows = []
-    for hit in data.get("hits", {}).get("hits", [])[: args.limit]:
+    for hit in hits[: args.limit]:
+        if not isinstance(hit, dict):
+            continue
         source = hit.get("_source", {})
         rows.append({
             "form": source.get("form", ""),
@@ -179,6 +208,9 @@ def cmd_wayback(args):
     columns = ["timestamp", "original", "statuscode", "digest"]
     if not data:
         return [], columns
+    if not isinstance(data, list):
+        print("error: unexpected Wayback CDX response shape", file=sys.stderr)
+        sys.exit(2)
     header, *records = data
     rows = [dict(zip(header, record)) for record in records]
     return rows, columns
