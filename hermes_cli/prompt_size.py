@@ -57,6 +57,38 @@ def _build_inspection_agent(platform: str) -> Any:
     )
 
 
+def _extract_skills_index(stable: str) -> str:
+    """Return the ``<available_skills>`` block from the stable tier.
+
+    This is the largest single block when many skills are installed. Returns
+    an empty string when no block is present.
+    """
+    skills_match = _SKILLS_BLOCK_RE.search(stable)
+    return skills_match.group(0) if skills_match else ""
+
+
+def _extract_memory_and_profile(agent: Any) -> Tuple[str, str]:
+    """Return ``(memory_block, user_block)`` re-derived from the memory store.
+
+    Memory + user profile live in the volatile tier. We pull their blocks
+    directly from the store so the numbers stay attributable even though
+    they're joined into ``volatile``. Returns empty strings when the store is
+    absent, disabled, or raises.
+    """
+    memory_block = ""
+    user_block = ""
+    store = getattr(agent, "_memory_store", None)
+    if store is not None:
+        try:
+            if getattr(agent, "_memory_enabled", True):
+                memory_block = store.format_for_system_prompt("memory") or ""
+            if getattr(agent, "_user_profile_enabled", True):
+                user_block = store.format_for_system_prompt("user") or ""
+        except Exception:
+            pass
+    return memory_block, user_block
+
+
 def compute_prompt_breakdown(platform: str = "cli") -> Dict[str, Any]:
     """Return a dict of prompt-size measurements for a fresh session.
 
@@ -75,25 +107,8 @@ def compute_prompt_breakdown(platform: str = "cli") -> Dict[str, Any]:
     context = parts.get("context", "")
     volatile = parts.get("volatile", "")
 
-    # Skills index — the <available_skills> block (the largest single block
-    # when many skills are installed). Measured inside the stable tier.
-    skills_match = _SKILLS_BLOCK_RE.search(stable)
-    skills_index = skills_match.group(0) if skills_match else ""
-
-    # Memory + user profile live in the volatile tier. We re-derive their
-    # blocks directly from the memory store so the numbers are attributable
-    # even though they're joined into ``volatile``.
-    memory_block = ""
-    user_block = ""
-    store = getattr(agent, "_memory_store", None)
-    if store is not None:
-        try:
-            if getattr(agent, "_memory_enabled", True):
-                memory_block = store.format_for_system_prompt("memory") or ""
-            if getattr(agent, "_user_profile_enabled", True):
-                user_block = store.format_for_system_prompt("user") or ""
-        except Exception:
-            pass
+    skills_index = _extract_skills_index(stable)
+    memory_block, user_block = _extract_memory_and_profile(agent)
 
     # Tool-schema JSON — the other half of the fixed per-call payload.
     tools = getattr(agent, "tools", None) or []

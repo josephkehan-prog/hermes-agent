@@ -1711,9 +1711,17 @@ class TelegramAdapter(BasePlatformAdapter):
         - transient / unknown → ``SendResult(success=False)`` with retry
           semantics (the message may already be edited; do NOT legacy-resend)
         """
+        try:
+            message_id_int = int(message_id)
+        except (ValueError, TypeError):
+            logger.debug(
+                "[%s] rich editMessageText: invalid message_id %r — falling back to MarkdownV2 edit",
+                self.name, message_id,
+            )
+            return None
         payload: Dict[str, Any] = {
             "chat_id": normalize_telegram_chat_id(chat_id),
-            "message_id": int(message_id),
+            "message_id": message_id_int,
             "rich_message": self._rich_message_payload(content),
         }
         thread_id = self._metadata_thread_id(metadata)
@@ -1805,14 +1813,29 @@ class TelegramAdapter(BasePlatformAdapter):
         legacy plain-text draft. A permanent/capability failure additionally
         latches ``_rich_draft_disabled`` so later frames skip the rich attempt.
         """
+        try:
+            draft_id_int = int(draft_id)
+        except (ValueError, TypeError):
+            logger.debug(
+                "[%s] sendRichMessageDraft: invalid draft_id %r — legacy draft this frame",
+                self.name, draft_id,
+            )
+            return False
         payload: Dict[str, Any] = {
             "chat_id": normalize_telegram_chat_id(chat_id),
-            "draft_id": int(draft_id),
+            "draft_id": draft_id_int,
             "rich_message": self._rich_message_payload(content),
         }
         thread_id = self._metadata_thread_id(metadata)
         if thread_id is not None:
-            payload["message_thread_id"] = int(thread_id)
+            try:
+                payload["message_thread_id"] = int(thread_id)
+            except (ValueError, TypeError):
+                logger.debug(
+                    "[%s] sendRichMessageDraft: invalid thread_id %r — legacy draft this frame",
+                    self.name, thread_id,
+                )
+                return False
         try:
             ok = await self._bot.do_api_request("sendRichMessageDraft", api_kwargs=payload)
             return bool(ok)

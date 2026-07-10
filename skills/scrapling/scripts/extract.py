@@ -21,6 +21,7 @@ import urllib.request
 DEFAULT_TIMEOUT_SECONDS = 15
 MODEL_TIMEOUT_SECONDS = 120
 MAX_CHARS_FOR_MODEL = 8000
+MAX_RESPONSE_BYTES = 10_000_000
 USER_AGENT = "Mozilla/5.0 (compatible; hermes-scrapling-extract/1.1)"
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
@@ -67,6 +68,38 @@ def _strip_html(html_content):
     return parser.get_text()
 
 
+def _pretty_json(body):
+    try:
+        return json.dumps(json.loads(body), indent=2, ensure_ascii=False)
+    except (json.JSONDecodeError, ValueError):
+        return body.strip()
+
+
+def _read_capped(response):
+    """Read the response body, rejecting bodies over MAX_RESPONSE_BYTES."""
+    raw = response.read(MAX_RESPONSE_BYTES + 1)
+    if len(raw) > MAX_RESPONSE_BYTES:
+        print(f"error: response exceeds {MAX_RESPONSE_BYTES} byte limit", file=sys.stderr)
+        sys.exit(2)
+    return raw
+
+
+def _handle_urllib_response(response):
+    """Branch on Content-Type: text/markup stripped, JSON pretty-printed, binary rejected."""
+    content_type = (response.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+    charset = response.headers.get_content_charset() or "utf-8"
+
+    if "json" in content_type:
+        body = _read_capped(response).decode(charset, errors="replace")
+        return {"method": "json", "page": _pretty_json(body)}
+    if not content_type or content_type.startswith("text/") or "html" in content_type or "xml" in content_type:
+        body = _read_capped(response).decode(charset, errors="replace")
+        return {"method": "urllib", "page": body}
+
+    print(f"error: cannot extract text from non-text content (Content-Type: {content_type})", file=sys.stderr)
+    sys.exit(2)
+
+
 def fetch_page(url):
     """Fetch page HTML. Prefers scrapling.Fetcher, falls back to urllib."""
     if SCRAPLING_AVAILABLE:
@@ -78,9 +111,7 @@ def fetch_page(url):
 
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=DEFAULT_TIMEOUT_SECONDS) as response:
-        charset = response.headers.get_content_charset() or "utf-8"
-        html_content = response.read().decode(charset, errors="replace")
-    return {"method": "urllib", "page": html_content}
+        return _handle_urllib_response(response)
 
 
 def extract_text(fetched, css_selector):
@@ -90,6 +121,8 @@ def extract_text(fetched, css_selector):
 
     if fetched["method"] == "scrapling":
         return _extract_from_scrapling(fetched["page"], css_selector)
+    if fetched["method"] == "json":
+        return fetched["page"]
     return _strip_html(fetched["page"])
 
 
