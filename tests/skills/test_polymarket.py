@@ -327,6 +327,104 @@ class TestPrintMarketHelpers:
 
 
 # --------------------------------------------------------------------------
+# Defensive shape guards — unexpected _get() shapes exit 2, never crash raw
+# --------------------------------------------------------------------------
+
+
+class TestUnexpectedResponseShapes:
+    """cmd_search/trending/closing_soon/price/book/market/event must not let a
+    wrong-shaped _get() return crash with a raw AttributeError/TypeError/KeyError —
+    they should raise ValueError, which main()'s except ValueError turns into a
+    clean SystemExit(2), same convention as cmd_trades already follows."""
+
+    def test_search_exits_2_when_response_is_a_list(self, monkeypatch, capsys):
+        monkeypatch.setattr(sys, "argv", ["polymarket.py", "search", "bitcoin"])
+        with patch.object(poly, "_get", return_value=["not", "a", "dict"]):
+            with pytest.raises(SystemExit) as exc_info:
+                poly.main()
+        assert exc_info.value.code == 2
+        assert "unexpected response shape" in capsys.readouterr().err
+
+    def test_search_exits_2_when_events_field_is_not_a_list(self, monkeypatch, capsys):
+        monkeypatch.setattr(sys, "argv", ["polymarket.py", "search", "bitcoin"])
+        with patch.object(poly, "_get", return_value={"events": "nope"}):
+            with pytest.raises(SystemExit) as exc_info:
+                poly.main()
+        assert exc_info.value.code == 2
+        assert "unexpected response shape" in capsys.readouterr().err
+
+    def test_trending_exits_2_when_response_is_a_dict(self, monkeypatch, capsys):
+        monkeypatch.setattr(sys, "argv", ["polymarket.py", "trending"])
+        with patch.object(poly, "_get", return_value={"not": "a list"}):
+            with pytest.raises(SystemExit) as exc_info:
+                poly.main()
+        assert exc_info.value.code == 2
+        assert "unexpected response shape" in capsys.readouterr().err
+
+    def test_closing_soon_exits_2_when_response_is_a_dict(self, monkeypatch, capsys):
+        monkeypatch.setattr(sys, "argv", ["polymarket.py", "closing-soon"])
+        with patch.object(poly, "_get", return_value={"not": "a list"}):
+            with pytest.raises(SystemExit) as exc_info:
+                poly.main()
+        assert exc_info.value.code == 2
+        assert "unexpected response shape" in capsys.readouterr().err
+
+    def test_price_exits_2_when_response_is_a_list(self, monkeypatch, capsys):
+        monkeypatch.setattr(sys, "argv", ["polymarket.py", "price", "123"])
+        with patch.object(poly, "_get", return_value=["not", "a", "dict"]):
+            with pytest.raises(SystemExit) as exc_info:
+                poly.main()
+        assert exc_info.value.code == 2
+        assert "unexpected response shape" in capsys.readouterr().err
+
+    def test_book_exits_2_when_response_is_a_list(self, monkeypatch, capsys):
+        monkeypatch.setattr(sys, "argv", ["polymarket.py", "book", "123"])
+        with patch.object(poly, "_get", return_value=["not", "a", "dict"]):
+            with pytest.raises(SystemExit) as exc_info:
+                poly.main()
+        assert exc_info.value.code == 2
+        assert "unexpected response shape" in capsys.readouterr().err
+
+    def test_market_exits_2_when_response_is_a_dict(self, monkeypatch, capsys):
+        monkeypatch.setattr(sys, "argv", ["polymarket.py", "market", "will-x-happen"])
+        with patch.object(poly, "_get", return_value={"0": "not a list"}):
+            with pytest.raises(SystemExit) as exc_info:
+                poly.main()
+        assert exc_info.value.code == 2
+        assert "unexpected response shape" in capsys.readouterr().err
+
+    def test_market_exits_2_when_first_element_is_not_a_dict(self, monkeypatch, capsys):
+        monkeypatch.setattr(sys, "argv", ["polymarket.py", "market", "will-x-happen"])
+        with patch.object(poly, "_get", return_value=["not a dict"]):
+            with pytest.raises(SystemExit) as exc_info:
+                poly.main()
+        assert exc_info.value.code == 2
+        assert "unexpected response shape" in capsys.readouterr().err
+
+    def test_event_exits_2_when_response_is_a_dict(self, monkeypatch, capsys):
+        monkeypatch.setattr(sys, "argv", ["polymarket.py", "event", "will-x-happen"])
+        with patch.object(poly, "_get", return_value={"not": "a list"}):
+            with pytest.raises(SystemExit) as exc_info:
+                poly.main()
+        assert exc_info.value.code == 2
+        assert "unexpected response shape" in capsys.readouterr().err
+
+    def test_search_skips_malformed_list_items_without_crashing(self, capsys):
+        payload = {"events": ["not-a-dict", {"title": "OK", "slug": "ok", "markets": []}]}
+        with patch.object(poly, "_get", return_value=payload):
+            poly.cmd_search("bitcoin")
+        out = capsys.readouterr().out
+        assert "=== OK ===" in out
+
+    def test_book_handles_non_dict_orderbook_entries(self, capsys):
+        book = {"bids": ["bad-entry", {"price": "0.4", "size": "10"}], "asks": []}
+        with patch.object(poly, "_get", return_value=book):
+            poly.cmd_book("123")
+        out = capsys.readouterr().out
+        assert "Top bids (1 total)" in out
+
+
+# --------------------------------------------------------------------------
 # Live smoke test — network, run manually / sparingly, never in CI
 # --------------------------------------------------------------------------
 

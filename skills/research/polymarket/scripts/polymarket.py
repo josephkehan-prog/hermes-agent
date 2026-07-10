@@ -76,6 +76,17 @@ def _get(url: str) -> dict | list:
         sys.exit(1)
 
 
+def _require_type(value, kind: type, endpoint: str):
+    """Guard an API response against unexpected shapes (schema drift, error bodies).
+
+    Raises ValueError (caught by main()'s exit-2 convention) instead of letting
+    a wrong-shaped response crash with a raw AttributeError/TypeError/KeyError.
+    """
+    if not isinstance(value, kind):
+        raise ValueError(f"unexpected response shape from {endpoint} (expected {kind.__name__})")
+    return value
+
+
 def validate_query(value: str) -> str:
     """Reject empty/oversized/control-char search queries."""
     stripped = value.strip()
@@ -202,15 +213,22 @@ def cmd_search(query: str):
     query = validate_query(query)
     q = urllib.parse.quote(query)
     data = _get(f"{GAMMA}/public-search?q={q}")
-    events = data.get("events", [])
-    total = data.get("pagination", {}).get("totalResults", len(events))
+    _require_type(data, dict, "public-search")
+    events = _require_type(data.get("events", []), list, "public-search events")
+    pagination = data.get("pagination", {})
+    total = pagination.get("totalResults", len(events)) if isinstance(pagination, dict) else len(events)
     print(f"Found {total} results for \"{query}\":\n")
     for evt in events[:10]:
-        print(f"=== {evt['title']} ===")
+        if not isinstance(evt, dict):
+            continue
+        print(f"=== {evt.get('title', '?')} ===")
         print(f"  Volume: {_fmt_volume(evt.get('volume', 0))}  |  slug: {evt.get('slug', '')}")
         markets = evt.get("markets", [])
+        if not isinstance(markets, list):
+            markets = []
         for m in markets[:5]:
-            _print_market(m, indent="  ")
+            if isinstance(m, dict):
+                _print_market(m, indent="  ")
         if len(markets) > 5:
             print(f"  ... and {len(markets) - 5} more markets")
         print()
@@ -220,14 +238,20 @@ def cmd_trending(limit: int = DEFAULT_LIMIT):
     """Show trending events by volume."""
     limit = validate_limit(limit)
     events = _get(f"{GAMMA}/events?limit={limit}&active=true&closed=false&order=volume&ascending=false")
+    _require_type(events, list, "events")
     print(f"Top {len(events)} trending events:\n")
     for i, evt in enumerate(events, 1):
-        print(f"{i}. {evt['title']}")
+        if not isinstance(evt, dict):
+            continue
+        print(f"{i}. {evt.get('title', '?')}")
         print(f"   Volume: {_fmt_volume(evt.get('volume', 0))}  |  Markets: {len(evt.get('markets', []))}")
         print(f"   slug: {evt.get('slug', '')}")
         markets = evt.get("markets", [])
+        if not isinstance(markets, list):
+            markets = []
         for m in markets[:3]:
-            _print_market(m, indent="   ")
+            if isinstance(m, dict):
+                _print_market(m, indent="   ")
         if len(markets) > 3:
             print(f"   ... and {len(markets) - 3} more markets")
         print()
@@ -237,17 +261,23 @@ def cmd_closing_soon(limit: int = DEFAULT_LIMIT):
     """Show open markets with the soonest end date."""
     limit = validate_limit(limit)
     events = _get(f"{GAMMA}/events?limit={limit}&active=true&closed=false&order=endDate&ascending=true")
+    _require_type(events, list, "events")
     print(f"Top {len(events)} events closing soonest:\n")
     for i, evt in enumerate(events, 1):
-        print(f"{i}. {evt['title']}")
+        if not isinstance(evt, dict):
+            continue
+        print(f"{i}. {evt.get('title', '?')}")
         print(
             f"   Closes: {_fmt_time_to_close(evt.get('endDate', ''))}  |  "
             f"Volume: {_fmt_volume(evt.get('volume', 0))}  |  Markets: {len(evt.get('markets', []))}"
         )
         print(f"   slug: {evt.get('slug', '')}")
         markets = evt.get("markets", [])
+        if not isinstance(markets, list):
+            markets = []
         for m in markets[:3]:
-            _print_market(m, indent="   ")
+            if isinstance(m, dict):
+                _print_market(m, indent="   ")
         if len(markets) > 3:
             print(f"   ... and {len(markets) - 3} more markets")
         print()
@@ -257,10 +287,12 @@ def cmd_market(slug: str):
     """Get market details by slug."""
     slug = validate_slug(slug)
     markets = _get(f"{GAMMA}/markets?slug={urllib.parse.quote(slug)}")
+    _require_type(markets, list, "markets")
     if not markets:
         print(f"No market found with slug: {slug}")
         return
     m = markets[0]
+    _require_type(m, dict, "markets")
     print(f"Market: {m.get('question', '?')}")
     print(f"Status: {'CLOSED' if m.get('closed') else 'ACTIVE'}")
     _print_market(m)
@@ -280,17 +312,23 @@ def cmd_event(slug: str):
     """Get event details by slug."""
     slug = validate_slug(slug)
     events = _get(f"{GAMMA}/events?slug={urllib.parse.quote(slug)}")
+    _require_type(events, list, "events")
     if not events:
         print(f"No event found with slug: {slug}")
         return
     evt = events[0]
-    print(f"Event: {evt['title']}")
+    _require_type(evt, dict, "events")
+    print(f"Event: {evt.get('title', '?')}")
     print(f"Volume: {_fmt_volume(evt.get('volume', 0))}")
     print(f"Status: {'CLOSED' if evt.get('closed') else 'ACTIVE'}")
     print(f"Markets: {len(evt.get('markets', []))}\n")
-    for m in evt.get("markets", []):
-        _print_market(m, indent="  ")
-        print()
+    markets = evt.get("markets", [])
+    if not isinstance(markets, list):
+        markets = []
+    for m in markets:
+        if isinstance(m, dict):
+            _print_market(m, indent="  ")
+            print()
 
 
 def cmd_price(token_id: str):
@@ -299,6 +337,9 @@ def cmd_price(token_id: str):
     buy = _get(f"{CLOB}/price?token_id={token_id}&side=buy")
     mid = _get(f"{CLOB}/midpoint?token_id={token_id}")
     spread = _get(f"{CLOB}/spread?token_id={token_id}")
+    _require_type(buy, dict, "price")
+    _require_type(mid, dict, "midpoint")
+    _require_type(spread, dict, "spread")
     print(f"Token: {token_id[:30]}...")
     print(f"  Buy price: {_fmt_pct(buy.get('price', '?'))}")
     print(f"  Midpoint:  {_fmt_pct(mid.get('mid', '?'))}")
@@ -309,8 +350,15 @@ def cmd_book(token_id: str):
     """Get orderbook for a token."""
     token_id = validate_id(token_id, "token_id")
     book = _get(f"{CLOB}/book?token_id={token_id}")
+    _require_type(book, dict, "book")
     bids = book.get("bids", [])
     asks = book.get("asks", [])
+    if not isinstance(bids, list):
+        bids = []
+    if not isinstance(asks, list):
+        asks = []
+    bids = [b for b in bids if isinstance(b, dict)]
+    asks = [a for a in asks if isinstance(a, dict)]
     last = book.get("last_trade_price", "?")
     print(f"Orderbook for {token_id[:30]}...")
     print(f"Last trade: {_fmt_pct(last)}  |  Tick size: {book.get('tick_size', '?')}")
@@ -318,11 +366,11 @@ def cmd_book(token_id: str):
     # Show bids sorted by price descending (best bids first)
     sorted_bids = sorted(bids, key=lambda x: float(x.get("price", 0)), reverse=True)
     for b in sorted_bids[:10]:
-        print(f"    {_fmt_pct(b['price']):>7}  |  Size: {float(b['size']):>10.2f}")
+        print(f"    {_fmt_pct(b.get('price', '?')):>7}  |  Size: {float(b.get('size', 0)):>10.2f}")
     print(f"\n  Top asks ({len(asks)} total):")
     sorted_asks = sorted(asks, key=lambda x: float(x.get("price", 0)))
     for a in sorted_asks[:10]:
-        print(f"    {_fmt_pct(a['price']):>7}  |  Size: {float(a['size']):>10.2f}")
+        print(f"    {_fmt_pct(a.get('price', '?')):>7}  |  Size: {float(a.get('size', 0)):>10.2f}")
 
 
 def cmd_history(condition_id: str, interval: str = "all", fidelity: int = 50):
