@@ -153,3 +153,6 @@ infographic/
 
 # Squish local memory DB (machine-local state, never commit)
 .squish/
+
+# Claude Code session state (machine-local, never commit)
+.claude/
