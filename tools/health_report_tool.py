@@ -130,7 +130,7 @@ def health_report(include_models: bool = True, path: str = _DEFAULT_DISK_PATH) -
 
 registry.register(
     name="health_report",
-    toolset="code_execution",
+    toolset="monitoring",
     schema={
         "name": "health_report",
         "description": (

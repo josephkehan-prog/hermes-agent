@@ -183,7 +183,7 @@ def dns_bulk(domain: Any, record_types: Any = None) -> Dict[str, Any]:
 
 registry.register(
     name="dns_lookup",
-    toolset="web",
+    toolset="recon",
     schema={
         "name": "dns_lookup",
         "description": (
@@ -214,7 +214,7 @@ registry.register(
 
 registry.register(
     name="dns_bulk",
-    toolset="web",
+    toolset="recon",
     schema={
         "name": "dns_bulk",
         "description": (

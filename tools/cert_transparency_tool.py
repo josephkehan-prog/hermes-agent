@@ -188,7 +188,7 @@ def ct_certificates(domain: Any, limit: Any = _DEFAULT_CERT_LIMIT) -> Dict[str, 
 
 registry.register(
     name="ct_subdomains",
-    toolset="web",
+    toolset="recon",
     schema={
         "name": "ct_subdomains",
         "description": (
@@ -220,7 +220,7 @@ registry.register(
 
 registry.register(
     name="ct_certificates",
-    toolset="web",
+    toolset="recon",
     schema={
         "name": "ct_certificates",
         "description": (

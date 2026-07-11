@@ -150,7 +150,7 @@ def profile_script(path: str, args: Optional[List[str]] = None) -> Dict[str, Any
 
 registry.register(
     name="profile_running",
-    toolset="code_execution",
+    toolset="monitoring",
     schema={
         "name": "profile_running",
         "description": (
@@ -181,7 +181,7 @@ registry.register(
 
 registry.register(
     name="profile_script",
-    toolset="code_execution",
+    toolset="monitoring",
     schema={
         "name": "profile_script",
         "description": (

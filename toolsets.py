@@ -99,7 +99,47 @@ TOOLSETS = {
         "tools": ["web_search", "web_extract"],
         "includes": []  # No other toolsets included
     },
-    
+
+    # Opt-in domain toolsets (default-off via hermes_cli/tools_config.py
+    # _DEFAULT_OFF_TOOLSETS). Each ships a cluster of tools that were originally
+    # authored onto the always-on `web`/`code_execution` sets; keeping them off
+    # by default preserves the narrow-waist rule (every enabled tool's schema is
+    # sent on every API call). Enable per platform via `hermes tools`.
+    "finance": {
+        "description": "Crypto / markets / FX / prediction-market / wallet lookups",
+        "tools": [
+            "crypto_price", "crypto_trending", "crypto_ticker", "crypto_ticker_bulk",
+            "eth_gas_price", "fear_greed", "fx_rate", "fx_convert",
+            "polymarket_search", "polymarket_trending",
+            "polymarket_orderbook", "polymarket_midpoint",
+            "eth_balance", "btc_address",
+        ],
+        "includes": []
+    },
+
+    "recon": {
+        "description": "OSINT / network recon — DNS, cert transparency, IP info, wayback",
+        "tools": [
+            "ct_subdomains", "ct_certificates",
+            "dns_lookup", "dns_bulk",
+            "ip_info", "ip_bulk",
+            "wayback_snapshots", "wayback_latest", "wayback_save",
+        ],
+        "includes": []
+    },
+
+    "monitoring": {
+        "description": "Infra monitoring / alerting — uptime, resources, logs, profiling, notify",
+        "tools": [
+            "check_url", "check_urls",
+            "resource_snapshot", "disk_usage", "check_thresholds",
+            "health_report", "tail_lines", "grep_tail",
+            "profile_running", "profile_script",
+            "notify",
+        ],
+        "includes": []
+    },
+
     "search": {
         "description": "Web search only (no content extraction/scraping)",
         "tools": ["web_search"],

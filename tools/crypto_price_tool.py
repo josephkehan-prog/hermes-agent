@@ -203,7 +203,7 @@ def crypto_trending() -> Dict[str, Any]:
 
 registry.register(
     name="crypto_price",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "crypto_price",
         "description": (
@@ -239,7 +239,7 @@ registry.register(
 
 registry.register(
     name="crypto_trending",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "crypto_trending",
         "description": (

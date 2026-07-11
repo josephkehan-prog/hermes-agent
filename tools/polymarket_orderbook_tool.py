@@ -218,7 +218,7 @@ def polymarket_midpoint(token_id: Any) -> Dict[str, Any]:
 
 registry.register(
     name="polymarket_orderbook",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "polymarket_orderbook",
         "description": (
@@ -247,7 +247,7 @@ registry.register(
 
 registry.register(
     name="polymarket_midpoint",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "polymarket_midpoint",
         "description": (

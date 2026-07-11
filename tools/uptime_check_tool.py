@@ -161,7 +161,7 @@ def check_urls(urls: Any, **kwargs: Any) -> Dict[str, Any]:
 
 registry.register(
     name="check_url",
-    toolset="web",
+    toolset="monitoring",
     schema={
         "name": "check_url",
         "description": (
@@ -205,7 +205,7 @@ registry.register(
 
 registry.register(
     name="check_urls",
-    toolset="web",
+    toolset="monitoring",
     schema={
         "name": "check_urls",
         "description": (

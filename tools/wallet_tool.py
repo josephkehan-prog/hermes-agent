@@ -202,7 +202,7 @@ def btc_address(address: Any) -> Dict[str, Any]:
 
 registry.register(
     name="eth_balance",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "eth_balance",
         "description": (
@@ -232,7 +232,7 @@ registry.register(
 
 registry.register(
     name="btc_address",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "btc_address",
         "description": (

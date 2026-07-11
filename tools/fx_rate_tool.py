@@ -193,7 +193,7 @@ def fx_convert(amount: Any, base: Any, to: Any) -> Dict[str, Any]:
 
 registry.register(
     name="fx_rate",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "fx_rate",
         "description": (
@@ -228,7 +228,7 @@ registry.register(
 
 registry.register(
     name="fx_convert",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "fx_convert",
         "description": (

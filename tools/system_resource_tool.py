@@ -143,7 +143,7 @@ def check_thresholds(
 
 registry.register(
     name="resource_snapshot",
-    toolset="code_execution",
+    toolset="monitoring",
     schema={
         "name": "resource_snapshot",
         "description": (
@@ -173,7 +173,7 @@ registry.register(
 
 registry.register(
     name="disk_usage",
-    toolset="code_execution",
+    toolset="monitoring",
     schema={
         "name": "disk_usage",
         "description": "Return disk usage (total/used/free/percent bytes) for a filesystem path.",
@@ -197,7 +197,7 @@ registry.register(
 
 registry.register(
     name="check_thresholds",
-    toolset="code_execution",
+    toolset="monitoring",
     schema={
         "name": "check_thresholds",
         "description": (

@@ -223,7 +223,7 @@ def polymarket_trending(limit: Any = _DEFAULT_LIMIT) -> Dict[str, Any]:
 
 registry.register(
     name="polymarket_search",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "polymarket_search",
         "description": (
@@ -254,7 +254,7 @@ registry.register(
 
 registry.register(
     name="polymarket_trending",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "polymarket_trending",
         "description": (
