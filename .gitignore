@@ -125,6 +125,9 @@ docs/superpowers/*
 # stamp is ignored, not stray matches deeper in the tree.
 /.install_method
 
+# Persistent dev sandbox dir (scripts/dev-sandbox.sh --persistent)
+.hermes-sandbox/
+
 # Interrupted-update breadcrumb + recovery lock written next to the shared venv
 # by `hermes update` / launch-time self-heal. Runtime state, never a code change
 # — ignore so `git status` stays clean and update's autostash skips them.
