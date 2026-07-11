@@ -66,6 +66,9 @@ fi
 # ── Run in hermetic env ──────────────────────────────────────────────────────
 # env -i: start with empty environment, opt-in only what we need.
 # No credential var can leak — you'd have to explicitly add it here.
+# GIT_CONFIG_GLOBAL/SYSTEM=/dev/null: CI runners have no ~/.gitconfig, so a
+# dev box's commit signing (commit.gpgsign + passphrase key) or other global
+# git options must not leak into tests — tests self-configure git identity.
 echo "▶ running per-file parallel test suite via run_tests_parallel.py"
 echo "  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)"
 
@@ -74,6 +77,8 @@ cd "$REPO_ROOT"
 exec env -i \
   PATH="$PATH" \
   HOME="$HOME" \
+  GIT_CONFIG_GLOBAL=/dev/null \
+  GIT_CONFIG_SYSTEM=/dev/null \
   TZ=UTC \
   LANG=C.UTF-8 \
   LC_ALL=C.UTF-8 \
