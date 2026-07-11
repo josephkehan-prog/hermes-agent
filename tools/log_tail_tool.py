@@ -154,7 +154,7 @@ def grep_tail(
 
 registry.register(
     name="tail_lines",
-    toolset="code_execution",
+    toolset="monitoring",
     schema={
         "name": "tail_lines",
         "description": (
@@ -184,7 +184,7 @@ registry.register(
 
 registry.register(
     name="grep_tail",
-    toolset="code_execution",
+    toolset="monitoring",
     schema={
         "name": "grep_tail",
         "description": (

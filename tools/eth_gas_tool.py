@@ -100,7 +100,7 @@ def eth_gas_price() -> Dict[str, Any]:
 
 registry.register(
     name="eth_gas_price",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "eth_gas_price",
         "description": (

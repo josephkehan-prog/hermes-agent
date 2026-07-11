@@ -151,7 +151,7 @@ def fear_greed(limit: Any = _DEFAULT_LIMIT) -> Dict[str, Any]:
 
 registry.register(
     name="fear_greed",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "fear_greed",
         "description": (

@@ -198,7 +198,7 @@ def wayback_save(url: Any, confirm: bool = False) -> Dict[str, Any]:
 
 registry.register(
     name="wayback_snapshots",
-    toolset="web",
+    toolset="recon",
     schema={
         "name": "wayback_snapshots",
         "description": (
@@ -235,7 +235,7 @@ registry.register(
 
 registry.register(
     name="wayback_latest",
-    toolset="web",
+    toolset="recon",
     schema={
         "name": "wayback_latest",
         "description": (
@@ -260,7 +260,7 @@ registry.register(
 
 registry.register(
     name="wayback_save",
-    toolset="web",
+    toolset="recon",
     schema={
         "name": "wayback_save",
         "description": (

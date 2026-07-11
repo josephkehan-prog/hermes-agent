@@ -259,7 +259,7 @@ def ticker_bulk(symbols: Union[str, List[str]], exchange: Any = _DEFAULT_EXCHANG
 
 registry.register(
     name="crypto_ticker",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "crypto_ticker",
         "description": (
@@ -294,7 +294,7 @@ registry.register(
 
 registry.register(
     name="crypto_ticker_bulk",
-    toolset="web",
+    toolset="finance",
     schema={
         "name": "crypto_ticker_bulk",
         "description": (

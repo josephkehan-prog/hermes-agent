@@ -115,7 +115,11 @@ def gui_toolset_label(label: str) -> str:
 # `hermes tools` → X (Twitter) Search setup walks users through credential
 # setup. The tool's check_fn means the schema still won't appear to the
 # model if the credential later goes missing or expires.
-_DEFAULT_OFF_TOOLSETS = {"homeassistant", "spotify", "discord", "discord_admin", "video", "video_gen", "x_search"}
+# finance/recon/monitoring: opt-in domain toolsets (see toolsets.py). Their
+# tool clusters were originally authored onto the always-on web/code_execution
+# sets; keeping them default-off preserves the narrow waist (schemas ship on
+# every API call). Users enable per platform via `hermes tools`.
+_DEFAULT_OFF_TOOLSETS = {"homeassistant", "spotify", "discord", "discord_admin", "video", "video_gen", "x_search", "finance", "recon", "monitoring"}
 
 
 def _xai_credentials_present() -> bool:

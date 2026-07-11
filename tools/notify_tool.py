@@ -153,7 +153,7 @@ def notify(
 
 registry.register(
     name="notify",
-    toolset="web",
+    toolset="monitoring",
     schema={
         "name": "notify",
         "description": (

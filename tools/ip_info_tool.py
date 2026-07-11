@@ -189,7 +189,7 @@ def ip_bulk(ips: Any) -> Dict[str, Any]:
 
 registry.register(
     name="ip_info",
-    toolset="web",
+    toolset="recon",
     schema={
         "name": "ip_info",
         "description": (
@@ -216,7 +216,7 @@ registry.register(
 
 registry.register(
     name="ip_bulk",
-    toolset="web",
+    toolset="recon",
     schema={
         "name": "ip_bulk",
         "description": (
