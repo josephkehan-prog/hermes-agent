@@ -11,6 +11,8 @@
 #   * Env vars blanked (conftest.py also does this, but this
 #     is belt-and-suspenders for anyone running pytest outside our
 #     conftest path — e.g. on a single file)
+#   * HERMES_HOME isolated before Python starts, so collection-time imports
+#     cannot load the developer's real ~/.hermes/.env or write real logs
 #   * Proper venv activation (probes .venv, venv, then ~/.hermes/...)
 #
 # Usage:
@@ -62,6 +64,12 @@ if [ -f "$HOME/.hermes/pytest_live_guard.py" ]; then
   EXTRA_PYTEST_PLUGINS="pytest_live_guard"
 fi
 
+# Per-test fixtures replace this with a fresh directory for each test.  This
+# suite-level home covers the earlier collection/import phase, when modules may
+# call load_hermes_dotenv() or initialize logging before fixtures can run.
+TEST_HERMES_HOME="$(mktemp -d "${TMPDIR:-/tmp}/hermes-pytest-home.XXXXXX")"
+trap 'rm -rf "$TEST_HERMES_HOME"' EXIT
+
 
 # ── Run in hermetic env ──────────────────────────────────────────────────────
 # env -i: start with empty environment, opt-in only what we need.
@@ -70,13 +78,14 @@ fi
 # dev box's commit signing (commit.gpgsign + passphrase key) or other global
 # git options must not leak into tests — tests self-configure git identity.
 echo "▶ running per-file parallel test suite via run_tests_parallel.py"
-echo "  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)"
+echo "  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; isolated HERMES_HOME; clean env)"
 
 cd "$REPO_ROOT"
 
-exec env -i \
+env -i \
   PATH="$PATH" \
   HOME="$HOME" \
+  HERMES_HOME="$TEST_HERMES_HOME" \
   GIT_CONFIG_GLOBAL=/dev/null \
   GIT_CONFIG_SYSTEM=/dev/null \
   TZ=UTC \
