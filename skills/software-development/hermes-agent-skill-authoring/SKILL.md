@@ -1,196 +1,207 @@
 ---
 name: hermes-agent-skill-authoring
-description: "Author in-repo SKILL.md: frontmatter, validator, structure, and writing-quality principles."
-version: 1.1.0
+description: "Use when creating, revising, validating, or bundling Hermes skills in this repository. Covers trigger design, progressive disclosure, umbrella orchestration, member integrity, and repository validation."
+version: 2.0.0
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [skills, authoring, hermes-agent, conventions, skill-md]
+    tags: [skills, authoring, bundles, umbrellas, validation]
     related_skills: [plan, requesting-code-review]
 ---
 
-# Authoring Hermes-Agent Skills (in-repo)
+# Author Hermes Skills
 
 ## Overview
 
-There are two places a SKILL.md can live:
+Create predictable, compact skills under `skills/<category>/<name>/`. Treat a
+skill as behavioral instruction for another agent, not as general
+documentation. Put only always-needed routing and procedure in `SKILL.md`;
+keep detailed knowledge in `references/`, deterministic work in `scripts/`,
+and output ingredients in `assets/` or `templates/`.
 
-1. **User-local:** `~/.hermes/skills/<maybe-category>/<name>/SKILL.md` — personal, not shared. Created via `skill_manage(action='create')`.
-2. **In-repo (this skill is about this case):** `/home/bb/hermes-agent/skills/<category>/<name>/SKILL.md` — committed, shipped with the package. Use `write_file` + `git add`. `skill_manage(action='create')` does NOT target this tree.
+Hermes supports two useful shapes:
 
-## When to Use
+- **Capability skill:** owns one workflow, integration, or knowledge area.
+- **Bundle skill:** orchestrates three or more existing skills into an
+  end-to-end domain workflow without copying their implementation details.
 
-- User asks you to add a skill "in this branch / repo / commit"
-- You're committing a reusable workflow that should ship with hermes-agent
-- You're editing an existing skill under `/home/bb/hermes-agent/skills/` (use `patch` for small edits, `write_file` for rewrites; `skill_manage` still works for patch on in-repo skills, but not for `create`)
+## Source and Ownership
+
+- In-repo skills live at `skills/<category>/<name>/SKILL.md` and ship with
+  Hermes.
+- User-local skills live under the active profile's `$HERMES_HOME/skills/`.
+- Edit an existing skill in its owning tree. Do not create a user-local copy of
+  an in-repo skill.
+- Preserve every source skill package when creating a bundle. A bundle routes
+  to members; it does not absorb or archive them unless consolidation was
+  explicitly requested.
 
 ## Required Frontmatter
 
-Source of truth: `tools/skill_manager_tool.py::_validate_frontmatter`. Hard requirements:
-
-- Starts with `---` as the first bytes (no leading blank line).
-- Closes with `\n---\n` before the body.
-- Parses as a YAML mapping.
-- `name` field present.
-- `description` field present, ≤ **1024 chars** (`MAX_DESCRIPTION_LENGTH`).
-- Non-empty body after the closing `---`.
-
-Peer-matched shape used by every skill under `skills/software-development/`:
+Start byte zero with `---` and include:
 
 ```yaml
 ---
-name: my-skill-name               # lowercase, hyphens, ≤64 chars (MAX_NAME_LENGTH)
-description: Use when <trigger>. <one-line behavior>.
-version: 1.1.0
+name: concise-hyphen-name
+description: "Use when <trigger>. <distinctive behavior>."
+version: 1.0.0
 author: Hermes Agent
 license: MIT
+platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [short, descriptive, tags]
-    related_skills: [other-skill, another-skill]
+    tags: [short, useful, tags]
+    related_skills: [existing-skill]
 ---
 ```
 
-`version` / `author` / `license` / `metadata` are NOT enforced by the validator, but every peer has them — omit and your skill sticks out.
+For a bundle, add `bundle: true` and use `related_skills` as the single
+canonical member list:
 
-## Size Limits
-
-- Description: ≤ 1024 chars (enforced).
-- Full SKILL.md: ≤ 100,000 chars (enforced as `MAX_SKILL_CONTENT_CHARS`, ~36k tokens).
-- Peer skills in `software-development/` sit at **8-14k chars**. Aim for that range. If you're pushing past 20k, split into `references/*.md` and reference them from SKILL.md.
-
-## Writing Quality Principles
-
-A skill exists to make the agent's process more predictable. Predictability does **not** mean identical output every run; it means the agent reliably follows the same useful discipline.
-
-Use these quality checks when writing or editing any skill:
-
-1. **Optimize for process predictability.** Ask: what behavior should change when this skill loads? If a line does not change behavior, cut it.
-2. **Choose the right context load.** A model-invoked Hermes skill pays for its description every turn. Keep descriptions focused on trigger classes and the skill's distinctive behavior. Put details in the body or linked references.
-3. **Use an information hierarchy.** Put always-needed steps in `SKILL.md`; put branch-specific or bulky reference material in `references/`, `templates/`, or `scripts/` and point to it only when needed.
-4. **End steps with completion criteria.** Each ordered step should say how the agent knows it is done. Good criteria are checkable and, when it matters, exhaustive: "every modified file accounted for" beats "summarize changes."
-5. **Co-locate rules with the concept they govern.** Avoid scattering one idea across the file. Keep definition, caveats, examples, and verification near each other.
-6. **Use strong leading words.** Prefer compact concepts the model already knows — e.g. "tight loop," "tracer bullet," "root cause," "regression test" — over long repeated explanations. A good leading word saves tokens and anchors behavior.
-7. **Prune duplication and no-ops.** Keep each meaning in one source of truth. Sentence by sentence, ask whether the sentence changes agent behavior versus the default. If not, delete it rather than polishing it.
-8. **Watch for premature completion.** If agents tend to rush a step, first sharpen that step's completion criterion. Split the sequence only when later steps distract from doing the current step well.
-
-Common quality failures:
-
-- **Premature completion** — the skill lets the agent move on before the work is genuinely done.
-- **Duplication** — the same rule appears in multiple places and drifts.
-- **Sediment** — stale lines remain because adding felt safer than deleting.
-- **Sprawl** — too much always-visible material; push branch-specific reference behind pointers.
-- **No-op prose** — generic advice the agent would already follow without the skill.
-
-## Peer-Matched Structure
-
-Every in-repo skill follows roughly:
-
+```yaml
+metadata:
+  hermes:
+    bundle: true
+    domain: domain-name
+    tags: [bundle, domain-name]
+    related_skills: [member-one, member-two, member-three]
 ```
-# <Title>
 
-## Overview
-One or two paragraphs: what and why.
+Give each bundle a stable `domain` identifier. Do not add a second `members`
+list. One member inventory prevents metadata drift and also feeds Hermes'
+learning graph.
 
-## When to Use
-- Bulleted triggers
-- "Don't use for:" counter-triggers
+Runtime constraints from `tools/skill_manager_tool.py`:
 
-## <Topic sections specific to the skill>
-- Quick-reference tables are common
-- Code blocks with exact commands
-- Hermes-specific recipes (tests via scripts/run_tests.sh, ui-tui paths, etc.)
+- name: at most 64 characters, lowercase letters/digits/hyphens
+- description: at most 1024 characters
+- complete file: at most 100,000 characters
+- non-empty Markdown body after valid YAML frontmatter
+
+## Authoring Workflow
+
+### 1. Verify the premise
+
+Inspect the target category, two or three peers, and any existing skill with a
+similar trigger. Decide whether to extend an existing capability, create a new
+capability, or create an orchestration bundle.
+
+**Complete when:** the proposed trigger does not duplicate a peer and every
+planned member exists in the repository.
+
+### 2. Define concrete requests
+
+Write three representative user requests and one counter-example. Use them to
+shape the description because descriptions determine skill activation.
+
+**Complete when:** the description identifies both the domain and the action
+class, while the counter-example would not reasonably trigger it.
+
+### 3. Set the degree of freedom
+
+- Use prose and heuristics for judgment-heavy work.
+- Use tables or pseudocode where routing should be consistent.
+- Add a script only for repeated, deterministic, error-prone operations.
+
+**Complete when:** fragile steps have explicit commands or checks and flexible
+steps retain room for context-sensitive judgment.
+
+### 4. Write for progressive disclosure
+
+Keep the core loop in `SKILL.md`. Link directly to optional resources one level
+below the skill root. Avoid repeating a rule in the body and a reference.
+
+**Complete when:** the skill can route a normal request without loading any
+reference, and every branch-specific resource has a clear read condition.
+
+### 5. Validate behavior and package integrity
+
+Run:
+
+```bash
+python skills/software-development/hermes-agent-skill-authoring/scripts/validate_skills.py \
+  skills/<category>/<name>
+```
+
+For a bundle suite, pass every bundle directory in one invocation. The
+validator checks frontmatter, names, ambiguous bundle-member identities,
+bundle member count, member resolution, and self-references. Paths are required
+so unrelated legacy skills cannot make a focused validation fail.
+
+If the skill includes scripts, execute representative happy-path and failure
+cases. If it changes a real integration or resolution chain, add an E2E test
+against a temporary `HERMES_HOME`.
+
+**Complete when:** deterministic validation passes and the evidence covers the
+actual workflow, not merely file existence.
+
+## Bundle Skill Contract
+
+A bundle is a router and sequencer. It must contain these six elements:
+
+1. **Boundary:** define the end-to-end outcome and explicit exclusions.
+2. **Routing table:** map request types to one primary member skill.
+3. **Sequence:** order only the members required for the request; never invoke
+   every member by default.
+4. **Handoff record:** carry inputs, outputs, evidence, decisions, and open
+   risks between stages.
+5. **Stop conditions:** pause on missing authority, unsafe scope, contradictory
+   evidence, or a failed prerequisite.
+6. **Completion gate:** prove each requested deliverable and surface-specific
+   validation before claiming the bundle outcome.
+
+### Bundle routing rules
+
+- Load this bundle first, then load only the selected member instructions.
+- Treat member skills as sources of truth for commands, APIs, and detailed
+  procedures.
+- Use the smallest member set that completes the request.
+- Reuse one artifact/evidence ledger across stages instead of producing
+  disconnected outputs.
+- Do not silently substitute a related skill when the selected member's
+  prerequisite fails; report the failed gate and choose a documented fallback.
+
+### Bundle anti-patterns
+
+- Copying member instructions into the bundle
+- Listing related skills without explaining routing or handoffs
+- Running all members for every request
+- Inventing a new core tool to connect steps already expressible via skills
+- Claiming an end-to-end result from one stage's unit-level check
+- Referencing optional-only or user-local members from a bundled in-repo skill
+
+## Editing Existing Skills
+
+Prefer replacement over sediment. When adding a stronger rule, remove the old
+weaker wording. Preserve scripts, references, templates, assets, and relative
+links. For a major rewrite, compare the old and new trigger boundaries before
+editing so useful cases are not lost.
 
 ## Common Pitfalls
-Numbered list of mistakes and their fixes.
 
-## Verification Checklist
-- [ ] Checkbox list of post-action verifications
-
-## One-Shot Recipes (optional)
-Named scenarios → concrete command sequences.
-```
-
-Not every section is mandatory, but `Overview` + `When to Use` + actionable body + pitfalls are the minimum for the skill to feel like a peer.
-
-## Directory Placement
-
-```
-skills/<category>/<skill-name>/SKILL.md
-```
-
-Categories currently in repo (confirm with `ls skills/`): `autonomous-ai-agents`, `creative`, `data-science`, `devops`, `dogfood`, `email`, `gaming`, `github`, `leisure`, `mcp`, `media`, `mlops/*`, `note-taking`, `productivity`, `red-teaming`, `research`, `smart-home`, `social-media`, `software-development`.
-
-Pick the closest existing category. Don't invent new top-level categories casually.
-
-## Workflow
-
-1. **Survey peers** in the target category:
-   ```
-   ls skills/<category>/
-   ```
-   Read 2-3 peer SKILL.md files to match tone and structure.
-2. **Check validator constraints** in `tools/skill_manager_tool.py` if unsure.
-3. **Draft** with `write_file` to `skills/<category>/<name>/SKILL.md`.
-4. **Validate locally**:
-   ```python
-   import yaml, re, pathlib
-   content = pathlib.Path("skills/<category>/<name>/SKILL.md").read_text()
-   assert content.startswith("---")
-   m = re.search(r'\n---\s*\n', content[3:])
-   fm = yaml.safe_load(content[3:m.start()+3])
-   assert "name" in fm and "description" in fm
-   assert len(fm["description"]) <= 1024
-   assert len(content) <= 100_000
-   ```
-5. **Git add + commit** on the active branch.
-6. **Note:** the CURRENT session's skill loader is cached — `skill_view` / `skills_list` will not see the new skill until a new session. This is expected, not a bug.
-
-## Cross-Referencing Other Skills
-
-`metadata.hermes.related_skills` unions both trees (`skills/` in-repo and `~/.hermes/skills/`) at load time. You CAN reference a user-local skill from an in-repo skill, but it won't resolve for other users who clone the repo fresh. Prefer referencing only in-repo skills from in-repo skills. If a frequently-referenced skill lives only in `~/.hermes/skills/`, consider promoting it to the repo.
-
-## Editing Existing In-Repo Skills
-
-- **Small fix (typo, added pitfall, tightened trigger):** `skill_manage(action='patch', name=..., old_string=..., new_string=...)` works fine on in-repo skills.
-- **Major rewrite:** `write_file` the whole SKILL.md. `skill_manage(action='edit')` also works but requires supplying the full new content.
-- **Adding supporting files:** `write_file` to `skills/<category>/<name>/references/<file>.md`, `templates/<file>`, or `scripts/<file>`. `skill_manage(action='write_file')` also works and enforces the references/templates/scripts/assets subdir allowlist.
-- **Always commit** the edit — in-repo skills are source, not runtime state.
-
-## Common Pitfalls
-
-1. **Using `skill_manage(action='create')` for an in-repo skill.** It writes to `~/.hermes/skills/`, not the repo tree. Use `write_file` for in-repo creation.
-
-2. **Leading whitespace before `---`.** The validator checks `content.startswith("---")`; any leading blank line or BOM fails validation.
-
-3. **Description too generic.** Peer descriptions start with "Use when ..." and describe the *trigger class*, not the one task. "Use when debugging X" > "Debug X".
-
-4. **Forgetting the author/license/metadata block.** Not validator-enforced, but every peer has it; omitting makes the skill look half-finished.
-
-5. **Writing a skill that duplicates a peer.** Before creating, `ls skills/<category>/` and open 2-3 peers. Prefer extending an existing skill to creating a narrow sibling.
-
-6. **Expecting the current session to see the new skill.** It won't. The skill loader is initialized at session start. Verify in a fresh session or via `skill_view` using the exact path.
-
-7. **Letting skills accumulate sediment.** A skill should get shorter or sharper over time. When adding a rule, remove the old wording it replaces; don't layer advice forever.
-
-8. **Writing no-op prose.** "Be careful," "be thorough," and "use best practices" rarely change model behavior. Replace with a checkable completion criterion or a stronger leading word.
-
-9. **Linking to skills that don't exist in-repo.** `related_skills: [some-user-local-skill]` works for you but breaks for other clones. Prefer only in-repo links.
+1. **Generic activation text:** describe the actual request classes, not
+   merely the topic.
+2. **No-op prose:** replace "be careful" with a checkable gate.
+3. **Snapshot validation:** assert relationships and invariants rather than a
+   fixed global skill count.
+4. **Broken package moves:** never move only `SKILL.md` when its resources or
+   relative links remain elsewhere.
+5. **Phantom members:** every in-repo bundle member must resolve to a current
+   in-repo `name:` value.
+6. **Current-session cache confusion:** newly installed local skills may need
+   `/reload-skills`; direct source validation does not.
 
 ## Verification Checklist
 
-- [ ] File is at `skills/<category>/<name>/SKILL.md` (not in `~/.hermes/skills/`)
-- [ ] Frontmatter starts at byte 0 with `---`, closes with `\n---\n`
-- [ ] `name`, `description`, `version`, `author`, `license`, `metadata.hermes.{tags, related_skills}` all present
-- [ ] Name ≤ 64 chars, lowercase + hyphens
-- [ ] Description ≤ 1024 chars and starts with "Use when ..."
-- [ ] Total file ≤ 100,000 chars (aim for 8-15k)
-- [ ] Structure: `# Title` → `## Overview` → `## When to Use` → body → `## Common Pitfalls` → `## Verification Checklist`
-- [ ] Each ordered step has a checkable completion criterion
-- [ ] Description is trigger-focused and avoids duplicated body content
-- [ ] Bulky or branch-specific reference is progressively disclosed in linked files
-- [ ] No-op prose and duplicated rules removed
-- [ ] `related_skills` references resolve in-repo (or are explicitly OK to be user-local)
-- [ ] `git add skills/<category>/<name>/ && git commit` completed on the intended branch
+- [ ] Trigger and counter-trigger are distinct from peers
+- [ ] Frontmatter and directory name agree
+- [ ] Description is trigger-focused and within the runtime limit
+- [ ] Always-needed procedure stays concise
+- [ ] Resources are linked directly and loaded conditionally
+- [ ] Scripts were executed on representative cases
+- [ ] Bundle has `bundle: true` and at least three resolving members
+- [ ] Bundle defines routing, sequence, handoff, stop, and completion gates
+- [ ] Source member packages remain intact
+- [ ] `validate_skills.py` passes for every created or modified skill
