@@ -629,7 +629,9 @@ def _consume_codex_event_stream(
     * ``output``: list of output items, assembled from ``response.output_item.done``.
       For tool-call turns this contains the function_call items; for plain-text
       turns it contains a synthesized ``message`` item built from streamed deltas
-      if no message item was emitted directly.
+      if no message item was emitted directly. As a final compatibility fallback,
+      a non-empty list from the terminal ``response.output`` is accepted when the
+      provider omitted both item events and text deltas.
     * ``output_text``: assembled text from ``response.output_text.delta`` deltas.
     * ``usage``: copied from the terminal event's ``response.usage`` (when present).
     * ``status``: ``completed`` / ``incomplete`` / ``failed`` (or ``completed`` if
@@ -639,9 +641,8 @@ def _consume_codex_event_stream(
     * ``error``: passed through for ``response.failed`` frames.
     * ``model``: from kwargs (the wire model name is not authoritative).
 
-    Critically, we never read ``response.output`` from the terminal event for
-    content reconstruction — only ``usage``, ``status``, ``id``.  That field
-    being ``null`` / ``[]`` / missing is fine.
+    Terminal ``response.output`` is treated as an optional fallback, never the
+    primary source. That field being ``null`` / ``[]`` / missing remains fine.
 
     Callbacks:
 
@@ -662,6 +663,7 @@ def _consume_codex_event_stream(
     terminal_status: str = "completed"
     terminal_usage: Any = None
     terminal_response_id: str = None
+    terminal_output: Any = None
     terminal_incomplete_details: Any = None
     terminal_error: Any = None
     saw_terminal = False
@@ -767,6 +769,11 @@ def _consume_codex_event_stream(
                 if rid is None and isinstance(resp_obj, dict):
                     rid = resp_obj.get("id")
                 terminal_response_id = rid
+                candidate_output = getattr(resp_obj, "output", None)
+                if candidate_output is None and isinstance(resp_obj, dict):
+                    candidate_output = resp_obj.get("output")
+                if isinstance(candidate_output, list) and candidate_output:
+                    terminal_output = candidate_output
                 rstatus = getattr(resp_obj, "status", None)
                 if rstatus is None and isinstance(resp_obj, dict):
                     rstatus = resp_obj.get("status")
@@ -802,6 +809,8 @@ def _consume_codex_event_stream(
             status="completed",
             content=[SimpleNamespace(type="output_text", text=assembled)],
         )]
+    elif terminal_output:
+        output = list(terminal_output)
     else:
         output = []
 
@@ -916,6 +925,19 @@ def run_codex_stream(agent, api_kwargs: dict, client: Any = None, on_first_delta
                     sum(len(p) for p in agent._codex_streamed_text_parts),
                     agent._client_log_context(),
                 )
+
+            final_text = final.output_text.strip() if isinstance(final.output_text, str) else ""
+            if (
+                final.status == "completed"
+                and not final.output
+                and not final_text
+                and attempt < max_stream_retries
+            ):
+                logger.warning(
+                    "Codex Responses stream completed without output; retrying once. %s",
+                    agent._client_log_context(),
+                )
+                continue
 
             return final
         finally:

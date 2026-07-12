@@ -118,6 +118,21 @@ Commit `dff880662` fixes the gap by creating a suite-level temporary
 and deleting it when the runner exits. The real SOCKS-warning count remained
 unchanged during the focused metadata test run.
 
+Follow-up validation found two more gaps:
+
+- `test_browser_manage_connect_default_local_retries_after_launch` mocked the
+  retired boolean helper while production called the structured launcher. On
+  macOS the test launched a real detached Chrome process and passed against it.
+  The test now mocks the production symbol and asserts that call.
+- `test_ticker_stall_60703.py` imported profile-scoped cron paths during
+  collection and then created jobs without entering a temporary cron store.
+  The file now wraps every test in `use_cron_store(tmp_path)`.
+
+The Codex Responses stream also accepted `response.completed` with empty output
+even when a compatible provider placed valid items only on the terminal frame.
+The consumer now uses non-empty terminal output as a last-resort fallback and
+retries a truly empty completed stream once.
+
 ### Validation evidence
 
 - Before upstream merge: 482 focused regression tests passed.

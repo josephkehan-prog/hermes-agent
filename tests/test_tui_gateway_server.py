@@ -7067,8 +7067,9 @@ def test_browser_manage_connect_default_local_retries_after_launch(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", _opener)
     with patch.dict(sys.modules, {"tools.browser_tool": fake}):
         with patch(
-            "hermes_cli.browser_connect.try_launch_chrome_debug", return_value=True
-        ):
+            "hermes_cli.browser_connect.launch_chrome_debug",
+            return_value=ChromeDebugLaunch(launched=True),
+        ) as launch_mock:
             resp = server.handle_request(
                 {"id": "1", "method": "browser.manage", "params": {"action": "connect"}}
             )
@@ -7079,6 +7080,7 @@ def test_browser_manage_connect_default_local_retries_after_launch(monkeypatch):
         "Chromium-family browser isn't running with remote debugging — attempting to launch...",
         "Chromium-family browser launched and listening on port 9222",
     ]
+    launch_mock.assert_called_once()
     assert os.environ["BROWSER_CDP_URL"] == "http://127.0.0.1:9222"
 
 

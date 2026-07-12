@@ -45,6 +45,13 @@ except ImportError:  # pragma: no cover - non-POSIX
 pytestmark = pytest.mark.skipif(fcntl is None, reason="flock semantics are POSIX-only")
 
 
+@pytest.fixture(autouse=True)
+def _isolated_cron_store(tmp_path):
+    """Never let these persistence tests write the developer's live cron store."""
+    with jobs_mod.use_cron_store(tmp_path):
+        yield
+
+
 def _hold_jobs_flock(path: Path, release: threading.Event, held: threading.Event):
     """Hold an exclusive flock on *path* from a separate fd until released.
 

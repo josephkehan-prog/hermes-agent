@@ -750,15 +750,35 @@ def test_run_codex_stream_parses_create_stream_events(monkeypatch):
     response = agent._run_codex_stream(_codex_request_kwargs())
     assert calls["create"] == 1
     assert create_stream.closed is True
-    # The wire's response.completed.response.output is a list with the message item,
-    # but the event-driven path reconstructs from response.output_item.done.
-    # _codex_message_response returns a SimpleNamespace whose .output is a list of
-    # items — we don't read those directly, we read the items via output_item.done,
-    # but this fixture doesn't emit output_item.done. So the consumer assembles a
-    # message from streamed text deltas if present, or returns the items it has.
-    # For backward compatibility with the helper that builds _codex_message_response,
-    # we just assert status is completed and id propagated.
+    # Some compatible providers omit output_item.done and text-delta events but
+    # include the completed message in the terminal response. Preserve it.
     assert response.status == "completed"
+    assert response.output[0].content[0].text == "streamed create ok"
+
+
+def test_run_codex_stream_retries_completed_empty_response_once(monkeypatch):
+    """A terminal completed frame with no usable content gets one clean retry."""
+    agent = _build_agent(monkeypatch)
+    calls = {"create": 0}
+
+    def _fake_create(**kwargs):
+        calls["create"] += 1
+        assert kwargs.get("stream") is True
+        if calls["create"] == 1:
+            terminal = SimpleNamespace(status="completed", output=[])
+        else:
+            terminal = _codex_message_response("retry recovered")
+        return _FakeCreateStream([
+            SimpleNamespace(type="response.created"),
+            SimpleNamespace(type="response.completed", response=terminal),
+        ])
+
+    agent.client = SimpleNamespace(responses=SimpleNamespace(create=_fake_create))
+
+    response = agent._run_codex_stream(_codex_request_kwargs())
+
+    assert calls["create"] == 2
+    assert response.output[0].content[0].text == "retry recovered"
 
 
 def test_run_codex_stream_ignores_completed_response_with_null_output(monkeypatch):
