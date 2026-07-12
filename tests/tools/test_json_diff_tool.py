@@ -183,3 +183,67 @@ class TestJsonDiffText:
         # Assert
         assert result["ok"] is False
         assert "limit" in result["error"]
+
+
+class TestIgnorePaths:
+    """ignore_paths drops changes at volatile dotted paths (e.g. timestamps)."""
+
+    def test_ignores_exact_modified_path(self):
+        old = {"data": 1, "meta": {"ts": 100}}
+        new = {"data": 2, "meta": {"ts": 200}}
+
+        result = json_diff_tool.json_diff(old, new, ignore_paths=["meta.ts"])
+
+        assert result["changed"] is True
+        assert result["modified"] == {"data": {"old": 1, "new": 2}}
+        assert "meta.ts" not in result["modified"]
+
+    def test_ignoring_only_change_yields_no_changes(self):
+        old = {"meta": {"ts": 100}}
+        new = {"meta": {"ts": 200}}
+
+        result = json_diff_tool.json_diff(old, new, ignore_paths=["meta.ts"])
+
+        assert result["changed"] is False
+        assert result["summary"] == "no changes"
+
+    def test_ignore_path_prefix_covers_subtree(self):
+        old = {"meta": {"a": 1, "b": 2}, "keep": 1}
+        new = {"meta": {"a": 9, "b": 9}, "keep": 2}
+
+        result = json_diff_tool.json_diff(old, new, ignore_paths=["meta"])
+
+        assert result["modified"] == {"keep": {"old": 1, "new": 2}}
+
+    def test_ignore_prefix_does_not_match_sibling_by_string(self):
+        # "meta" must not accidentally ignore "metadata"
+        old = {"metadata": 1}
+        new = {"metadata": 2}
+
+        result = json_diff_tool.json_diff(old, new, ignore_paths=["meta"])
+
+        assert result["modified"] == {"metadata": {"old": 1, "new": 2}}
+
+    def test_ignores_added_and_removed_paths(self):
+        old = {"keep": 1, "vol": {"x": 1}}
+        new = {"keep": 1, "vol2": {"y": 2}}
+
+        result = json_diff_tool.json_diff(old, new, ignore_paths=["vol", "vol2"])
+
+        assert result["changed"] is False
+
+    def test_ignore_paths_via_text_entrypoint(self):
+        old = json.dumps({"n": 1, "t": 100})
+        new = json.dumps({"n": 2, "t": 200})
+
+        result = json_diff_tool.json_diff_text(old, new, ignore_paths=["t"])
+
+        assert result["modified"] == {"n": {"old": 1, "new": 2}}
+
+    def test_none_ignore_paths_is_full_diff(self):
+        old = {"a": 1}
+        new = {"a": 2}
+
+        result = json_diff_tool.json_diff(old, new, ignore_paths=None)
+
+        assert result["modified"] == {"a": {"old": 1, "new": 2}}

@@ -16,11 +16,30 @@ Two entry points:
 """
 
 import json
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from tools.registry import registry
 
 _MAX_INPUT_CHARS = 10_000_000
+
+
+def _is_ignored(path: str, ignore_paths: Tuple[str, ...]) -> bool:
+    """True if path equals or is nested under any ignore path.
+
+    Prefix matching is segment-aware: "meta" ignores "meta.ts" but not
+    "metadata".
+    """
+    for ignore in ignore_paths:
+        if path == ignore or path.startswith(ignore + "."):
+            return True
+    return False
+
+
+def _filter_ignored(changes: Dict[str, Any], ignore_paths: Tuple[str, ...]) -> Dict[str, Any]:
+    """Drop change entries whose path is ignored, preserving order."""
+    if not ignore_paths:
+        return changes
+    return {p: v for p, v in changes.items() if not _is_ignored(p, ignore_paths)}
 
 
 def _join_path(path: str, key: Any) -> str:
@@ -87,11 +106,16 @@ def _build_summary(added: Dict, removed: Dict, modified: Dict) -> str:
     return ", ".join(parts)
 
 
-def json_diff(old: Any, new: Any) -> Dict[str, Any]:
+def json_diff(old: Any, new: Any, ignore_paths: Optional[List[str]] = None) -> Dict[str, Any]:
     """Recursively diff two JSON-compatible values, reporting differences by dotted path.
 
     Returns {ok, changed, added, removed, modified, summary}. added/removed are
     {path: value}; modified is {path: {old, new}}. Neither old nor new is mutated.
+
+    ``ignore_paths`` drops changes at the given dotted paths and everything
+    nested under them — useful for volatile fields (timestamps, counters) that
+    would otherwise mask real changes in a monitoring snapshot. Matching is
+    segment-aware: "meta" ignores "meta.ts" but not "metadata".
     """
     try:
         json.dumps(old)
@@ -101,10 +125,20 @@ def json_diff(old: Any, new: Any) -> Dict[str, Any]:
     except RecursionError:
         return {"ok": False, "error": "input nesting too deep"}
 
+    if ignore_paths is not None and (
+        not isinstance(ignore_paths, list)
+        or any(not isinstance(p, str) for p in ignore_paths)
+    ):
+        return {"ok": False, "error": "ignore_paths must be a list of strings"}
+    ignore_tuple: Tuple[str, ...] = tuple(ignore_paths) if ignore_paths else ()
+
     try:
         added, removed, modified = _diff_values(old, new, "")
     except RecursionError:
         return {"ok": False, "error": "input nesting too deep"}
+    added = _filter_ignored(added, ignore_tuple)
+    removed = _filter_ignored(removed, ignore_tuple)
+    modified = _filter_ignored(modified, ignore_tuple)
     return {
         "ok": True,
         "changed": bool(added or removed or modified),
@@ -115,7 +149,9 @@ def json_diff(old: Any, new: Any) -> Dict[str, Any]:
     }
 
 
-def json_diff_text(old_json_str: str, new_json_str: str) -> Dict[str, Any]:
+def json_diff_text(
+    old_json_str: str, new_json_str: str, ignore_paths: Optional[List[str]] = None
+) -> Dict[str, Any]:
     """Parse two JSON strings and diff them. Returns an error dict on parse failure
     or when either input exceeds the size cap."""
     for label, text in (("old_json_str", old_json_str), ("new_json_str", new_json_str)):
@@ -137,7 +173,7 @@ def json_diff_text(old_json_str: str, new_json_str: str) -> Dict[str, Any]:
     except RecursionError:
         return {"ok": False, "error": "new_json_str nesting too deep"}
 
-    return json_diff(old, new)
+    return json_diff(old, new, ignore_paths=ignore_paths)
 
 
 registry.register(
@@ -156,12 +192,26 @@ registry.register(
             "properties": {
                 "old_json": {"type": "string", "description": "The earlier/baseline JSON document, as a JSON-encoded string."},
                 "new_json": {"type": "string", "description": "The current JSON document to compare against old_json, as a JSON-encoded string."},
+                "ignore_paths": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": (
+                        "Optional dotted paths to exclude from the diff, including anything "
+                        "nested under them (e.g. 'meta.timestamp'). Use to ignore volatile "
+                        "fields so they don't mask real changes. Segment-aware: 'meta' "
+                        "ignores 'meta.ts' but not 'metadata'."
+                    ),
+                },
             },
             "required": ["old_json", "new_json"],
         },
     },
     handler=lambda args, **kw: json.dumps(
-        json_diff_text(old_json_str=args.get("old_json", ""), new_json_str=args.get("new_json", "")),
+        json_diff_text(
+            old_json_str=args.get("old_json", ""),
+            new_json_str=args.get("new_json", ""),
+            ignore_paths=args.get("ignore_paths"),
+        ),
         ensure_ascii=False,
     ),
     emoji="🔀",
