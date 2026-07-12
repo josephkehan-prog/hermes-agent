@@ -53,87 +53,19 @@ hermes honcho status    # shows resolved config, connection test, peer info
 
 ## Architecture
 
-### Base Context Injection
+Honcho injects a base context block (session summary → user representation → AI
+peer card) into the system prompt in `hybrid`/`context` recall modes, automatically
+choosing a cold-start (lightweight, no summary) or warm-start (full injection)
+prompt based on session state. Conversations are modeled as **peers** — a user
+peer and a per-profile AI peer, each with `observeMe`/`observeOthers` toggles
+(default: all on). Sessions scope where messages land (`per-directory` default;
+override with `hermes honcho map <name>`). Recall mode controls whether context
+auto-injects and whether tools are exposed (`hybrid` both, `context` inject-only,
+`tools` explicit-only).
 
-When Honcho injects context into the system prompt (in `hybrid` or `context` recall modes), it assembles the base context block in this order:
-
-1. **Session summary** -- a short digest of the current session so far (placed first so the model has immediate conversational continuity)
-2. **User representation** -- Honcho's accumulated model of the user (preferences, facts, patterns)
-3. **AI peer card** -- the identity card for this Hermes profile's AI peer
-
-The session summary is generated automatically by Honcho at the start of each turn (when a prior session exists). It gives the model a warm start without replaying full history.
-
-### Cold / Warm Prompt Selection
-
-Honcho automatically selects between two prompt strategies:
-
-| Condition | Strategy | What happens |
-|-----------|----------|--------------|
-| No prior session or empty representation | **Cold start** | Lightweight intro prompt; skips summary injection; encourages the model to learn about the user |
-| Existing representation and/or session history | **Warm start** | Full base context injection (summary → representation → card); richer system prompt |
-
-You do not need to configure this -- it is automatic based on session state.
-
-### Peers
-
-Honcho models conversations as interactions between **peers**. Hermes creates two peers per session:
-
-- **User peer** (`peerName`): represents the human. Honcho builds a user representation from observed messages.
-- **AI peer** (`aiPeer`): represents this Hermes instance. Each profile gets its own AI peer so agents develop independent views.
-
-### Observation
-
-Each peer has two observation toggles that control what Honcho learns from:
-
-| Toggle | What it does |
-|--------|-------------|
-| `observeMe` | Peer's own messages are observed (builds self-representation) |
-| `observeOthers` | Other peers' messages are observed (builds cross-peer understanding) |
-
-Default: all four toggles **on** (full bidirectional observation).
-
-Configure per-peer in `honcho.json`:
-
-```json
-{
-  "observation": {
-    "user": { "observeMe": true, "observeOthers": true },
-    "ai":   { "observeMe": true, "observeOthers": true }
-  }
-}
-```
-
-Or use the shorthand presets:
-
-| Preset | User | AI | Use case |
-|--------|------|----|----------|
-| `"directional"` (default) | me:on, others:on | me:on, others:on | Multi-agent, full memory |
-| `"unified"` | me:on, others:off | me:off, others:on | Single agent, user-only modeling |
-
-Settings changed in the [Honcho dashboard](https://app.honcho.dev) are synced back on session init -- server-side config wins over local defaults.
-
-### Sessions
-
-Honcho sessions scope where messages and observations land. Strategy options:
-
-| Strategy | Behavior |
-|----------|----------|
-| `per-directory` (default) | One session per working directory |
-| `per-repo` | One session per git repository root |
-| `per-session` | New Honcho session each Hermes run |
-| `global` | Single session across all directories |
-
-Manual override: `hermes honcho map my-project-name`
-
-### Recall Modes
-
-How the agent accesses Honcho memory:
-
-| Mode | Auto-inject context? | Tools available? | Use case |
-|------|---------------------|-----------------|----------|
-| `hybrid` (default) | Yes | Yes | Agent decides when to use tools vs auto context |
-| `context` | Yes | No (hidden) | Minimal token cost, no tool calls |
-| `tools` | No | Yes | Agent controls all memory access explicitly |
+Full detail — base context injection order, cold/warm selection table, peer
+observation presets (`directional`/`unified`) and JSON config, session strategy
+table, recall mode table: read [references/architecture.md](references/architecture.md).
 
 ## Three Orthogonal Knobs
 
@@ -160,28 +92,7 @@ Controls **how many rounds** of dialectic reasoning Honcho performs per query.
 | `dialecticDepth` | `1` | 1-3 | Number of dialectic reasoning rounds per query |
 | `dialecticDepthLevels` | -- | array | Optional per-depth-round level overrides (see below) |
 
-`dialecticDepth: 2` means Honcho runs two rounds of dialectic synthesis. The first round produces an initial answer; the second refines it.
-
-`dialecticDepthLevels` lets you set the reasoning level for each round independently:
-
-```json
-{
-  "dialecticDepth": 3,
-  "dialecticDepthLevels": ["low", "medium", "high"]
-}
-```
-
-If `dialecticDepthLevels` is omitted, rounds use **proportional levels** derived from `dialecticReasoningLevel` (the base):
-
-| Depth | Pass levels |
-|-------|-------------|
-| 1 | [base] |
-| 2 | [minimal, base] |
-| 3 | [minimal, base, low] |
-
-This keeps earlier passes cheap while using full depth on the final synthesis.
-
-**Depth at session start.** The session-start prewarm runs the full configured `dialecticDepth` in the background before turn 1. A single-pass prewarm on a cold peer often returns thin output — multi-pass depth runs the audit/reconcile cycle before the user ever speaks. Turn 1 consumes the prewarm result directly; if prewarm hasn't landed in time, turn 1 falls back to a synchronous call with a bounded timeout.
+`dialecticDepth: 2` means Honcho runs two rounds of dialectic synthesis. The first round produces an initial answer; the second refines it. If `dialecticDepthLevels` is omitted, rounds use proportional levels derived from `dialecticReasoningLevel` (cheap early passes, full depth on the final synthesis). Full table, the session-start prewarm behavior, and manual per-round level overrides: read [references/config.md](references/config.md).
 
 ### Level (how hard)
 
@@ -253,20 +164,7 @@ The agent has 5 bidirectional Honcho tools (hidden in `context` recall mode):
 | `honcho_reasoning` | Yes | medium–high | Natural language question synthesized by Honcho's dialectic engine |
 | `honcho_conclude` | No | minimal | Write or delete a persistent fact; pass `peer: "ai"` for AI self-knowledge |
 
-### `honcho_profile`
-Read or update a peer card — curated key facts (name, role, preferences, communication style). Pass `card: [...]` to update; omit to read. No LLM call.
-
-### `honcho_search`
-Semantic search over stored context for a specific peer. Returns raw excerpts ranked by relevance, no synthesis. Default 800 tokens, max 2000. Good when you need specific past facts to reason over yourself rather than a synthesized answer.
-
-### `honcho_context`
-Full session context snapshot from Honcho — session summary, peer representation, peer card, and recent messages. No LLM call. Use when you want to see everything Honcho knows about the current session and peer in one shot.
-
-### `honcho_reasoning`
-Natural language question answered by Honcho's dialectic reasoning engine (LLM call on Honcho's backend). Higher cost, higher quality. Pass `reasoning_level` to control depth: `minimal` (fast/cheap) → `low` → `medium` → `high` → `max` (thorough). Omit to use the configured default (`low`). Use for synthesized understanding of the user's patterns, goals, or current state.
-
-### `honcho_conclude`
-Write or delete a persistent conclusion about a peer. Pass `conclusion: "..."` to create. Pass `delete_id: "..."` to remove a conclusion (for PII removal — Honcho self-heals incorrect conclusions over time, so deletion is only needed for PII). You MUST pass exactly one of the two.
+Per-tool detail (exact params, token limits, defaults): read [references/tools.md](references/tools.md).
 
 ### Bidirectional peer targeting
 
@@ -338,76 +236,19 @@ In `hybrid` and `context` modes, base context (user representation + card + sess
 ## Config Reference
 
 Config file: `$HERMES_HOME/honcho.json` (profile-local) or `~/.honcho/config.json` (global).
-
-### Key settings
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `apiKey` | -- | API key ([get one](https://app.honcho.dev)) |
-| `baseUrl` | -- | Base URL for self-hosted Honcho |
-| `peerName` | -- | User peer identity |
-| `aiPeer` | host key | AI peer identity |
-| `workspace` | host key | Shared workspace ID |
-| `recallMode` | `hybrid` | `hybrid`, `context`, or `tools` |
-| `observation` | all on | Per-peer `observeMe`/`observeOthers` booleans |
-| `writeFrequency` | `async` | `async`, `turn`, `session`, or integer N |
-| `sessionStrategy` | `per-directory` | `per-directory`, `per-repo`, `per-session`, `global` |
-| `messageMaxChars` | `25000` | Max chars per message (chunked if exceeded) |
-
-### Dialectic settings
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `dialecticReasoningLevel` | `low` | `minimal`, `low`, `medium`, `high`, `max` |
-| `dialecticDynamic` | `true` | Auto-bump reasoning by query complexity. `false` = fixed level |
-| `dialecticDepth` | `1` | Number of dialectic rounds per query (1-3) |
-| `dialecticDepthLevels` | -- | Optional array of per-round levels, e.g. `["low", "high"]` |
-| `dialecticMaxInputChars` | `10000` | Max chars for dialectic query input |
-
-### Context budget and injection
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `contextTokens` | uncapped | Max tokens for the combined base context injection (summary + representation + card). Opt-in cap — omit to leave uncapped, set to an integer to bound injection size. |
-| `injectionFrequency` | `every-turn` | `every-turn` or `first-turn` |
-| `contextCadence` | `1` | Min turns between context API calls |
-| `dialecticCadence` | `2` | Min turns between dialectic LLM calls (recommended 1–5) |
-
-The `contextTokens` budget is enforced at injection time. If the session summary + representation + card exceed the budget, Honcho trims the summary first, then the representation, preserving the card. This prevents context blowup in long sessions.
-
-### Memory-context sanitization
-
-Honcho sanitizes the `memory-context` block before injection to prevent prompt injection and malformed content:
-
-- Strips XML/HTML tags from user-authored conclusions
-- Normalizes whitespace and control characters
-- Truncates individual conclusions that exceed `messageMaxChars`
-- Escapes delimiter sequences that could break the system prompt structure
-
-This fix addresses edge cases where raw user conclusions containing markup or special characters could corrupt the injected context block.
+Most commonly tuned keys: `recallMode` (`hybrid`/`context`/`tools`), `dialecticReasoningLevel`
+(`minimal`→`max`), `dialecticDepth` (1-3), `contextTokens` (injection budget cap), `writeFrequency`,
+`sessionStrategy`. Full key/default/description tables for base settings, dialectic settings,
+context budget and injection, plus how memory-context sanitization strips XML/HTML and escapes
+delimiter sequences before injection: read [references/config.md](references/config.md).
 
 ## Troubleshooting
 
-### "Honcho not configured"
-Run `hermes honcho setup`. Ensure `memory.provider: honcho` is in `~/.hermes/config.yaml`.
-
-### Memory not persisting across sessions
-Check `hermes honcho status` -- verify `saveMessages: true` and `writeFrequency` isn't `session` (which only writes on exit).
-
-### Profile not getting its own peer
-Use `--clone` when creating: `hermes profile create <name> --clone`. For existing profiles: `hermes honcho sync`.
-
-### Observation changes in dashboard not reflected
-Observation config is synced from the server on each session init. Start a new session after changing settings in the Honcho UI.
-
-### Messages truncated
-Messages over `messageMaxChars` (default 25k) are automatically chunked with `[continued]` markers. If you're hitting this often, check if tool results or skill content is inflating message size.
-
-### Context injection too large
-If you see warnings about context budget exceeded, lower `contextTokens` or reduce `dialecticDepth`. The session summary is trimmed first when the budget is tight.
-
-### Session summary missing
-Session summary requires at least one prior turn in the current Honcho session. On cold start (new session, no history), the summary is omitted and Honcho uses the cold-start prompt strategy instead.
+Common issues: "Honcho not configured" (run `hermes honcho setup`), memory not persisting
+(`writeFrequency: session` only writes on exit), a profile not getting its own peer (use
+`--clone` or `hermes honcho sync`), and context injection too large (lower `contextTokens` or
+`dialecticDepth`). Full troubleshooting guide (6 issues with root causes): read
+[references/troubleshooting.md](references/troubleshooting.md).
 
 ## CLI Commands
 

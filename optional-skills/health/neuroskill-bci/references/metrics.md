@@ -211,6 +211,41 @@ Based on 5-second epochs using relative band-power ratios and AASM heuristics:
 
 ---
 
+## Worked Interpretation Examples
+
+Parse the JSON and translate metrics into natural language — never report raw
+numbers alone, always give them meaning.
+
+**DO:**
+> "Your focus is solid right now at 0.70 — that's flow state territory. Heart
+> rate is steady at 68 bpm and your FAA is positive, which suggests good
+> approach motivation. Great time to tackle something complex."
+
+**DON'T:**
+> "Focus: 0.70, Relaxation: 0.40, HR: 68"
+
+**Session trend:**
+> "Your focus started at 0.64 and climbed to 0.76 by the end — a clear upward
+> trend. Cognitive load dropped from 0.38 to 0.28, suggesting the task became
+> more automatic as you settled in."
+
+**Session comparison (interpret trends, not just deltas):**
+> "Yesterday you had two strong focus blocks (10am and 2pm). Today you've had
+> one starting around 11am that's still going. Your overall engagement is
+> higher today but there have been more stress spikes — your stress index
+> jumped 15% and FAA dipped negative more often."
+
+**Sample interactions:**
+
+| User says | Command | Interpretation approach |
+|---|---|---|
+| "How am I doing right now?" | `status --json` | Interpret scores naturally (focus, relaxation, mood, FAA/TBR). Suggest an action only if metrics indicate a need. |
+| "I can't concentrate" | `status --json` | Check for high theta, low beta, rising TBR, high drowsiness. If confirmed, suggest a protocol; if metrics look fine, the issue may be motivational rather than neurological. |
+| "Compare my focus today vs yesterday" | `compare --json` | Mention what improved, what declined, and possible causes. |
+| "When was I last in a flow state?" | `search-labels "flow" --json` then `search --json` | Report timestamps, associated metrics, and what the user was doing (from labels). |
+| "How did I sleep?" | `sleep --json` | Report sleep architecture (N3%, REM%, efficiency) against healthy targets; note issues (high wake epochs, low REM). |
+| "Mark this moment — I just had a breakthrough" | `label "breakthrough"` | Confirm label saved; optionally note current metrics. |
+
 ## ZUNA Embeddings
 
 NeuroSkill uses the **ZUNA Neural Encoder** to convert 5-second EEG epochs into

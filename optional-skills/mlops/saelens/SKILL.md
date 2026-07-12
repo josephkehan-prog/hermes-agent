@@ -197,144 +197,20 @@ print(f"CE Loss Recovered: {trainer.metrics['ce_loss_score']}")
 
 ## Workflow 3: Feature Analysis and Steering
 
-### Analyzing Individual Features
+Analyze which inputs activate a given feature (`sae.encode(...)` then inspect
+`features[..., feature_idx]`), steer generation by adding a scaled decoder
+direction (`sae.W_dec[idx]`) as a forward hook, or attribute a specific output
+token to features via `W_dec @ W_U`. Full worked examples for all three
+(analyzing individual features, feature steering, logit attribution): read
+`references/tutorials.md` (Tutorial 3) when doing feature-level analysis.
 
-```python
-from transformer_lens import HookedTransformer
-from sae_lens import SAE
-import torch
+## Common issues
 
-model = HookedTransformer.from_pretrained("gpt2-small", device="cuda")
-sae, _, _ = SAE.from_pretrained(
-    release="gpt2-small-res-jb",
-    sae_id="blocks.8.hook_resid_pre",
-    device="cuda"
-)
-
-# Find what activates a specific feature
-feature_idx = 1234
-test_texts = [
-    "The scientist conducted an experiment",
-    "I love chocolate cake",
-    "The code compiles successfully",
-    "Paris is beautiful in spring",
-]
-
-for text in test_texts:
-    tokens = model.to_tokens(text)
-    _, cache = model.run_with_cache(tokens)
-    features = sae.encode(cache["resid_pre", 8])
-    activation = features[0, :, feature_idx].max().item()
-    print(f"{activation:.3f}: {text}")
-```
-
-### Feature Steering
-
-```python
-def steer_with_feature(model, sae, prompt, feature_idx, strength=5.0):
-    """Add SAE feature direction to residual stream."""
-    tokens = model.to_tokens(prompt)
-
-    # Get feature direction from decoder
-    feature_direction = sae.W_dec[feature_idx]  # [d_model]
-
-    def steering_hook(activation, hook):
-        # Add scaled feature direction at all positions
-        activation += strength * feature_direction
-        return activation
-
-    # Generate with steering
-    output = model.generate(
-        tokens,
-        max_new_tokens=50,
-        fwd_hooks=[("blocks.8.hook_resid_pre", steering_hook)]
-    )
-    return model.to_string(output[0])
-```
-
-### Feature Attribution
-
-```python
-# Which features most affect a specific output?
-tokens = model.to_tokens("The capital of France is")
-_, cache = model.run_with_cache(tokens)
-
-# Get features at final position
-features = sae.encode(cache["resid_pre", 8])[0, -1]  # [d_sae]
-
-# Get logit attribution per feature
-# Feature contribution = feature_activation × decoder_weight × unembedding
-W_dec = sae.W_dec  # [d_sae, d_model]
-W_U = model.W_U    # [d_model, vocab]
-
-# Contribution to "Paris" logit
-paris_token = model.to_single_token(" Paris")
-feature_contributions = features * (W_dec @ W_U[:, paris_token])
-
-top_features = feature_contributions.topk(10)
-print("Top features for 'Paris' prediction:")
-for idx, val in zip(top_features.indices, top_features.values):
-    print(f"  Feature {idx.item()}: {val.item():.3f}")
-```
-
-## Common Issues & Solutions
-
-### Issue: High dead feature ratio
-```python
-# WRONG: No warm-up, features die early
-cfg = LanguageModelSAERunnerConfig(
-    l1_coefficient=1e-4,
-    l1_warm_up_steps=0,  # Bad!
-)
-
-# RIGHT: Warm-up L1 penalty
-cfg = LanguageModelSAERunnerConfig(
-    l1_coefficient=8e-5,
-    l1_warm_up_steps=1000,  # Gradually increase
-    use_ghost_grads=True,   # Revive dead features
-)
-```
-
-### Issue: Poor reconstruction (low CE recovery)
-```python
-# Reduce sparsity penalty
-cfg = LanguageModelSAERunnerConfig(
-    l1_coefficient=5e-5,  # Lower = better reconstruction
-    d_sae=768 * 16,       # More capacity
-)
-```
-
-### Issue: Features not interpretable
-```python
-# Increase sparsity (higher L1)
-cfg = LanguageModelSAERunnerConfig(
-    l1_coefficient=1e-4,  # Higher = sparser, more interpretable
-)
-# Or use TopK architecture
-cfg = LanguageModelSAERunnerConfig(
-    architecture="topk",
-    activation_fn_kwargs={"k": 50},  # Exactly 50 active features
-)
-```
-
-### Issue: Memory errors during training
-```python
-cfg = LanguageModelSAERunnerConfig(
-    train_batch_size_tokens=2048,  # Reduce batch size
-    store_batch_size_prompts=4,    # Fewer prompts in buffer
-    n_batches_in_buffer=8,         # Smaller activation buffer
-)
-```
-
-## Integration with Neuronpedia
-
-Browse pre-trained SAE features at [neuronpedia.org](https://neuronpedia.org):
-
-```python
-# Features are indexed by SAE ID
-# Example: gpt2-small layer 8 feature 1234
-# → neuronpedia.org/gpt2-small/8-res-jb/1234
-```
+Dead features, poor reconstruction, uninterpretable features, and OOM during
+training each have a specific config fix (L1 warm-up, lower `l1_coefficient`,
+TopK architecture, smaller batch/buffer sizes). Full issue → fix code
+snippets, plus Neuronpedia feature-browsing: read `references/troubleshooting.md`
+when a training run isn't converging cleanly.
 
 ## Key Classes Reference
 

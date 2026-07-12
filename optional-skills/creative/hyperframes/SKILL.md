@@ -127,11 +127,12 @@ Use `npx hyperframes add <transition-name>` to install shader transitions (`flas
 ### 6. Audio, captions, TTS, audio-reactive, highlighting
 
 - **Audio:** always a separate `<audio>` element (video is `muted playsinline`).
-- **TTS:** `npx hyperframes tts "Script text" --voice af_nova --output narration.wav`. List voices with `--list`. Voice ID first letter encodes language (`a`/`b`=English, `e`=Spanish, `f`=French, `j`=Japanese, `z`=Mandarin, etc.) — the CLI auto-infers the phonemizer locale; pass `--lang` only to override. Non-English phonemization requires `espeak-ng` installed system-wide.
-- **Captions:** `npx hyperframes transcribe narration.wav` → word-level transcript. Pick style from the transcript tone (hype / corporate / tutorial / storytelling / social — see the table in `references/features.md`). **Language rule:** never use `.en` whisper models unless the audio is confirmed English — `.en` translates non-English audio instead of transcribing it. Every caption group MUST have a hard `tl.set(el, { opacity: 0, visibility: "hidden" }, group.end)` kill after its exit tween — otherwise groups leak visible into later ones.
-- **Audio-reactive visuals:** pre-extract audio bands (bass / mid / treble) and sample per-frame inside the timeline with a `for` loop of `tl.call(draw, [], f / fps)` — a single long tween does NOT react to audio. Map bass → `scale` (pulse), treble → `textShadow`/`boxShadow` (glow), overall amplitude → `opacity`/`y`/`backgroundColor`. Avoid equalizer-bar clichés — let content guide the visual, audio drive its behavior.
-- **Marker-style highlighting:** highlight, circle, burst, scribble, sketchout effects for text emphasis are deterministic CSS+GSAP — see `references/features.md#marker-highlighting`. Fully seekable, no animated SVG filters.
-- **Scene transitions:** every multi-scene composition MUST use transitions (no jump cuts). Pick from CSS primitives (push slide, blur crossfade, zoom through, staggered blocks) or shader transitions (`flash-through-white`, `liquid-wipe`, `cross-warp-morph`, `chromatic-split`, etc.) via `npx hyperframes add`. Mood and energy tables live in `references/features.md#transitions`. Do not mix CSS and shader transitions in the same composition.
+- **TTS:** `npx hyperframes tts "Script text" --voice af_nova --output narration.wav`. List voices with `--list`. Voice ID first letter encodes language; non-English phonemization requires `espeak-ng`.
+- **Captions:** `npx hyperframes transcribe narration.wav` → word-level transcript. **Language rule:** never use `.en` whisper models unless the audio is confirmed English. Every caption group MUST have a hard `tl.set(el, { opacity: 0, visibility: "hidden" }, group.end)` kill after its exit tween.
+- **Audio-reactive visuals:** pre-extract audio bands and sample per-frame with `tl.call(draw, [], f / fps)` in a loop — a single long tween does NOT react to audio.
+- **Scene transitions:** every multi-scene composition MUST use transitions (no jump cuts), one primary style via `npx hyperframes add <name>`. Never mix CSS and shader transitions in one composition.
+
+Style tables (caption tone, word grouping, positioning), the audio-band-to-CSS-property mapping, marker-highlighting (circle/burst/scribble/sketchout), and the mood/energy → transition tables all live in `references/features.md` — read it before implementing any of the above.
 
 ### 7. Lint, validate, inspect, preview, render
 
@@ -150,34 +151,15 @@ npx hyperframes render --quality high --output final.mp4     # final delivery
 
 Use the 7-step capture-to-video workflow in [references/website-to-video.md](references/website-to-video.md): capture → DESIGN.md → SCRIPT.md → storyboard → composition → render → deliver.
 
-## Pitfalls
+## Pitfalls (hard rules — full detail + fixes in `references/troubleshooting.md`)
 
-- **`HeadlessExperimental.beginFrame' wasn't found`** — Chromium 147+ removed this protocol. Ensure you're on `hyperframes@>=0.4.2` (auto-detects and falls back to screenshot mode). Escape hatch: `export PRODUCER_FORCE_SCREENSHOT=true`. See [hyperframes#294](https://github.com/heygen-com/hyperframes/issues/294) and [references/troubleshooting.md](references/troubleshooting.md).
-- **System Chrome (not `chrome-headless-shell`)** — renders hang for 120s then timeout. Run `npx puppeteer browsers install chrome-headless-shell` (setup.sh does this). `hyperframes doctor` reports which binary will be used.
-- **`repeat: -1` anywhere** — breaks the capture engine. Always compute a finite repeat count.
-- **`gsap.set()` on clip elements that enter later** — the element doesn't exist at page load. Use `tl.set(selector, vars, timePosition)` inside the timeline instead, at or after the clip's `data-start`.
-- **`<br>` inside content text** — forced breaks don't know the rendered font width, so natural wrap + `<br>` double-breaks. Use `max-width` to let text wrap. Exception: short display titles where each word is deliberately on its own line.
-- **Animating `visibility` or `display`** — GSAP can't tween these. Use `autoAlpha` (handles both visibility and opacity).
-- **Calling `video.play()` or `audio.play()`** — the framework owns playback. Never call these yourself.
-- **Building timelines async** — the capture engine reads `window.__timelines` synchronously after page load. Never wrap timeline construction in `async`, `setTimeout`, or a Promise.
-- **Standalone `index.html` wrapped in `<template>`** — hides all content from the browser. Only **sub-compositions** loaded via `data-composition-src` use `<template>`.
-- **Using video for audio** — always muted `<video>` + separate `<audio>`.
+- **`HeadlessExperimental.beginFrame' wasn't found`** — Chromium 147+ removed this protocol. Ensure `hyperframes@>=0.4.2`; escape hatch `export PRODUCER_FORCE_SCREENSHOT=true`.
+- **System Chrome (not `chrome-headless-shell`)** — renders hang for 120s then timeout. `hyperframes doctor` reports which binary will be used.
+- **`repeat: -1`, async timeline construction, `gsap.set()` on later-entering elements, `<br>` forced breaks, animating `visibility`/`display` instead of `autoAlpha`, calling `.play()` yourself, `<template>` on the root composition, video-as-audio** — each breaks capture or playback in a specific way; read the reference before debugging blind.
 
 ## Verification
 
-Before and after rendering:
-
-1. **Lint + validate + inspect pass:** `npx hyperframes lint --strict && npx hyperframes validate && npx hyperframes inspect` (lint catches structural issues, validate catches contrast, inspect catches visual layout / overflow issues — see troubleshooting.md if warnings appear).
-2. **Animation choreography** — for new compositions or significant animation changes, run the animation map. `npx hyperframes init` copies the skill scripts into the project, so the path is project-local:
-   ```bash
-   node skills/hyperframes/scripts/animation-map.mjs <composition-dir> \
-     --out <composition-dir>/.hyperframes/anim-map
-   ```
-   Outputs a single `animation-map.json` with per-tween summaries, ASCII Gantt timeline, stagger detection, dead zones (>1s with no animation), element lifecycles, and flags (`offscreen`, `collision`, `invisible`, `paced-fast` <0.2s, `paced-slow` >2s). Scan summaries and flags — fix or justify each. Skip on small edits.
-3. **File exists + non-zero:** `ls -lh final.mp4`.
-4. **Duration matches `data-duration`:** `ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 final.mp4`.
-5. **Visual check:** extract a mid-composition frame: `ffmpeg -i final.mp4 -ss 00:00:05 -vframes 1 preview.png`.
-6. **Audio present if expected:** `ffprobe -v error -show_streams -select_streams a -of default=nw=1:nk=1 final.mp4 | head -1`.
+Before and after rendering: `npx hyperframes lint --strict && npx hyperframes validate && npx hyperframes inspect`, then confirm the output file exists and is non-zero, duration matches `data-duration` (`ffprobe`), a mid-composition frame looks right, and audio is present if expected. For new/changed animation, run the animation-map script for a Gantt view + dead-zone/collision flags. Exact commands and flag meanings: `references/troubleshooting.md`.
 
 If `hyperframes render` fails, run `npx hyperframes doctor` and attach its output when reporting.
 

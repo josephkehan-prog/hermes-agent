@@ -65,153 +65,28 @@ The template embeds the full CSS design system (`c-*` color classes, text classe
 
 ### Color Palette
 
-9 color ramps, each with 7 stops. Put the class name on a `<g>` or shape element; the template CSS handles both modes.
-
-| Class      | 50 (lightest) | 100     | 200     | 400     | 600     | 800     | 900 (darkest) |
-|------------|---------------|---------|---------|---------|---------|---------|---------------|
-| `c-purple` | #EEEDFE | #CECBF6 | #AFA9EC | #7F77DD | #534AB7 | #3C3489 | #26215C |
-| `c-teal`   | #E1F5EE | #9FE1CB | #5DCAA5 | #1D9E75 | #0F6E56 | #085041 | #04342C |
-| `c-coral`  | #FAECE7 | #F5C4B3 | #F0997B | #D85A30 | #993C1D | #712B13 | #4A1B0C |
-| `c-pink`   | #FBEAF0 | #F4C0D1 | #ED93B1 | #D4537E | #993556 | #72243E | #4B1528 |
-| `c-gray`   | #F1EFE8 | #D3D1C7 | #B4B2A9 | #888780 | #5F5E5A | #444441 | #2C2C2A |
-| `c-blue`   | #E6F1FB | #B5D4F4 | #85B7EB | #378ADD | #185FA5 | #0C447C | #042C53 |
-| `c-green`  | #EAF3DE | #C0DD97 | #97C459 | #639922 | #3B6D11 | #27500A | #173404 |
-| `c-amber`  | #FAEEDA | #FAC775 | #EF9F27 | #BA7517 | #854F0B | #633806 | #412402 |
-| `c-red`    | #FCEBEB | #F7C1C1 | #F09595 | #E24B4A | #A32D2D | #791F1F | #501313 |
-
-#### Color Assignment Rules
-
-Color encodes **meaning**, not sequence. Never cycle through colors like a rainbow.
-
-- Group nodes by **category** — all nodes of the same type share one color.
-- Use `c-gray` for neutral/structural nodes (start, end, generic steps, users).
-- Use **2-3 colors per diagram**, not 6+.
-- Prefer `c-purple`, `c-teal`, `c-coral`, `c-pink` for general categories.
-- Reserve `c-blue`, `c-green`, `c-amber`, `c-red` for semantic meaning (info, success, warning, error).
-
-Light/dark stop mapping (handled by the template CSS — just use the class):
-- Light mode: 50 fill + 600 stroke + 800 title / 600 subtitle
-- Dark mode:  800 fill + 200 stroke + 100 title / 200 subtitle
+9 color ramps, 2-3 per diagram, chosen by **meaning** not sequence: `c-gray`
+for neutral/structural nodes; `c-purple`/`c-teal`/`c-coral`/`c-pink` for
+general categories; `c-blue`/`c-green`/`c-amber`/`c-red` reserved for
+semantic meaning (info/success/warning/error). Exact hex values per stop and
+the light/dark stop mapping: read `references/design-system.md`.
 
 ### Typography
 
-Only two font sizes. No exceptions.
+Only two font sizes — `th` (14px/500, titles/labels) and `ts` (12px/400,
+subtitles/descriptions), plus `t` (14px/400, general text). **Sentence case
+always**, never Title Case or ALL CAPS. Every `<text>` MUST carry one of
+these classes, with `dominant-baseline="central"` and `text-anchor="middle"`
+inside boxes. Width estimation formula and full spacing/stroke/rounding
+numbers (viewbox, gaps, padding, `rx` values): read `references/design-system.md`.
 
-| Class | Size | Weight | Use |
-|-------|------|--------|-----|
-| `th`  | 14px | 500    | Node titles, region labels |
-| `ts`  | 12px | 400    | Subtitles, descriptions, arrow labels |
-| `t`   | 14px | 400    | General text |
+### Arrow Marker & CSS Classes
 
-- **Sentence case always.** Never Title Case, never ALL CAPS.
-- Every `<text>` MUST carry a class (`t`, `ts`, or `th`). No unclassed text.
-- `dominant-baseline="central"` on all text inside boxes.
-- `text-anchor="middle"` for centered text in boxes.
-
-**Width estimation (approx):**
-- 14px weight 500: ~8px per character
-- 12px weight 400: ~6.5px per character
-- Always verify: `box_width >= (char_count × px_per_char) + 48` (24px padding each side)
-
-### Spacing & Layout
-
-- **ViewBox**: `viewBox="0 0 680 H"` where H = content height + 40px buffer.
-- **Safe area**: x=40 to x=640, y=40 to y=(H-40).
-- **Between boxes**: 60px minimum gap.
-- **Inside boxes**: 24px horizontal padding, 12px vertical padding.
-- **Arrowhead gap**: 10px between arrowhead and box edge.
-- **Single-line box**: 44px height.
-- **Two-line box**: 56px height, 18px between title and subtitle baselines.
-- **Container padding**: 20px minimum inside every container.
-- **Max nesting**: 2-3 levels deep. Deeper gets unreadable at 680px width.
-
-### Stroke & Shape
-
-- **Stroke width**: 0.5px on all node borders. Not 1px, not 2px.
-- **Rect rounding**: `rx="8"` for nodes, `rx="12"` for inner containers, `rx="16"` to `rx="20"` for outer containers.
-- **Connector paths**: MUST have `fill="none"`. SVG defaults to `fill: black` otherwise.
-
-### Arrow Marker
-
-Include this `<defs>` block at the start of **every** SVG:
-
-```xml
-<defs>
-  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
-          markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke"
-          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  </marker>
-</defs>
-```
-
-Use `marker-end="url(#arrow)"` on lines. The arrowhead inherits the line color via `context-stroke`.
-
-### CSS Classes (Provided by the Template)
-
-The template page provides:
-
-- Text: `.t`, `.ts`, `.th`
-- Neutral: `.box`, `.arr`, `.leader`, `.node`
-- Color ramps: `.c-purple`, `.c-teal`, `.c-coral`, `.c-pink`, `.c-gray`, `.c-blue`, `.c-green`, `.c-amber`, `.c-red` (all with automatic light/dark mode)
-
-You do **not** need to redefine these — just apply them in your SVG. The template file contains the full CSS definitions.
-
----
-
-## SVG Boilerplate
-
-Every SVG inside the template page starts with this exact structure:
-
-```xml
-<svg width="100%" viewBox="0 0 680 {HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
-            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke"
-            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </marker>
-  </defs>
-
-  <!-- Diagram content here -->
-
-</svg>
-```
-
-Replace `{HEIGHT}` with the actual computed height (last element bottom + 40px).
-
-### Node Patterns
-
-**Single-line node (44px):**
-```xml
-<g class="node c-blue">
-  <rect x="100" y="20" width="180" height="44" rx="8" stroke-width="0.5"/>
-  <text class="th" x="190" y="42" text-anchor="middle" dominant-baseline="central">Service name</text>
-</g>
-```
-
-**Two-line node (56px):**
-```xml
-<g class="node c-teal">
-  <rect x="100" y="20" width="200" height="56" rx="8" stroke-width="0.5"/>
-  <text class="th" x="200" y="38" text-anchor="middle" dominant-baseline="central">Service name</text>
-  <text class="ts" x="200" y="56" text-anchor="middle" dominant-baseline="central">Short description</text>
-</g>
-```
-
-**Connector (no label):**
-```xml
-<line x1="200" y1="76" x2="200" y2="120" class="arr" marker-end="url(#arrow)"/>
-```
-
-**Container (dashed or solid):**
-```xml
-<g class="c-purple">
-  <rect x="40" y="92" width="600" height="300" rx="16" stroke-width="0.5"/>
-  <text class="th" x="66" y="116">Container label</text>
-  <text class="ts" x="66" y="134">Subtitle info</text>
-</g>
-```
+Every SVG needs the same `<defs>` arrow-marker block and relies on template-
+provided classes (`.t`/`.ts`/`.th`, `.box`/`.arr`/`.leader`/`.node`, `.c-*`
+ramps) — you never redefine them, just apply them. Exact `<defs>` markup,
+SVG boilerplate, and copy-paste node/connector/container patterns: read
+`references/design-system.md`.
 
 ---
 
@@ -234,20 +109,11 @@ For physical, infrastructure, and dashboard diagrams, load the matching referenc
 
 ## Validation Checklist
 
-Before finalizing any SVG, verify ALL of the following:
-
-1. Every `<text>` has class `t`, `ts`, or `th`.
-2. Every `<text>` inside a box has `dominant-baseline="central"`.
-3. Every connector `<path>` or `<line>` used as arrow has `fill="none"`.
-4. No arrow line crosses through an unrelated box.
-5. `box_width >= (longest_label_chars × 8) + 48` for 14px text.
-6. `box_width >= (longest_label_chars × 6.5) + 48` for 12px text.
-7. ViewBox height = bottom-most element + 40px.
-8. All content stays within x=40 to x=640.
-9. Color classes (`c-*`) are on `<g>` or shape elements, never on `<path>` connectors.
-10. Arrow `<defs>` block is present.
-11. No gradients, shadows, blur, or glow effects.
-12. Stroke width is 0.5px on all node borders.
+Before finalizing any SVG, verify: every `<text>` is classed and correctly
+anchored, every connector has `fill="none"`, no arrow crosses an unrelated
+box, box widths fit their label text, viewBox height matches content, colors
+carry meaning not sequence, and no gradients/shadows/glow effects exist. Full
+12-point checklist with exact formulas: read `references/design-system.md`.
 
 ---
 
@@ -312,51 +178,12 @@ If the user insists on a fixed port, use `127.0.0.1:<port>` — still never `0.0
 
 ---
 
-## Examples Reference
+## Examples & Quick Reference
 
-The `examples/` directory ships 15 complete, tested diagrams. Browse them for working patterns before writing a new diagram of a similar type:
+The `examples/` directory ships 15 complete, tested diagrams — browse them
+for working patterns before writing a new diagram of a similar type. Load
+one with `skill_view(name="concept-diagrams", file_path="examples/<filename>")`.
 
-| File | Type | Demonstrates |
-|------|------|--------------|
-| `hospital-emergency-department-flow.md` | Flowchart | Priority routing with semantic colors |
-| `feature-film-production-pipeline.md` | Flowchart | Phased workflow, horizontal sub-flows |
-| `automated-password-reset-flow.md` | Flowchart | Auth flow with error branches |
-| `autonomous-llm-research-agent-flow.md` | Flowchart | Loop-back arrows, decision branches |
-| `place-order-uml-sequence.md` | Sequence | UML sequence diagram style |
-| `commercial-aircraft-structure.md` | Physical | Paths, polygons, ellipses for realistic shapes |
-| `wind-turbine-structure.md` | Physical cross-section | Underground/above-ground separation, color coding |
-| `smartphone-layer-anatomy.md` | Exploded view | Alternating left/right labels, layered components |
-| `apartment-floor-plan-conversion.md` | Floor plan | Walls, doors, proposed changes in dotted red |
-| `banana-journey-tree-to-smoothie.md` | Narrative journey | Winding path, progressive state changes |
-| `cpu-ooo-microarchitecture.md` | Hardware pipeline | Fan-out, memory hierarchy sidebar |
-| `sn2-reaction-mechanism.md` | Chemistry | Molecules, curved arrows, energy profile |
-| `smart-city-infrastructure.md` | Hub-spoke | Semantic line styles per system |
-| `electricity-grid-flow.md` | Multi-stage flow | Voltage hierarchy, flow markers |
-| `ml-benchmark-grouped-bar-chart.md` | Chart | Grouped bars, dual axis |
-
-Load any example with:
-```
-skill_view(name="concept-diagrams", file_path="examples/<filename>")
-```
-
----
-
-## Quick Reference: What to Use When
-
-| User says | Diagram type | Suggested colors |
-|-----------|--------------|------------------|
-| "show the pipeline" | Flowchart | gray start/end, purple steps, red errors, teal deploy |
-| "draw the data flow" | Data pipeline (left-right) | gray sources, purple processing, teal sinks |
-| "visualize the system" | Structural (containment) | purple container, teal services, coral data |
-| "map the endpoints" | API tree | purple root, one ramp per resource group |
-| "show the services" | Microservice topology | gray ingress, teal services, purple bus, coral workers |
-| "draw the aircraft/vehicle" | Physical | paths, polygons, ellipses for realistic shapes |
-| "smart city / IoT" | Hub-spoke integration | semantic line styles per subsystem |
-| "show the dashboard" | UI mockup | dark screen, chart colors: teal, purple, coral for alerts |
-| "power grid / electricity" | Multi-stage flow | voltage hierarchy (HV/MV/LV line weights) |
-| "wind turbine / turbine" | Physical cross-section | foundation + tower cutaway + nacelle color-coded |
-| "journey of X / lifecycle" | Narrative journey | winding path, progressive state changes |
-| "layers of X / exploded" | Exploded layer view | vertical stack, alternating labels |
-| "CPU / pipeline" | Hardware pipeline | vertical stages, fan-out to execution ports |
-| "floor plan / apartment" | Floor plan | walls, doors, proposed changes in dotted red |
-| "reaction mechanism" | Chemistry | atoms, bonds, curved arrows, transition state, energy profile |
+The full per-file index (which example demonstrates what) and a "user says →
+diagram type → suggested colors" lookup table for quickly picking a layout:
+read `references/examples-index.md`.

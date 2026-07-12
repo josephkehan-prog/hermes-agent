@@ -146,165 +146,11 @@ sys.excepthook = excepthook
 
 ## Recipe 5: Remote debug with debugpy (attach to running process)
 
-For long-lived processes: Hermes gateway, tui_gateway, a daemon, a process that's already misbehaving and can't be restarted clean.
-
-### Setup
-
-```bash
-source /home/bb/hermes-agent/.venv/bin/activate
-pip install debugpy
-```
-
-### Pattern A: Source-edit — process waits for debugger at launch
-
-Add near the top of the entry point (or inside the function you want to debug):
-
-```python
-import debugpy
-debugpy.listen(("127.0.0.1", 5678))
-print("debugpy listening on 5678, waiting for client...", flush=True)
-debugpy.wait_for_client()
-debugpy.breakpoint()       # optional: pause immediately once attached
-```
-
-Start the process; it blocks on `wait_for_client()`.
-
-### Pattern B: No source edit — launch with `-m debugpy`
-
-```bash
-python -m debugpy --listen 127.0.0.1:5678 --wait-for-client your_script.py arg1
-```
-
-Equivalent for module entry:
-
-```bash
-python -m debugpy --listen 127.0.0.1:5678 --wait-for-client -m your.module
-```
-
-### Pattern C: Attach to an already-running process
-
-Needs the PID and debugpy preinstalled in the target's environment:
-
-```bash
-python -m debugpy --listen 127.0.0.1:5678 --pid <pid>
-# debugpy injects itself into the process. Then attach a client as below.
-```
-
-Some kernels/security configs block the ptrace-based injection (`/proc/sys/kernel/yama/ptrace_scope`). Fix with:
-```bash
-echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
-```
-
-### Connecting a client from the terminal
-
-The easiest terminal-side DAP client is VS Code CLI or a small script. From inside Hermes you have two practical options:
-
-**Option 1: `debugpy`'s own CLI REPL** — not an official feature, but a tiny DAP client script:
-
-```python
-# /tmp/dap_client.py
-import socket, json, itertools, time, sys
-
-HOST, PORT = "127.0.0.1", 5678
-s = socket.create_connection((HOST, PORT))
-seq = itertools.count(1)
-
-def send(msg):
-    msg["seq"] = next(seq)
-    body = json.dumps(msg).encode()
-    s.sendall(f"Content-Length: {len(body)}\r\n\r\n".encode() + body)
-
-def recv():
-    header = b""
-    while b"\r\n\r\n" not in header:
-        header += s.recv(1)
-    length = int(header.decode().split("Content-Length:")[1].split("\r\n")[0].strip())
-    body = b""
-    while len(body) < length:
-        body += s.recv(length - len(body))
-    return json.loads(body)
-
-send({"type": "request", "command": "initialize", "arguments": {"adapterID": "python"}})
-print(recv())
-send({"type": "request", "command": "attach", "arguments": {}})
-print(recv())
-send({"type": "request", "command": "setBreakpoints",
-      "arguments": {"source": {"path": sys.argv[1]},
-                    "breakpoints": [{"line": int(sys.argv[2])}]}})
-print(recv())
-send({"type": "request", "command": "configurationDone"})
-# ... loop reading events and sending continue/stepIn/etc.
-```
-
-This is fine for one-off automation but painful as an interactive UX.
-
-**Option 2: Attach from VS Code / Cursor / Zed** — if the user has one open, they can add a `launch.json`:
-
-```json
-{
-  "name": "Attach to Hermes",
-  "type": "debugpy",
-  "request": "attach",
-  "connect": { "host": "127.0.0.1", "port": 5678 },
-  "justMyCode": false,
-  "pathMappings": [
-    { "localRoot": "${workspaceFolder}", "remoteRoot": "/home/bb/hermes-agent" }
-  ]
-}
-```
-
-**Option 3: Ditch DAP, use `remote-pdb`** — usually what you actually want from a terminal agent:
-
-```bash
-pip install remote-pdb
-```
-
-In your code:
-```python
-from remote_pdb import set_trace
-set_trace(host="127.0.0.1", port=4444)   # blocks until connection
-```
-
-Then from the terminal:
-```bash
-nc 127.0.0.1 4444
-# You get a (Pdb) prompt exactly as if debugging locally.
-```
-
-`remote-pdb` is the cleanest agent-friendly choice when `debugpy`'s DAP protocol is overkill. Use `debugpy` only when you actually need IDE integration.
+For long-lived processes (Hermes gateway, tui_gateway, a daemon, a process that's already misbehaving and can't be restarted clean): install `debugpy`, either source-edit the entry point with `debugpy.listen(...)` + `debugpy.wait_for_client()` or launch with `python -m debugpy --listen ... --wait-for-client`, then attach a DAP client (VS Code/Cursor/Zed `launch.json`, or a minimal terminal DAP script). For a terminal agent, `remote-pdb`'s `set_trace(host=..., port=...)` + `nc host port` is usually simpler than the DAP protocol. Full setup for all three attach patterns (source-edit, no-edit launch, attach-to-PID) plus the terminal DAP client script and IDE `launch.json`: read `references/debugpy-remote.md`.
 
 ## Debugging Hermes-specific Processes
 
-### Tests
-See Recipe 3. Always add `-p no:xdist` or run single tests without xdist.
-
-### `run_agent.py` / CLI — one-shot
-Easiest: add `breakpoint()` near the suspect line, then run `hermes` normally. Control returns to your terminal at the pause point.
-
-### `tui_gateway` subprocess (spawned by `hermes --tui`)
-The gateway runs as a child of the Node TUI. Options:
-
-**A. Source-edit the gateway:**
-```python
-# tui_gateway/server.py near the top of serve()
-import debugpy
-debugpy.listen(("127.0.0.1", 5678))
-debugpy.wait_for_client()
-```
-Start `hermes --tui`. The TUI will appear frozen (its backend is waiting). Attach a client; execution resumes when you `continue`.
-
-**B. Use `remote-pdb` at a specific handler:**
-```python
-from remote_pdb import set_trace
-set_trace(host="127.0.0.1", port=4444)   # in the RPC handler you want to trap
-```
-Trigger the matching slash command from the TUI, then `nc 127.0.0.1 4444` in another terminal.
-
-### `_SlashWorker` subprocess
-Same pattern — `remote-pdb` with `set_trace()` inside the worker's `exec` path. The worker is persistent across slash commands, so the first trigger blocks until you connect; subsequent slash commands pass through normally unless you re-arm.
-
-### Gateway (`gateway/run.py`)
-Long-lived. Use `remote-pdb` at a handler, or `debugpy` with `--wait-for-client` if you're restarting the gateway anyway.
+Per-surface recipes for `run_agent.py`/CLI (source-edit `breakpoint()`), `tui_gateway` (source-edit `debugpy.listen()` or `remote-pdb` in an RPC handler), `_SlashWorker` (same `remote-pdb` pattern in the worker's exec path), and `gateway/run.py` (long-lived, `remote-pdb` or `debugpy --wait-for-client`): read `references/hermes-processes.md` when debugging one of these specific subsystems.
 
 ## Common Pitfalls
 
@@ -373,3 +219,8 @@ Trigger the handler. `nc 127.0.0.1 4444`, then `w` to see the suspended frame, `
 PYTHONFAULTHANDLER=1 python -m pdb -c continue path/to/entrypoint.py
 # On crash, pdb lands at the frame of the exception with full locals
 ```
+
+## References
+
+- **[Remote debugpy attach](references/debugpy-remote.md)** - All three attach patterns (source-edit, no-edit launch, attach-to-PID), the terminal DAP client script, IDE `launch.json`
+- **[Hermes process recipes](references/hermes-processes.md)** - Per-surface debug recipes for CLI, tui_gateway, `_SlashWorker`, and the gateway

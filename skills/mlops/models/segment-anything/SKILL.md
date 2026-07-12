@@ -203,36 +203,7 @@ masks, scores, logits = predictor.predict(
 )
 ```
 
-### Combined prompts
-
-```python
-# Box + points for precise control
-masks, scores, logits = predictor.predict(
-    point_coords=np.array([[500, 375]]),
-    point_labels=np.array([1]),
-    box=np.array([400, 300, 700, 600]),
-    multimask_output=False
-)
-```
-
-### Iterative refinement
-
-```python
-# Initial prediction
-masks, scores, logits = predictor.predict(
-    point_coords=np.array([[500, 375]]),
-    point_labels=np.array([1]),
-    multimask_output=True
-)
-
-# Refine with additional point using previous mask
-masks, scores, logits = predictor.predict(
-    point_coords=np.array([[500, 375], [550, 400]]),
-    point_labels=np.array([1, 0]),  # Add background point
-    mask_input=logits[np.argmax(scores)][None, :, :],  # Use best mask
-    multimask_output=False
-)
-```
+Prompts combine freely — pass `point_coords`/`point_labels` and `box` together for precise control, and feed a previous call's `logits` back in via `mask_input` to iteratively refine (e.g. add a background point after the first pass). Combined-prompt and iterative-refinement code: read `references/advanced-usage.md`.
 
 ## Automatic mask generation
 
@@ -287,141 +258,15 @@ stable_masks = [m for m in masks if m['stability_score'] > 0.95]
 
 ## Batched inference
 
-### Multiple images
-
-```python
-# Process multiple images efficiently
-images = [cv2.imread(f"image_{i}.jpg") for i in range(10)]
-
-all_masks = []
-for image in images:
-    predictor.set_image(image)
-    masks, _, _ = predictor.predict(
-        point_coords=np.array([[500, 375]]),
-        point_labels=np.array([1]),
-        multimask_output=True
-    )
-    all_masks.append(masks)
-```
-
-### Multiple prompts per image
-
-```python
-# Process multiple prompts efficiently (one image encoding)
-predictor.set_image(image)
-
-# Batch of point prompts
-points = [
-    np.array([[100, 100]]),
-    np.array([[200, 200]]),
-    np.array([[300, 300]])
-]
-
-all_masks = []
-for point in points:
-    masks, scores, _ = predictor.predict(
-        point_coords=point,
-        point_labels=np.array([1]),
-        multimask_output=True
-    )
-    all_masks.append(masks[np.argmax(scores)])
-```
+Process multiple images by looping `predictor.set_image()` + `predict()` per image, or reuse one image encoding across multiple prompts by calling `predict()` repeatedly after a single `set_image()`. A reusable `BatchedSAM` class and a `ThreadPoolExecutor`-based parallel automatic-mask-generation pattern (one model instance per worker): read `references/advanced-usage.md`.
 
 ## ONNX deployment
 
-### Export model
-
-```bash
-python scripts/export_onnx_model.py \
-    --checkpoint sam_vit_h_4b8939.pth \
-    --model-type vit_h \
-    --output sam_onnx.onnx \
-    --return-single-mask
-```
-
-### Use ONNX model
-
-```python
-import onnxruntime
-
-# Load ONNX model
-ort_session = onnxruntime.InferenceSession("sam_onnx.onnx")
-
-# Run inference (image embeddings computed separately)
-masks = ort_session.run(
-    None,
-    {
-        "image_embeddings": image_embeddings,
-        "point_coords": point_coords,
-        "point_labels": point_labels,
-        "mask_input": np.zeros((1, 1, 256, 256), dtype=np.float32),
-        "has_mask_input": np.array([0], dtype=np.float32),
-        "orig_im_size": np.array([h, w], dtype=np.float32)
-    }
-)
-```
+Export with `python scripts/export_onnx_model.py --checkpoint ... --model-type vit_h --output sam_onnx.onnx --return-single-mask`, then run with `onnxruntime.InferenceSession` — image embeddings must be computed separately and passed in alongside `point_coords`/`point_labels`/`mask_input`. Full export command and inference call: read `references/advanced-usage.md`.
 
 ## Common workflows
 
-### Workflow 1: Annotation tool
-
-```python
-import cv2
-
-# Load model
-predictor = SamPredictor(sam)
-predictor.set_image(image)
-
-def on_click(event, x, y, flags, param):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        # Foreground point
-        masks, scores, _ = predictor.predict(
-            point_coords=np.array([[x, y]]),
-            point_labels=np.array([1]),
-            multimask_output=True
-        )
-        # Display best mask
-        display_mask(masks[np.argmax(scores)])
-```
-
-### Workflow 2: Object extraction
-
-```python
-def extract_object(image, point):
-    """Extract object at point with transparent background."""
-    predictor.set_image(image)
-
-    masks, scores, _ = predictor.predict(
-        point_coords=np.array([point]),
-        point_labels=np.array([1]),
-        multimask_output=True
-    )
-
-    best_mask = masks[np.argmax(scores)]
-
-    # Create RGBA output
-    rgba = np.zeros((image.shape[0], image.shape[1], 4), dtype=np.uint8)
-    rgba[:, :, :3] = image
-    rgba[:, :, 3] = best_mask * 255
-
-    return rgba
-```
-
-### Workflow 3: Medical image segmentation
-
-```python
-# Process medical images (grayscale to RGB)
-medical_image = cv2.imread("scan.png", cv2.IMREAD_GRAYSCALE)
-rgb_image = cv2.cvtColor(medical_image, cv2.COLOR_GRAY2RGB)
-
-predictor.set_image(rgb_image)
-
-# Segment region of interest
-masks, scores, _ = predictor.predict(
-    box=np.array([x1, y1, x2, y2]),  # ROI bounding box
-    multimask_output=True
-)
-```
+Three ready-made patterns: an OpenCV-mouse-click annotation tool, an "extract object as transparent RGBA" helper, and a grayscale-to-RGB medical-image ROI workflow. Full code for each: read `references/advanced-usage.md` when building one of these.
 
 ## Output format
 

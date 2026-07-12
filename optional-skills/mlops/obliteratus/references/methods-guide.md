@@ -126,6 +126,20 @@ Did advanced leave > 10% refusals?
 | `--quantization` | 4bit, 8bit | none | Reduces VRAM usage; quality impact minimal for extraction |
 | `--verify-sample-size` | 10-200 | 20 | More samples = more accurate refusal rate estimate |
 
+Full fine-tuning invocation setting every tunable flag explicitly:
+
+```bash
+obliteratus obliterate <model_name> \
+  --method advanced \
+  --direction-method diff_means \
+  --n-directions 4 \
+  --refinement-passes 2 \
+  --regularization 0.1 \
+  --quantization 4bit \
+  --output-dir ./abliterated-models \
+  --contribute  # opt-in telemetry for community research
+```
+
 ---
 
 ## Troubleshooting
@@ -139,3 +153,18 @@ Did advanced leave > 10% refusals?
 | MoE model still refuses | Non-expert-aware method | Switch to `nuclear` |
 | Reasoning degraded | CoT directions damaged | Use `surgical` method |
 | OOM during extraction | Insufficient VRAM | Add `--quantization 4bit` and/or `--large-model` |
+
+---
+
+## Common Pitfalls
+
+Beyond the top invariants in SKILL.md (AGPL license, sub-1B models, `aggressive` risk on small models, perplexity checks):
+
+5. **MoE models need special handling** — use `nuclear` method for Mixtral, DeepSeek-MoE, etc.
+6. **Quantized models can't be re-quantized** — abliterate the full-precision model, then quantize the output.
+7. **VRAM estimation is approximate** — 4-bit quant helps but peak usage can spike during extraction.
+8. **Reasoning models are sensitive** — use `surgical` for R1 distills to preserve chain-of-thought.
+9. **Check `obliteratus recommend`** — telemetry data may have better parameters than defaults.
+10. **Don't use `informed` as default** — it's experimental and slower. Use `advanced` for reliable results.
+11. **Large models (70B+)** — always use `--large-model` flag for conservative defaults.
+12. **Spectral certification RED is common** — the spectral check often flags "incomplete" even when practical refusal rate is 0%. Check actual refusal rate rather than relying on spectral certification alone.
