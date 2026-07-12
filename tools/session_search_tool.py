@@ -528,6 +528,7 @@ def _discover(
     current_session_id: str = None,
     after_ts: Optional[float] = None,
     before_ts: Optional[float] = None,
+    source_filter: Optional[List[str]] = None,
 ) -> str:
     """Discovery shape: FTS5 + anchored window + bookends per hit. Single call."""
     role_list = role_filter if role_filter else ["user", "assistant"]
@@ -546,6 +547,7 @@ def _discover(
             sort=sort,
             after_ts=after_ts,
             before_ts=before_ts,
+            source_filter=source_filter,
         )
     except Exception as e:
         logging.error("FTS5 search failed: %s", e, exc_info=True)
@@ -657,6 +659,7 @@ def session_search(
     sort: str = None,
     after: str = None,
     before: str = None,
+    source: str = None,
     # Cross-profile (any shape)
     profile: str = None,
 ) -> str:
@@ -752,6 +755,11 @@ def session_search(
     if isinstance(role_filter, str) and role_filter.strip():
         role_list = [r.strip() for r in role_filter.split(",") if r.strip()]
 
+    # Parse source (include-only). Blank/whitespace → no restriction.
+    source_list: Optional[List[str]] = None
+    if isinstance(source, str) and source.strip():
+        source_list = [s.strip() for s in source.split(",") if s.strip()]
+
     # Normalise sort
     sort_norm: Optional[str] = None
     if isinstance(sort, str):
@@ -779,6 +787,7 @@ def session_search(
         current_session_id=current_session_id,
         after_ts=after_ts,
         before_ts=before_ts,
+        source_filter=source_list,
     )
 
 
@@ -904,6 +913,14 @@ SESSION_SEARCH_SCHEMA = {
                     "date/datetime. A date-only value includes that whole day."
                 ),
             },
+            "source": {
+                "type": "string",
+                "description": (
+                    "Discovery shape only. Restrict to sessions from these sources "
+                    "(comma-separated, e.g. 'telegram,discord' or 'cli'). Omit to "
+                    "search every source."
+                ),
+            },
             "session_id": {
                 "type": "string",
                 "description": (
@@ -968,6 +985,9 @@ registry.register(
         around_message_id=args.get("around_message_id"),
         window=args.get("window", 5),
         sort=args.get("sort"),
+        after=args.get("after"),
+        before=args.get("before"),
+        source=args.get("source"),
         profile=args.get("profile"),
         db=kw.get("db"),
         current_session_id=kw.get("current_session_id"),
