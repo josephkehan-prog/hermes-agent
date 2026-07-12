@@ -28,6 +28,38 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# jieba powers CJK word segmentation for skill retrieval. It is optional: Latin
+# text tokenizes fine on word boundaries, so a missing jieba disables CJK
+# segmentation rather than breaking retrieval. Import once at module load so a
+# missing package logs a single line instead of raising on every tokenize call
+# (the live install previously log-spammed "No module named jieba").
+try:
+    import jieba as _jieba
+
+    _JIEBA_AVAILABLE = True
+except ImportError:
+    _jieba = None
+    _JIEBA_AVAILABLE = False
+    logger.info(
+        "jieba not installed; skill retriever uses whitespace tokenization "
+        "(CJK segmentation disabled)"
+    )
+
+_WORD_RE = re.compile(r"\w+", re.UNICODE)
+
+
+def _tokenize(text: str) -> list[str]:
+    """Tokenize text for skill retrieval.
+
+    Uses jieba (CJK-aware) when available, else a unicode word-boundary
+    fallback. Callers apply their own length/content filters on the result.
+    """
+    if not text:
+        return []
+    if _JIEBA_AVAILABLE:
+        return list(_jieba.cut(text))
+    return _WORD_RE.findall(text)
+
 # ── Configuration ──────────────────────────────────────────────
 _DISABLE_ENV = "HERMES_DISABLE_SKILL_RETRIEVAL"
 _TOP_K_ENV = "HERMES_SKILL_RETRIEVAL_TOP_K"
@@ -356,8 +388,6 @@ class SkillRetriever:
 
     def _load_synonyms(self) -> None:
         """Load synonym dictionary — Layer 3 source data."""
-        import jieba
-
         synonym_file = Path(__file__).parent / "skill_synonyms.yaml"
         if not synonym_file.exists():
             logger.debug("No synonym dictionary found at %s", synonym_file)
@@ -388,8 +418,8 @@ class SkillRetriever:
                 if skill_name not in valid_names:
                     continue
                 for syn in syn_list:
-                    # Index jieba tokens of the synonym
-                    tokens = [t.strip() for t in jieba.cut(syn) if len(t.strip()) > 1]
+                    # Index segmented tokens of the synonym
+                    tokens = [t.strip() for t in _tokenize(syn) if len(t.strip()) > 1]
                     for token in tokens:
                         self._synonym_index.setdefault(token, []).append(
                             (skill_name, 1.0)
@@ -411,10 +441,8 @@ class SkillRetriever:
 
     def _build_fts5_index(self) -> None:
         """Layer 2: Build clean FTS5 index (name + description only)."""
-        import jieba
-
-        if not self._jieba_initialized:
-            jieba.initialize()
+        if _JIEBA_AVAILABLE and not self._jieba_initialized:
+            _jieba.initialize()
             self._jieba_initialized = True
 
         all_doc_freq: Counter = Counter()
@@ -422,7 +450,7 @@ class SkillRetriever:
             name = self._skill_names[i]
             text = f"{name} {desc}"
             tokens = [
-                t.strip() for t in jieba.cut(text)
+                t.strip() for t in _tokenize(text)
                 if len(t.strip()) > 1 and not t.strip().isdigit()
             ]
             self._doc_tokens.append(tokens)
@@ -498,10 +526,8 @@ class SkillRetriever:
 
     def _fts5_search(self, query: str, k: int) -> list[tuple[int, float]]:
         """Layer 2: Clean BM25 search — name + description only, no synonym mixing."""
-        import jieba
-
         query_tokens = [
-            t.strip() for t in jieba.cut(query)
+            t.strip() for t in _tokenize(query)
             if len(t.strip()) > 1
         ]
         scores: dict[int, float] = defaultdict(float)
@@ -521,10 +547,8 @@ class SkillRetriever:
 
     def _syn_search(self, query: str, k: int) -> list[tuple[int, float]]:
         """Layer 3: Synonym dictionary matching — independent scoring."""
-        import jieba
-
         query_tokens = [
-            t.strip() for t in jieba.cut(query)
+            t.strip() for t in _tokenize(query)
             if len(t.strip()) > 1
         ]
         scores: dict[int, float] = defaultdict(float)
