@@ -121,16 +121,25 @@ def grep_tail(
     pattern: str,
     n: Any = DEFAULT_GREP_TAIL_LINES,
     max_matches: Any = DEFAULT_MAX_MATCHES,
+    case_insensitive: bool = False,
 ) -> Dict[str, Any]:
     """Tail the last n lines of path, then return lines matching pattern,
     capped at max_matches. Invalid regexes return an error dict, not a
     crash; catastrophic-backtracking patterns time out (see module
     docstring) instead of hanging.
+
+    ``case_insensitive`` applies the regex with the ignore-case flag.
     """
     try:
         re.compile(pattern)
     except re.error as exc:
         return {"ok": False, "path": path, "error": f"invalid pattern: {exc}"}
+
+    if case_insensitive:
+        # Inline flag at the very start of the pattern — the guard worker
+        # compiles the pattern text directly, so this is the portable way to
+        # request ignore-case without changing the worker payload.
+        pattern = f"(?i){pattern}"
 
     tail_result = tail_lines(path, n)
     if not tail_result["ok"]:
@@ -206,6 +215,10 @@ registry.register(
                     "type": "integer",
                     "description": f"Maximum matches to return. Defaults to {DEFAULT_MAX_MATCHES}.",
                 },
+                "case_insensitive": {
+                    "type": "boolean",
+                    "description": "Match the pattern case-insensitively. Defaults to false.",
+                },
             },
             "required": ["path", "pattern"],
         },
@@ -216,6 +229,7 @@ registry.register(
             pattern=args.get("pattern", ""),
             n=args.get("n", DEFAULT_GREP_TAIL_LINES),
             max_matches=args.get("max_matches", DEFAULT_MAX_MATCHES),
+            case_insensitive=bool(args.get("case_insensitive", False)),
         ),
         ensure_ascii=False,
     ),

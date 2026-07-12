@@ -221,3 +221,42 @@ class TestGrepTail:
         assert payload["ok"] is True
         assert payload["count"] == 1
         assert payload["matches"][0]["text"] == "ERROR boom"
+
+
+class TestGrepTailCaseInsensitive:
+    def test_case_insensitive_matches_mixed_case(self, tmp_path):
+        path = tmp_path / "app.log"
+        path.write_text("\n".join(["Error one", "ERROR two", "error three", "ok"]) + "\n")
+
+        result = log_tail_tool.grep_tail(str(path), r"error", n=1000, case_insensitive=True)
+
+        assert result["ok"] is True
+        assert result["count"] == 3
+
+    def test_default_is_case_sensitive(self, tmp_path):
+        path = tmp_path / "app.log"
+        path.write_text("\n".join(["Error one", "ERROR two", "error three"]) + "\n")
+
+        result = log_tail_tool.grep_tail(str(path), r"error", n=1000)
+
+        assert result["ok"] is True
+        assert result["count"] == 1
+        assert result["matches"][0]["text"] == "error three"
+
+    def test_case_insensitive_false_explicit(self, tmp_path):
+        path = tmp_path / "app.log"
+        path.write_text("ERROR boom\nerror quiet\n")
+
+        result = log_tail_tool.grep_tail(str(path), r"ERROR", n=1000, case_insensitive=False)
+
+        assert result["count"] == 1
+        assert result["matches"][0]["text"] == "ERROR boom"
+
+    def test_invalid_pattern_still_errors_with_case_insensitive(self, tmp_path):
+        path = tmp_path / "app.log"
+        path.write_text("anything\n")
+
+        result = log_tail_tool.grep_tail(str(path), r"(unclosed", n=10, case_insensitive=True)
+
+        assert result["ok"] is False
+        assert "pattern" in result["error"]
