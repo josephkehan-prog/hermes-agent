@@ -80,6 +80,12 @@ Runtime constraints from `tools/skill_manager_tool.py`:
 - complete file: at most 100,000 characters
 - non-empty Markdown body after valid YAML frontmatter
 
+Local-model context budget enforced by the in-repo validator (the whole body is
+injected verbatim on invocation, so it must fit small context windows):
+
+- body over 12,000 characters: validation ERROR — split detail into `references/`
+- body over 8,000 characters: validation WARN — consider a `references/` split
+
 ## Authoring Workflow
 
 ### 1. Verify the premise

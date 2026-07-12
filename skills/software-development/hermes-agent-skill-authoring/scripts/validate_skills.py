@@ -15,6 +15,10 @@ NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 MAX_NAME_LENGTH = 64
 MAX_DESCRIPTION_LENGTH = 1024
 MAX_CONTENT_LENGTH = 100_000
+# Local-model context budget: bodies above FAIL must split into references/;
+# bodies above WARN should consider it (~4 chars/token, so 12k ≈ 3k tokens).
+MAX_BODY_LENGTH_FAIL = 12_000
+BODY_LENGTH_WARN = 8_000
 
 
 def repository_root() -> Path:
@@ -37,9 +41,17 @@ def parse_skill(path: Path) -> tuple[dict, str]:
     return frontmatter, content
 
 
+def skill_body(content: str) -> str:
+    end = content.find("\n---\n", 4)
+    return content[end + 5 :].strip() if end >= 0 else content.strip()
+
+
 def skill_index(root: Path) -> dict[str, list[Path]]:
     index: dict[str, list[Path]] = {}
-    for path in sorted(root.glob("skills/**/SKILL.md")):
+    paths = sorted(root.glob("skills/**/SKILL.md")) + sorted(
+        root.glob("optional-skills/**/SKILL.md")
+    )
+    for path in paths:
         try:
             frontmatter, _ = parse_skill(path)
         except (OSError, ValueError, yaml.YAMLError):
@@ -54,11 +66,19 @@ def skill_index(root: Path) -> dict[str, list[Path]]:
 
 
 def validate(path: Path, index: dict[str, list[Path]]) -> list[str]:
+    errors, _ = validate_with_warnings(path, index)
+    return errors
+
+
+def validate_with_warnings(
+    path: Path, index: dict[str, list[Path]]
+) -> tuple[list[str], list[str]]:
     errors: list[str] = []
+    warnings: list[str] = []
     try:
         frontmatter, content = parse_skill(path)
     except (OSError, ValueError, yaml.YAMLError) as exc:
-        return [str(exc)]
+        return [str(exc)], warnings
 
     name = frontmatter.get("name")
     description = frontmatter.get("description")
@@ -75,15 +95,26 @@ def validate(path: Path, index: dict[str, list[Path]]) -> list[str]:
         errors.append(f"description exceeds {MAX_DESCRIPTION_LENGTH} characters")
     if len(content) > MAX_CONTENT_LENGTH:
         errors.append(f"content exceeds {MAX_CONTENT_LENGTH} characters")
+    body_length = len(skill_body(content))
+    if body_length > MAX_BODY_LENGTH_FAIL:
+        errors.append(
+            f"body exceeds {MAX_BODY_LENGTH_FAIL} characters ({body_length}); "
+            "split detail into references/"
+        )
+    elif body_length > BODY_LENGTH_WARN:
+        warnings.append(
+            f"body exceeds {BODY_LENGTH_WARN} characters ({body_length}); "
+            "consider a references/ split"
+        )
 
     metadata = frontmatter.get("metadata", {})
     if not isinstance(metadata, dict):
         errors.append("metadata must be a mapping")
-        return errors
+        return errors, warnings
     hermes = metadata.get("hermes", {})
     if not isinstance(hermes, dict):
         errors.append("metadata.hermes must be a mapping")
-        return errors
+        return errors, warnings
     related = hermes.get("related_skills", [])
     if not isinstance(related, list) or any(not isinstance(item, str) for item in related):
         errors.append("metadata.hermes.related_skills must be a list of names")
@@ -102,7 +133,14 @@ def validate(path: Path, index: dict[str, list[Path]]) -> list[str]:
         missing = sorted(member for member in related if member not in index)
         if missing:
             errors.append(f"bundle members do not resolve in-repo: {', '.join(missing)}")
-        ambiguous = sorted(member for member in related if len(index.get(member, [])) > 1)
+        # A skill shipped in both skills/ and optional-skills/ resolves to the
+        # active (skills/) copy, so it is not ambiguous for bundle routing.
+        def _active_paths(member: str) -> list[Path]:
+            paths = index.get(member, [])
+            active = [p for p in paths if "optional-skills" not in p.parts]
+            return active or paths
+
+        ambiguous = sorted(member for member in related if len(_active_paths(member)) > 1)
         if ambiguous:
             errors.append(f"bundle members resolve ambiguously in-repo: {', '.join(ambiguous)}")
         required_headings = (
@@ -115,7 +153,7 @@ def validate(path: Path, index: dict[str, list[Path]]) -> list[str]:
         for heading in required_headings:
             if heading not in content:
                 errors.append(f"bundle is missing required heading: {heading}")
-    return errors
+    return errors, warnings
 
 
 def target_files(arguments: list[str]) -> list[Path]:
@@ -135,8 +173,10 @@ def main() -> int:
 
     failed = False
     for path in target_files(args.paths):
-        errors = validate(path, index)
+        errors, warnings = validate_with_warnings(path, index)
         label = path.relative_to(root) if path.is_relative_to(root) else path
+        for warning in warnings:
+            print(f"{label}: WARN: {warning}", file=sys.stderr)
         if errors:
             failed = True
             for error in errors:

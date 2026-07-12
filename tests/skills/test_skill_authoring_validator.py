@@ -91,6 +91,80 @@ def test_bundle_reports_missing_ambiguous_members_and_headings(tmp_path: Path) -
         assert f"bundle is missing required heading: {heading}" in errors
 
 
+def test_body_over_fail_limit_is_error(tmp_path: Path) -> None:
+    skill_md = write_skill(
+        tmp_path / "big",
+        name="big",
+        body="x" * (validator.MAX_BODY_LENGTH_FAIL + 1),
+    )
+
+    errors = validator.validate(skill_md, {"big": [skill_md]})
+
+    assert any("body exceeds" in error for error in errors)
+
+
+def test_body_between_warn_and_fail_warns_but_passes(tmp_path: Path) -> None:
+    skill_md = write_skill(
+        tmp_path / "mid",
+        name="mid",
+        body="y" * (validator.BODY_LENGTH_WARN + 1),
+    )
+
+    errors, warnings = validator.validate_with_warnings(skill_md, {"mid": [skill_md]})
+
+    assert errors == []
+    assert any("body exceeds" in warning for warning in warnings)
+
+
+def test_body_at_warn_limit_is_silent(tmp_path: Path) -> None:
+    skill_md = write_skill(
+        tmp_path / "ok",
+        name="ok",
+        body="z" * validator.BODY_LENGTH_WARN,
+    )
+
+    errors, warnings = validator.validate_with_warnings(skill_md, {"ok": [skill_md]})
+
+    assert errors == []
+    assert warnings == []
+
+
+def test_bundle_member_shipped_in_both_trees_is_not_ambiguous(tmp_path: Path) -> None:
+    bundle = write_skill(
+        tmp_path / "skills" / "cat" / "bundle",
+        name="bundle",
+        metadata=(
+            "{hermes: {bundle: true, domain: demo, "
+            "related_skills: [dup, one, two]}}"
+        ),
+        body="# B\n## Routing Table\n## Orchestration Workflow\n"
+        "## Handoff Record\n## Stop Conditions\n## Completion Gate",
+    )
+    active = tmp_path / "skills" / "cat" / "dup" / "SKILL.md"
+    optional = tmp_path / "optional-skills" / "cat" / "dup" / "SKILL.md"
+    index = {
+        "bundle": [bundle],
+        "dup": [active, optional],
+        "one": [tmp_path / "skills" / "cat" / "one" / "SKILL.md"],
+        "two": [tmp_path / "skills" / "cat" / "two" / "SKILL.md"],
+    }
+
+    errors = validator.validate(bundle, index)
+
+    assert not any("ambiguously" in error for error in errors)
+
+
+def test_skill_index_discovers_optional_skills(tmp_path: Path) -> None:
+    core = write_skill(tmp_path / "skills" / "cat" / "core-skill", name="core-skill")
+    optional = write_skill(
+        tmp_path / "optional-skills" / "cat" / "opt-skill", name="opt-skill"
+    )
+
+    index = validator.skill_index(tmp_path)
+
+    assert index == {"core-skill": [core], "opt-skill": [optional]}
+
+
 def test_cli_requires_an_explicit_target() -> None:
     result = subprocess.run(
         [sys.executable, str(SCRIPT)],
