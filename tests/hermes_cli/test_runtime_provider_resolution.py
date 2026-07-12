@@ -314,6 +314,10 @@ def test_resolve_runtime_provider_qwen_oauth(monkeypatch):
             "expires_at_ms": 1775640710946,
         },
     )
+    # No credential pool on the machine — force the resolver past the pool
+    # branch to the mocked resolve_qwen_runtime_credentials (a real qwen pool
+    # entry would otherwise supply its own access token).
+    monkeypatch.setattr(rp, "load_pool", lambda _provider: SimpleNamespace(has_credentials=lambda: False))
 
     resolved = rp.resolve_runtime_provider(requested="qwen-oauth")
 
@@ -368,6 +372,9 @@ def test_qwen_oauth_auto_fallthrough_on_auth_failure(monkeypatch):
         "resolve_qwen_runtime_credentials",
         lambda **kw: (_ for _ in ()).throw(AuthError("stale", provider="qwen-oauth", code="qwen_auth_missing")),
     )
+    # No pool creds — otherwise a real machine pool entry satisfies qwen-oauth
+    # and the auth-failure fallthrough this test checks never triggers.
+    monkeypatch.setattr(rp, "load_pool", lambda _provider: SimpleNamespace(has_credentials=lambda: False))
     monkeypatch.setattr(rp, "_get_model_config", lambda: {})
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-or-key")
 
