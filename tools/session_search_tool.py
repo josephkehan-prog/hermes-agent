@@ -31,6 +31,7 @@ support.
 
 import json
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 # Sources that are excluded from session browsing/searching by default.
@@ -424,6 +425,28 @@ def _scroll(
     return json.dumps(response, ensure_ascii=False)
 
 
+def _parse_date_bound(value: Optional[str], end_of_day: bool) -> Optional[float]:
+    """Parse an ISO date/datetime bound to epoch seconds.
+
+    Date-only values expand to midnight (``end_of_day=False``) or 23:59:59
+    (``end_of_day=True``) so ``before="2026-07-12"`` includes that whole day.
+    Raises ValueError with a readable message on unparseable input.
+    """
+    if value is None or not str(value).strip():
+        return None
+    raw = str(value).strip()
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except ValueError:
+        raise ValueError(
+            f"invalid date {raw!r} — use ISO format, e.g. 2026-07-12 or 2026-07-12T14:30"
+        )
+    date_only = len(raw) == 10
+    if date_only and end_of_day:
+        parsed = parsed.replace(hour=23, minute=59, second=59, microsecond=999999)
+    return parsed.timestamp()
+
+
 def _normalize_title_query(query: str) -> str:
     """Strip common quoting the model may include around a remembered title."""
     return query.strip().strip("`'\"")
@@ -503,6 +526,8 @@ def _discover(
     limit: int,
     sort: Optional[str],
     current_session_id: str = None,
+    after_ts: Optional[float] = None,
+    before_ts: Optional[float] = None,
 ) -> str:
     """Discovery shape: FTS5 + anchored window + bookends per hit. Single call."""
     role_list = role_filter if role_filter else ["user", "assistant"]
@@ -519,6 +544,8 @@ def _discover(
             # of cron rows are still in hand for the demotion pass below.
             offset=0,
             sort=sort,
+            after_ts=after_ts,
+            before_ts=before_ts,
         )
     except Exception as e:
         logging.error("FTS5 search failed: %s", e, exc_info=True)
@@ -628,6 +655,8 @@ def session_search(
     window: int = 5,
     # Discovery shape
     sort: str = None,
+    after: str = None,
+    before: str = None,
     # Cross-profile (any shape)
     profile: str = None,
 ) -> str:
@@ -730,6 +759,17 @@ def session_search(
         if candidate in ("newest", "oldest"):
             sort_norm = candidate
 
+    # Parse date bounds. Fail fast on unparseable input so the model can
+    # correct itself instead of silently searching the full history.
+    try:
+        after_ts = _parse_date_bound(after, end_of_day=False)
+    except ValueError as e:
+        return tool_error(f"after: {e}", success=False)
+    try:
+        before_ts = _parse_date_bound(before, end_of_day=True)
+    except ValueError as e:
+        return tool_error(f"before: {e}", success=False)
+
     return _discover(
         db=db,
         query=query.strip(),
@@ -737,6 +777,8 @@ def session_search(
         limit=limit,
         sort=sort_norm,
         current_session_id=current_session_id,
+        after_ts=after_ts,
+        before_ts=before_ts,
     )
 
 
@@ -846,6 +888,20 @@ SESSION_SEARCH_SCHEMA = {
                     "questions (\"where did we leave X\"). Set 'oldest' for "
                     "origin-shaped questions (\"how did X start\"). Ignored in scroll "
                     "and browse shapes."
+                ),
+            },
+            "after": {
+                "type": "string",
+                "description": (
+                    "Discovery shape only. Only match messages on or after this ISO "
+                    "date/datetime (e.g. '2026-07-01' or '2026-07-01T14:30')."
+                ),
+            },
+            "before": {
+                "type": "string",
+                "description": (
+                    "Discovery shape only. Only match messages on or before this ISO "
+                    "date/datetime. A date-only value includes that whole day."
                 ),
             },
             "session_id": {

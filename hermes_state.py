@@ -4747,9 +4747,14 @@ class SessionDB:
         offset: int = 0,
         sort: str = None,
         include_inactive: bool = False,
+        after_ts: float = None,
+        before_ts: float = None,
     ) -> List[Dict[str, Any]]:
         """
         Full-text search across session messages using FTS5.
+
+        ``after_ts`` / ``before_ts`` (epoch seconds) bound the message
+        timestamp inclusively on all three query paths (FTS5, trigram, LIKE).
 
         Supports FTS5 query syntax:
           - Simple keywords: "docker deployment"
@@ -4829,6 +4834,13 @@ class SessionDB:
             where_clauses.append(f"m.role IN ({role_placeholders})")
             params.extend(role_filter)
 
+        if after_ts is not None:
+            where_clauses.append("m.timestamp >= ?")
+            params.append(float(after_ts))
+        if before_ts is not None:
+            where_clauses.append("m.timestamp <= ?")
+            params.append(float(before_ts))
+
         where_sql = " AND ".join(where_clauses)
         params.extend([limit, offset])
 
@@ -4904,6 +4916,12 @@ class SessionDB:
                 if role_filter:
                     tri_where.append(f"m.role IN ({','.join('?' for _ in role_filter)})")
                     tri_params.extend(role_filter)
+                if after_ts is not None:
+                    tri_where.append("m.timestamp >= ?")
+                    tri_params.append(float(after_ts))
+                if before_ts is not None:
+                    tri_where.append("m.timestamp <= ?")
+                    tri_params.append(float(before_ts))
                 tri_sql = f"""
                     SELECT
                         m.id,
@@ -4961,6 +4979,12 @@ class SessionDB:
                 if role_filter:
                     like_where.append(f"m.role IN ({','.join('?' for _ in role_filter)})")
                     like_params.extend(role_filter)
+                if after_ts is not None:
+                    like_where.append("m.timestamp >= ?")
+                    like_params.append(float(after_ts))
+                if before_ts is not None:
+                    like_where.append("m.timestamp <= ?")
+                    like_params.append(float(before_ts))
                 like_sql = f"""
                     SELECT m.id, m.session_id, m.role,
                            substr(m.content,
