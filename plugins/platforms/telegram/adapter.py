@@ -587,6 +587,7 @@ class TelegramAdapter(BasePlatformAdapter):
         self._mention_patterns = self._compile_mention_patterns()
         self._reply_to_mode: str = getattr(config, 'reply_to_mode', 'first') or 'first'
         self._disable_link_previews: bool = self._coerce_bool_extra("disable_link_previews", False)
+        self._media_chat_actions_enabled: bool = self._coerce_bool_extra("media_chat_actions", True)
         # Bot API 10.1 Rich Messages: render constructs the legacy MarkdownV2
         # path degrades (tables → bullet lists, task lists, <details>, block
         # math) via sendRichMessage / editMessageText's rich_message param using
@@ -5940,7 +5941,11 @@ class TelegramAdapter(BasePlatformAdapter):
         """Send audio as a native Telegram voice message or audio file."""
         if not self._bot:
             return SendResult(success=False, error="Not connected")
-        
+
+        # Only for formats sent by this method itself; the unplayable-format
+        # branch delegates to send_document, which emits its own action.
+        if os.path.splitext(audio_path)[1].lower() in {".ogg", ".opus", ".mp3", ".m4a"}:
+            await self._send_media_chat_action(chat_id, "upload_voice", metadata)
         try:
             if not os.path.exists(audio_path):
                 return SendResult(success=False, error=self._missing_media_path_error("Audio", audio_path))
@@ -6042,6 +6047,7 @@ class TelegramAdapter(BasePlatformAdapter):
         if not images:
             return
 
+        await self._send_media_chat_action(chat_id, "upload_photo", metadata)
         try:
             from telegram import InputMediaPhoto
         except Exception as exc:  # pragma: no cover - missing SDK
@@ -6167,6 +6173,7 @@ class TelegramAdapter(BasePlatformAdapter):
         if not self._bot:
             return SendResult(success=False, error="Not connected")
 
+        await self._send_media_chat_action(chat_id, "upload_photo", metadata)
         try:
             if not os.path.exists(image_path):
                 return SendResult(success=False, error=self._missing_media_path_error("Image", image_path))
@@ -6261,6 +6268,7 @@ class TelegramAdapter(BasePlatformAdapter):
         if not self._bot:
             return SendResult(success=False, error="Not connected")
 
+        await self._send_media_chat_action(chat_id, "upload_document", metadata)
         try:
             if not os.path.exists(file_path):
                 return SendResult(success=False, error=self._missing_media_path_error("File", file_path))
@@ -6314,6 +6322,7 @@ class TelegramAdapter(BasePlatformAdapter):
         if not self._bot:
             return SendResult(success=False, error="Not connected")
 
+        await self._send_media_chat_action(chat_id, "upload_video", metadata)
         try:
             if not os.path.exists(video_path):
                 return SendResult(success=False, error=self._missing_media_path_error("Video", video_path))
@@ -6372,6 +6381,7 @@ class TelegramAdapter(BasePlatformAdapter):
             logger.warning("[%s] Blocked unsafe image URL (SSRF protection)", self.name)
             return await super().send_image(chat_id, image_url, caption, reply_to, metadata=metadata)
 
+        await self._send_media_chat_action(chat_id, "upload_photo", metadata)
         try:
             # Telegram can send photos directly from URLs (up to ~5MB)
             _photo_thread = self._metadata_thread_id(metadata)
@@ -6456,7 +6466,8 @@ class TelegramAdapter(BasePlatformAdapter):
         """Send an animated GIF natively as a Telegram animation (auto-plays inline)."""
         if not self._bot:
             return SendResult(success=False, error="Not connected")
-        
+
+        await self._send_media_chat_action(chat_id, "upload_video", metadata)
         try:
             _anim_thread = self._metadata_thread_id(metadata)
             reply_to_id = self._reply_to_message_id_for_send(reply_to, metadata, reply_to_mode=self._reply_to_mode)
@@ -6534,6 +6545,34 @@ class TelegramAdapter(BasePlatformAdapter):
             return True
         self._telegram_typing_cooldown_until.pop(str(chat_id), None)
         return False
+
+    async def _send_media_chat_action(
+        self,
+        chat_id: str,
+        action: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Best-effort contextual chat action before a media upload (non-fatal)."""
+        # getattr: partially constructed adapters (object.__new__ in tests)
+        # lack the flag; skip rather than crash the media send.
+        if not self._bot or not getattr(self, "_media_chat_actions_enabled", False):
+            return
+        try:
+            await self._bot.send_chat_action(
+                chat_id=normalize_telegram_chat_id(chat_id),
+                action=action,
+                message_thread_id=self._message_thread_id_for_typing(
+                    self._metadata_thread_id(metadata)
+                ),
+            )
+        except Exception:
+            try:
+                await self._bot.send_chat_action(
+                    chat_id=normalize_telegram_chat_id(chat_id),
+                    action=action,
+                )
+            except Exception as exc:
+                logger.debug(f"Telegram media chat action failed: {exc}")
 
     async def send_typing(self, chat_id: str, metadata: Optional[Dict[str, Any]] = None) -> None:
         """Send typing indicator."""

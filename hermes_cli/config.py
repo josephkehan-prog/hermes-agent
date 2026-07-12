@@ -2504,6 +2504,12 @@ DEFAULT_CONFIG = {
         "extra": {
             "rich_messages": False,     # Bot API 10.1 rich messages (tables/task lists/details/math) render natively; set True to opt in. Default stays legacy MarkdownV2 because rich messages can be hard to copy as plain text in Telegram clients.
             "rich_drafts": False,       # Experimental Bot API 10.1 rich draft previews during Telegram DM streaming. Default off because Telegram Desktop/macOS can visually overlay rich draft frames until the chat redraws.
+            "disable_link_previews": False,  # Suppress Telegram link previews on outgoing messages
+            "status_indicator": False,  # Set bot short description to "Online"/"Offline" on connect/disconnect (customize via status_online/status_offline)
+            "media_chat_actions": True,  # Show contextual "sending photo/file/voice/video…" chat action while media uploads
+            # More extra.* toggles the adapter honors (see plugins/platforms/telegram/adapter.py):
+            # require_mention, guest_mode, free_response_chats, allowed_topics,
+            # dm_topics, reply_to_mode, exclusive_bot_mentions, mention_patterns
         },
     },
 
