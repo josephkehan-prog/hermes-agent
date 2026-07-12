@@ -242,3 +242,65 @@ class TestLiveNotify:
         if not result.get("ok"):
             pytest.skip("ntfy.sh unreachable")
         assert result["ok"] is True
+
+
+class TestNotifyClick:
+    def _send(self, **kw):
+        mock_opener = MagicMock()
+        mock_opener.open.return_value = _mock_response()
+        with patch("tools.notify_tool._net_guard.reject_private_target"), \
+             patch("tools.notify_tool._net_guard.build_safe_opener", return_value=mock_opener):
+            result = notify("msg", "mytopic", **kw)
+        return result, mock_opener
+
+    def test_click_sets_x_click_header(self):
+        result, opener = self._send(click="https://dash.example.com/incident/42")
+        assert result["ok"] is True
+        req = opener.open.call_args[0][0]
+        assert req.get_header("X-click") == "https://dash.example.com/incident/42"
+
+    def test_no_click_omits_header(self):
+        result, opener = self._send()
+        assert result["ok"] is True
+        req = opener.open.call_args[0][0]
+        assert req.get_header("X-click") is None
+
+    def test_invalid_click_scheme_rejected_no_network(self):
+        with patch("tools.notify_tool._net_guard.build_safe_opener") as mock_opener:
+            result = notify("msg", "mytopic", click="javascript:alert(1)")
+        assert result["ok"] is False
+        assert "click" in result["error"].lower()
+        mock_opener.assert_not_called()
+
+    def test_blank_click_is_ignored(self):
+        result, opener = self._send(click="   ")
+        assert result["ok"] is True
+        req = opener.open.call_args[0][0]
+        assert req.get_header("X-click") is None
+
+
+class TestNotifyClickCRLF:
+    def test_validate_click_rejects_crlf(self):
+        from tools.notify_tool import _validate_click
+
+        url, err = _validate_click("https://x.com\r\nX-Priority: 5")
+        assert url is None
+        assert "control" in err.lower()
+
+    def test_click_with_crlf_no_network(self):
+        with patch("tools.notify_tool._net_guard.build_safe_opener") as mock_opener:
+            result = notify("m", "mytopic", click="https://x.com\r\nX-Priority: 5")
+        assert result["ok"] is False
+        assert "control" in result["error"].lower()
+        mock_opener.assert_not_called()
+
+    def test_header_valueerror_is_caught(self):
+        # Defense-in-depth: a ValueError raised while sending (e.g. http.client
+        # rejecting a bad header from title/tags) becomes a safe error dict.
+        mock_opener = MagicMock()
+        mock_opener.open.side_effect = ValueError("Invalid header value")
+        with patch("tools.notify_tool._net_guard.reject_private_target"), \
+             patch("tools.notify_tool._net_guard.build_safe_opener", return_value=mock_opener):
+            result = notify("m", "mytopic", title="ok")
+        assert result["ok"] is False
+        assert "header" in result["error"].lower()

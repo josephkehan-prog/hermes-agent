@@ -88,6 +88,28 @@ def _validate_priority(priority: Any) -> Optional[int]:
     return priority_int
 
 
+def _validate_click(click: Any) -> tuple:
+    """Validate an optional tap-to-open URL.
+
+    Returns ``(url, None)`` for a valid http(s) URL, ``(None, None)`` when
+    blank/unset (no click action), or ``(None, error)`` when a non-blank value
+    isn't a well-formed http(s) URL.
+    """
+    if click is None:
+        return None, None
+    if not isinstance(click, str) or not click.strip():
+        return None, None
+    candidate = click.strip()
+    # Reject control chars (CR/LF etc.) — a newline in a header value would
+    # otherwise let http.client raise ValueError mid-send (header injection).
+    if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in candidate):
+        return None, f"invalid click url: {click!r} (control characters not allowed)"
+    parsed = urlparse(candidate)
+    if parsed.scheme.lower() not in _ALLOWED_SCHEMES or not parsed.netloc:
+        return None, f"invalid click url: {click!r} (http/https only)"
+    return candidate, None
+
+
 def notify(
     message: Any,
     topic: Any,
@@ -95,6 +117,7 @@ def notify(
     priority: Any = None,
     tags: Any = None,
     server: Any = _DEFAULT_SERVER,
+    click: Any = None,
 ) -> Dict[str, Any]:
     """Send a push notification to an ntfy topic.
 
@@ -119,7 +142,13 @@ def notify(
     except ValueError as exc:
         return {"ok": False, "error": str(exc)}
 
+    valid_click, click_error = _validate_click(click)
+    if click_error:
+        return {"ok": False, "error": click_error}
+
     headers = {"User-Agent": _USER_AGENT}
+    if valid_click:
+        headers["X-Click"] = valid_click
     if title:
         headers["X-Title"] = str(title)
     if valid_priority is not None:
@@ -145,6 +174,11 @@ def notify(
         return {"ok": False, "error": f"http error {exc.code}: {exc.reason}"}
     except urllib.error.URLError as exc:
         return {"ok": False, "error": f"could not reach ntfy server: {exc.reason}"}
+    except ValueError as exc:
+        # http.client raises ValueError on illegal header values (e.g. a
+        # newline smuggled through a title/tag). Surface it as a safe error
+        # dict instead of letting it crash the tool.
+        return {"ok": False, "error": f"invalid request header: {exc}"}
     except (TimeoutError, OSError) as exc:
         return {"ok": False, "error": str(exc)}
 
@@ -185,6 +219,10 @@ registry.register(
                     "type": "string",
                     "description": f"ntfy server base URL (http/https). Defaults to the public {_DEFAULT_SERVER}.",
                 },
+                "click": {
+                    "type": "string",
+                    "description": "Optional http/https URL opened when the notification is tapped (e.g. a dashboard or incident link).",
+                },
             },
             "required": ["message", "topic"],
         },
@@ -197,6 +235,7 @@ registry.register(
             priority=args.get("priority"),
             tags=args.get("tags"),
             server=args.get("server", _DEFAULT_SERVER),
+            click=args.get("click"),
         ),
         ensure_ascii=False,
     ),
