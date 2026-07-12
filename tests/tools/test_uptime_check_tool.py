@@ -222,3 +222,58 @@ class TestLiveCheckUrl:
         result = check_url("http://127.0.0.1/")
         assert result["ok"] is False
         assert result["up"] is False
+
+
+class TestStatusClassMatching:
+    """expect_status accepts a class ('2xx'), a set ('200,204'), or an int."""
+
+    def _check(self, status, expect):
+        opener = MagicMock()
+        opener.open.return_value = _mock_response(status=status, body=b"x")
+        with patch("tools.uptime_check_tool._reject_private_target", return_value=None), \
+             patch("tools.uptime_check_tool._build_safe_opener", return_value=opener):
+            return check_url("http://example.com", expect_status=expect)
+
+    def test_2xx_matches_204(self):
+        assert self._check(204, "2xx")["up"] is True
+
+    def test_2xx_rejects_301(self):
+        assert self._check(301, "2xx")["up"] is False
+
+    def test_3xx_matches_301(self):
+        assert self._check(301, "3xx")["up"] is True
+
+    def test_set_matches_member(self):
+        assert self._check(204, "200,204")["up"] is True
+
+    def test_set_rejects_non_member(self):
+        assert self._check(500, "200,204")["up"] is False
+
+    def test_mixed_set_with_class(self):
+        assert self._check(302, "200,3xx")["up"] is True
+
+    def test_int_still_exact(self):
+        assert self._check(200, 200)["up"] is True
+        assert self._check(201, 200)["up"] is False
+
+    def test_numeric_string_still_exact(self):
+        assert self._check(200, "200")["up"] is True
+
+    def test_garbage_expect_is_not_up(self):
+        r = self._check(200, "banana")
+        assert r["ok"] is True
+        assert r["up"] is False
+        assert r["checks"]["status_ok"] is False
+
+
+class TestSchemaExpectStatusType:
+    """Both check_url and check_urls must accept string expect_status forms."""
+
+    def test_both_schemas_accept_string_status(self):
+        from tools.registry import registry
+
+        for name in ("check_url", "check_urls"):
+            entry = registry.get_entry(name)
+            assert entry is not None, name
+            prop = entry.schema["parameters"]["properties"]["expect_status"]
+            assert prop["type"] == ["integer", "string"], name

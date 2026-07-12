@@ -72,6 +72,35 @@ def _build_safe_opener(timeout: float) -> urllib.request.OpenerDirector:
     return _net_guard.build_safe_opener()
 
 
+def _status_matches(status: int, expect: Any) -> bool:
+    """True if the response status satisfies expect.
+
+    expect may be None (any status), an int or numeric string (exact match),
+    a status class like ``"2xx"``/``"3xx"`` (any code in that hundred), or a
+    comma-separated set mixing exact codes and classes (e.g. ``"200,3xx"``).
+    Unrecognized tokens never match, so a garbage expectation reports not-up
+    rather than raising.
+    """
+    if expect is None:
+        return True
+    if isinstance(expect, bool):
+        return False
+    if isinstance(expect, int):
+        return status == expect
+    if not isinstance(expect, str):
+        return False
+    for part in expect.split(","):
+        token = part.strip().lower()
+        if not token:
+            continue
+        if len(token) == 3 and token.endswith("xx") and token[0].isdigit():
+            if status // 100 == int(token[0]):
+                return True
+        elif token.isdigit() and status == int(token):
+            return True
+    return False
+
+
 def check_url(
     url: Any,
     expect_status: Any = None,
@@ -123,10 +152,7 @@ def check_url(
         return {"ok": False, "url": target, "up": False, "error": str(exc)}
     elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
 
-    try:
-        status_ok = status == int(expect_status) if expect_status is not None else True
-    except (TypeError, ValueError):
-        status_ok = False
+    status_ok = _status_matches(status, expect_status)
     substring_found = (
         isinstance(expect_substring, str) and expect_substring.encode("utf-8", errors="replace") in body
         if expect_substring is not None
@@ -176,8 +202,12 @@ registry.register(
             "properties": {
                 "url": {"type": "string", "description": "URL to check (http:// or https://)."},
                 "expect_status": {
-                    "type": "integer",
-                    "description": "Expected HTTP status code, e.g. 200. Omit to skip this check.",
+                    "type": ["integer", "string"],
+                    "description": (
+                        "Expected HTTP status. An exact code (200), a class "
+                        "('2xx', '3xx'), or a comma-separated set mixing both "
+                        "('200,204' or '200,3xx'). Omit to skip this check."
+                    ),
                 },
                 "expect_substring": {
                     "type": "string",
@@ -224,8 +254,12 @@ registry.register(
                     "description": f"URLs to check (http/https only, max {_MAX_BULK_ITEMS}).",
                 },
                 "expect_status": {
-                    "type": "integer",
-                    "description": "Expected HTTP status code applied to every URL. Omit to skip this check.",
+                    "type": ["integer", "string"],
+                    "description": (
+                        "Expected HTTP status applied to every URL: an exact code "
+                        "(200), a class ('2xx','3xx'), or a comma-separated set "
+                        "('200,204','200,3xx'). Omit to skip this check."
+                    ),
                 },
                 "expect_substring": {
                     "type": "string",
