@@ -79,3 +79,69 @@ gateway, pass on CI); timing flakes (`base_environment` concurrency, LSP e2e,
 - Markdown-only skill changes are safe to gate on the skill suites alone (no
   runtime code imports them).
 - Fork CI is the arbiter for the environmental failures above.
+
+## Post-review validation and NousResearch update — 2026-07-12
+
+This log was reviewed against the current tree before merging official
+`NousResearch/hermes-agent` `main`.
+
+### Credibility verdict
+
+The recorded reviewer catches and test-isolation fixes are credible:
+
+- Feature commits `f1305c40b`, `d518c6891`, `682ffcd0e`, and `5ad9ff273`
+  exist, and the described schema, handler-forwarding, URL-validation, and
+  regression-test changes remain in the tree.
+- Test-isolation commits `fb57f174c` and `52fde0e1b` exist. Their modified
+  tests match the host-state leaks described above.
+- The listed failure count is internally consistent: 12 + 3 + 1 + 3 + 2 =
+  21 tests.
+
+Two statements above need current-context qualification:
+
+- “Not fixable on macOS” means unsuitable for this live macOS validation run,
+  not inherently impossible to fix. Several cases require Linux/systemd;
+  others collide with a running gateway or are timing-sensitive.
+- The “~340 files” full-suite note is stale. Current discovery finds 2,058
+  `test_*.py` files. Continue using targeted suites locally and fork CI for the
+  full environmental matrix.
+
+### Additional isolation finding
+
+The canonical test runner used `env -i` but retained real `HOME` and left
+`HERMES_HOME` unset until per-test fixtures ran. Collection-time imports could
+therefore load `~/.hermes/.env`, inherit Tor proxy settings, and write thousands
+of SOCKS warnings to the real agent log before fixture isolation began.
+
+Commit `dff880662` fixes the gap by creating a suite-level temporary
+`HERMES_HOME` before Python starts, passing it through the clean environment,
+and deleting it when the runner exits. The real SOCKS-warning count remained
+unchanged during the focused metadata test run.
+
+### Validation evidence
+
+- Before upstream merge: 482 focused regression tests passed.
+- After upstream merge: 486 focused regression tests passed, including the
+  release manifest lockstep tests and the three live-model-probe regressions.
+- `scripts/release.py` compiled successfully after conflict resolution.
+- `git diff --check` passed; working tree was clean after merge.
+- Both official `origin/main` and backup branch
+  `backup/pre-nous-update-20260712` are ancestors of the merged result.
+
+### Official update record
+
+- Pre-update official tip: `8121dbb16`.
+- Fetched official tip: `7b5ba2054`.
+- Divergence before merge: 51 local commits and 72 official commits.
+- Local preservation commit: `dff880662` (`scripts/run_tests.sh` isolation).
+- Backup branch: `backup/pre-nous-update-20260712`.
+- Merge commit: `4f5af6847`.
+- Only merge conflict: `scripts/release.py`; resolved by preserving the local
+  `josephkehan-prog` author mapping and all four new official contributor
+  mappings.
+- Live checkout `/Users/josephhan/.hermes/hermes-agent` was clean and a direct
+  ancestor of the reviewed development branch, then fast-forwarded to the
+  merged result. No dependency manifests changed across that fast-forward.
+- Hermes gateway was restarted after the live checkout update.
+
+No local commit was reset, rebased away, or discarded.
