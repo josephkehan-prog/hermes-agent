@@ -152,7 +152,7 @@ Compare to the 3-step HTTP flow (create upload → PUT bytes → reference).
 
 ## Path B — HTTP + curl (cross-platform, default on Windows)
 
-All requests share this pattern:
+Every request shares this pattern:
 
 ```bash
 curl -s -X GET "https://api.notion.com/v1/..." \
@@ -161,146 +161,7 @@ curl -s -X GET "https://api.notion.com/v1/..." \
   -H "Content-Type: application/json"
 ```
 
-On Windows the `curl` shipped with Windows 10+ works as-is. PowerShell users can also use `Invoke-RestMethod`.
-
-### Search
-```bash
-curl -s -X POST "https://api.notion.com/v1/search" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "page title"}'
-```
-
-### Read page metadata
-```bash
-curl -s "https://api.notion.com/v1/pages/{page_id}" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03"
-```
-
-### Read page as Markdown (agent-friendly)
-
-Easier to feed to a model than block JSON.
-
-```bash
-curl -s "https://api.notion.com/v1/pages/{page_id}/markdown" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03"
-```
-
-### Read page content as blocks (when you need structure)
-```bash
-curl -s "https://api.notion.com/v1/blocks/{page_id}/children" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03"
-```
-
-### Create page from Markdown
-
-`POST /v1/pages` accepts a `markdown` body param.
-
-```bash
-curl -s -X POST "https://api.notion.com/v1/pages" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "parent": {"page_id": "xxx"},
-    "properties": {"title": [{"text": {"content": "Notes from meeting"}}]},
-    "markdown": "# Agenda\n\n- Q3 roadmap\n- Hiring\n\n## Decisions\n- Ship MVP Friday"
-  }'
-```
-
-### Patch a page with Markdown
-```bash
-curl -s -X PATCH "https://api.notion.com/v1/pages/{page_id}/markdown" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03" \
-  -H "Content-Type: application/json" \
-  -d '{"markdown": "## Update\n\nShipped the prototype."}'
-```
-
-### Create page in a database (typed properties)
-```bash
-curl -s -X POST "https://api.notion.com/v1/pages" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "parent": {"database_id": "xxx"},
-    "properties": {
-      "Name": {"title": [{"text": {"content": "New Item"}}]},
-      "Status": {"select": {"name": "Todo"}}
-    }
-  }'
-```
-
-### Query a database (data source)
-```bash
-curl -s -X POST "https://api.notion.com/v1/data_sources/{data_source_id}/query" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "filter": {"property": "Status", "select": {"equals": "Active"}},
-    "sorts": [{"property": "Date", "direction": "descending"}]
-  }'
-```
-
-### Create a database
-```bash
-curl -s -X POST "https://api.notion.com/v1/data_sources" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "parent": {"page_id": "xxx"},
-    "title": [{"text": {"content": "My Database"}}],
-    "properties": {
-      "Name": {"title": {}},
-      "Status": {"select": {"options": [{"name": "Todo"}, {"name": "Done"}]}},
-      "Date": {"date": {}}
-    }
-  }'
-```
-
-### Update page properties
-```bash
-curl -s -X PATCH "https://api.notion.com/v1/pages/{page_id}" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03" \
-  -H "Content-Type: application/json" \
-  -d '{"properties": {"Status": {"select": {"name": "Done"}}}}'
-```
-
-### Append blocks to a page
-```bash
-curl -s -X PATCH "https://api.notion.com/v1/blocks/{page_id}/children" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "children": [
-      {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "Hello from Hermes!"}}]}}
-    ]
-  }'
-```
-
-### File uploads (3-step flow)
-```bash
-# 1. Create upload
-curl -s -X POST "https://api.notion.com/v1/file_uploads" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2025-09-03" \
-  -H "Content-Type: application/json" \
-  -d '{"filename": "photo.png", "content_type": "image/png"}'
-
-# 2. PUT bytes to the upload_url returned above
-curl -s -X PUT "{upload_url}" --data-binary @photo.png
-
-# 3. Reference {file_upload_id} in a page/block payload
-```
+On Windows the `curl` shipped with Windows 10+ works as-is; PowerShell users can also use `Invoke-RestMethod`. Full worked curl examples for every operation (search, read page metadata/markdown/blocks, create/patch a page, create a database, query a database, update properties, append blocks, 3-step file uploads): read `references/http-curl.md` when writing raw HTTP calls.
 
 ## Property Types
 
@@ -327,71 +188,9 @@ Common property formats for database items:
 
 ## Notion Workers (advanced, requires `ntn`)
 
-Workers are TypeScript programs Notion hosts for you. One worker can expose any combination of:
-- **Syncs** — pull data from external APIs into a Notion database on a schedule (default 30 min).
-- **Tools** — appear as callable tools inside Notion's Custom Agents.
-- **Webhooks** — receive HTTP events from external services (GitHub, Stripe, etc.) and act in Notion.
+Workers are TypeScript programs Notion hosts for you: **syncs** (pull external data into a Notion database on a schedule), **tools** (callable inside Notion's Custom Agents), and **webhooks** (receive HTTP events and act in Notion). CLI works on all plans; **deploying Workers requires Business or Enterprise**. `ntn` is macOS/Linux only as of May 2026 (Windows needs WSL2). Free through August 11, 2026, then metered on Notion credits.
 
-**Plan / platform gating:**
-- CLI works on all plans. **Deploying Workers requires Business or Enterprise.**
-- `ntn` is macOS/Linux only as of May 2026. Windows users need WSL2 or to wait for native support.
-- Free through August 11, 2026; metered on Notion credits after.
-
-### Minimal Worker
-
-```bash
-ntn workers new my-worker      # scaffold
-cd my-worker
-# Edit src/index.ts
-ntn workers deploy --name my-worker
-```
-
-`src/index.ts`:
-```typescript
-import { Worker } from "@notionhq/workers";
-
-const worker = new Worker();
-export default worker;
-
-worker.tool("greet", {
-  title: "Greet a User",
-  description: "Returns a friendly greeting",
-  inputSchema: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
-  execute: async ({ name }) => `Hello, ${name}!`,
-});
-```
-
-### Webhook capability
-
-```typescript
-worker.webhook("onGithubPush", {
-  title: "GitHub Push Handler",
-  execute: async (events, { notion }) => {
-    for (const event of events) {
-      // event.body, event.rawBody (for signature verification), event.headers
-      console.log("got delivery", event.deliveryId);
-    }
-  },
-});
-```
-
-After deploy: `ntn workers webhooks list` shows the URL Notion generates. Treat that URL as a secret — anyone with it can POST events unless you add signature verification.
-
-### Worker lifecycle commands
-
-```bash
-ntn workers deploy
-ntn workers list
-ntn workers exec <capability-key> -d '{"name": "world"}'
-ntn workers sync trigger <key>            # run a sync now
-ntn workers sync pause <key>
-ntn workers env set GITHUB_WEBHOOK_SECRET=...
-ntn workers runs list                     # recent invocations
-ntn workers runs logs <run-id>
-ntn workers webhooks list
-```
-
-When asked to build a Worker, scaffold with `ntn workers new`, write the code in `src/index.ts`, set any secrets with `ntn workers env set`, and deploy. Notion's docs at https://developers.notion.com/workers cover the full API surface.
+When asked to build a Worker: scaffold with `ntn workers new`, write the code in `src/index.ts`, set secrets with `ntn workers env set`, deploy with `ntn workers deploy`. Full scaffold example, `src/index.ts` tool/webhook code, and the worker lifecycle command reference (`list`, `exec`, `sync trigger/pause`, `runs list/logs`, `webhooks list`): read `references/workers.md` before building one. Notion's docs at https://developers.notion.com/workers cover the full API surface.
 
 ## Notion-Flavored Markdown (used by `/markdown` endpoints)
 

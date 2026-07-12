@@ -280,113 +280,17 @@ context = retrieve("What is Python?")
 prompt = f"Context: {context}\n\nQuestion: What is Python?"
 ```
 
-### With LangChain
+### With LangChain / LlamaIndex
 
-```python
-from langchain_community.vectorstores import Qdrant
-from langchain_community.embeddings import HuggingFaceEmbeddings
-
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-vectorstore = Qdrant.from_documents(documents, embeddings, url="http://localhost:6333", collection_name="docs")
-retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
-```
-
-### With LlamaIndex
-
-```python
-from llama_index.vector_stores.qdrant import QdrantVectorStore
-from llama_index.core import VectorStoreIndex, StorageContext
-
-vector_store = QdrantVectorStore(client=client, collection_name="llama_docs")
-storage_context = StorageContext.from_defaults(vector_store=vector_store)
-index = VectorStoreIndex.from_documents(documents, storage_context=storage_context)
-query_engine = index.as_query_engine()
-```
+Both frameworks ship a Qdrant vector-store wrapper (`langchain_community.vectorstores.Qdrant`, `llama_index.vector_stores.qdrant.QdrantVectorStore`) that plugs into their standard retriever/query-engine APIs. Setup snippets for both: read `references/integrations.md`.
 
 ## Multi-vector support
 
-### Named vectors (different embedding models)
-
-```python
-from qdrant_client.models import VectorParams, Distance
-
-# Collection with multiple vector types
-client.create_collection(
-    collection_name="hybrid_search",
-    vectors_config={
-        "dense": VectorParams(size=384, distance=Distance.COSINE),
-        "sparse": VectorParams(size=30000, distance=Distance.DOT)
-    }
-)
-
-# Insert with named vectors
-client.upsert(
-    collection_name="hybrid_search",
-    points=[
-        PointStruct(
-            id=1,
-            vector={
-                "dense": dense_embedding,
-                "sparse": sparse_embedding
-            },
-            payload={"text": "document text"}
-        )
-    ]
-)
-
-# Search specific vector
-results = client.search(
-    collection_name="hybrid_search",
-    query_vector=("dense", query_dense),  # Specify which vector
-    limit=10
-)
-```
-
-### Sparse vectors (BM25, SPLADE)
-
-```python
-from qdrant_client.models import SparseVectorParams, SparseIndexParams, SparseVector
-
-# Collection with sparse vectors
-client.create_collection(
-    collection_name="sparse_search",
-    vectors_config={},
-    sparse_vectors_config={"text": SparseVectorParams(index=SparseIndexParams(on_disk=False))}
-)
-
-# Insert sparse vector
-client.upsert(
-    collection_name="sparse_search",
-    points=[PointStruct(id=1, vector={"text": SparseVector(indices=[1, 5, 100], values=[0.5, 0.8, 0.2])}, payload={"text": "document"})]
-)
-```
+A collection can hold multiple named vectors per point (e.g. `"dense"` for semantic embeddings + `"sparse"` for BM25/SPLADE keyword vectors), searched individually via `("name", query_vector)` or combined with Reciprocal Rank Fusion for hybrid search. Full named-vector and sparse-vector setup, hybrid-search RRF queries, and multi-stage coarse→fine retrieval: read `references/advanced-usage.md`.
 
 ## Quantization (memory optimization)
 
-```python
-from qdrant_client.models import ScalarQuantization, ScalarQuantizationConfig, ScalarType
-
-# Scalar quantization (4x memory reduction)
-client.create_collection(
-    collection_name="quantized",
-    vectors_config=VectorParams(size=384, distance=Distance.COSINE),
-    quantization_config=ScalarQuantization(
-        scalar=ScalarQuantizationConfig(
-            type=ScalarType.INT8,
-            quantile=0.99,        # Clip outliers
-            always_ram=True      # Keep quantized in RAM
-        )
-    )
-)
-
-# Search with rescoring
-results = client.search(
-    collection_name="quantized",
-    query_vector=query,
-    search_params={"quantization": {"rescore": True}},  # Rescore top results
-    limit=10
-)
-```
+Scalar quantization (`ScalarQuantization`, INT8) gives ~4x memory reduction with minimal accuracy loss; product and binary quantization trade more accuracy for 16x/32x reduction. Always pair quantized search with `search_params={"quantization": {"rescore": True}}` to rescore top results against full-precision vectors. Full quantization configs and trade-offs per type: read `references/advanced-usage.md`.
 
 ## Payload indexing
 
@@ -411,33 +315,7 @@ client.create_payload_index(
 
 ## Production deployment
 
-### Qdrant Cloud
-
-```python
-from qdrant_client import QdrantClient
-
-# Connect to Qdrant Cloud
-client = QdrantClient(
-    url="https://your-cluster.cloud.qdrant.io",
-    api_key="your-api-key"
-)
-```
-
-### Performance tuning
-
-```python
-# Optimize for search speed (higher recall)
-client.update_collection(
-    collection_name="documents",
-    hnsw_config=HnswConfigDiff(ef_construct=200, m=32)
-)
-
-# Optimize for indexing speed (bulk loads)
-client.update_collection(
-    collection_name="documents",
-    optimizer_config={"indexing_threshold": 20000}
-)
-```
+Connect to Qdrant Cloud with `QdrantClient(url="https://your-cluster.cloud.qdrant.io", api_key="your-api-key")`. Tune `HnswConfigDiff(ef_construct=..., m=...)` for search-speed/recall trade-offs, or `optimizer_config={"indexing_threshold": ...}` for bulk-load speed. Distributed clusters, sharding, replication, snapshots/backups, and multitenancy patterns: read `references/advanced-usage.md`.
 
 ## Best practices
 
@@ -450,42 +328,13 @@ client.update_collection(
 
 ## Common issues
 
-**Slow search with filters:**
-```python
-# Create payload index for filtered fields
-client.create_payload_index(
-    collection_name="docs",
-    field_name="category",
-    field_schema=PayloadSchemaType.KEYWORD
-)
-```
-
-**Out of memory:**
-```python
-# Enable quantization and on-disk storage
-client.create_collection(
-    collection_name="large_collection",
-    vectors_config=VectorParams(size=384, distance=Distance.COSINE),
-    quantization_config=ScalarQuantization(...),
-    on_disk_payload=True
-)
-```
-
-**Connection issues:**
-```python
-# Use timeout and retry
-client = QdrantClient(
-    host="localhost",
-    port=6333,
-    timeout=30,
-    prefer_grpc=True  # gRPC for better performance
-)
-```
+Slow filtered search → missing payload index (`create_payload_index` on the filtered field). Out of memory → enable quantization + `on_disk_payload=True`. Connection errors → set `timeout=30` and `prefer_grpc=True`. Full diagnostics for installation, connection, collection, search, upsert, memory, and cluster issues: read `references/troubleshooting.md` when a specific error needs root-causing.
 
 ## References
 
 - **[Advanced Usage](references/advanced-usage.md)** - Distributed mode, hybrid search, recommendations
 - **[Troubleshooting](references/troubleshooting.md)** - Common issues, debugging, performance tuning
+- **[Integrations](references/integrations.md)** - LangChain and LlamaIndex vector-store setup
 
 ## Resources
 

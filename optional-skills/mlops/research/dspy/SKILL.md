@@ -66,28 +66,6 @@ response = qa(question="What is the capital of France?")
 print(response.answer)  # "Paris"
 ```
 
-### Chain of Thought Reasoning
-
-```python
-import dspy
-
-lm = dspy.Claude(model="claude-sonnet-4-5-20250929")
-dspy.settings.configure(lm=lm)
-
-# Use ChainOfThought for better reasoning
-class MathProblem(dspy.Signature):
-    """Solve math word problems."""
-    problem = dspy.InputField()
-    answer = dspy.OutputField(desc="numerical answer")
-
-# ChainOfThought generates reasoning steps automatically
-cot = dspy.ChainOfThought(MathProblem)
-
-response = cot(problem="If John has 5 apples and gives 2 to Mary, how many does he have?")
-print(response.rationale)  # Shows reasoning steps
-print(response.answer)     # "3"
-```
-
 ## Core Concepts
 
 ### 1. Signatures
@@ -113,176 +91,23 @@ summarizer = dspy.ChainOfThought(Summarize)
 
 ### 2. Modules
 
-Modules are reusable components that transform inputs to outputs:
+Modules are reusable components that transform inputs to outputs. The four core ones:
+- **`dspy.Predict`** — basic prediction from a signature
+- **`dspy.ChainOfThought`** — generates reasoning steps (`.rationale`) before the final answer
+- **`dspy.ReAct`** — agent-like reasoning that calls tools
+- **`dspy.ProgramOfThought`** — generates and executes code to compute the answer
 
-#### dspy.Predict
-Basic prediction module:
-
-```python
-predictor = dspy.Predict("context, question -> answer")
-result = predictor(context="Paris is the capital of France",
-                   question="What is the capital?")
-```
-
-#### dspy.ChainOfThought
-Generates reasoning steps before answering:
-
-```python
-cot = dspy.ChainOfThought("question -> answer")
-result = cot(question="Why is the sky blue?")
-print(result.rationale)  # Reasoning steps
-print(result.answer)     # Final answer
-```
-
-#### dspy.ReAct
-Agent-like reasoning with tools:
-
-```python
-from dspy.predict import ReAct
-
-class SearchQA(dspy.Signature):
-    """Answer questions using search."""
-    question = dspy.InputField()
-    answer = dspy.OutputField()
-
-def search_tool(query: str) -> str:
-    """Search Wikipedia."""
-    # Your search implementation
-    return results
-
-react = ReAct(SearchQA, tools=[search_tool])
-result = react(question="When was Python created?")
-```
-
-#### dspy.ProgramOfThought
-Generates and executes code for reasoning:
-
-```python
-pot = dspy.ProgramOfThought("question -> answer")
-result = pot(question="What is 15% of 240?")
-# Generates: answer = 240 * 0.15
-```
+Full usage, plus advanced modules (`TypedPredictor`, `Retry`, `Assert`, `MultiChainComparison`, `majority`), composition patterns (sequential/conditional/parallel), batch processing, and save/load: read `references/modules.md`.
 
 ### 3. Optimizers
 
-Optimizers improve your modules automatically using training data:
+Optimizers improve your modules automatically using training data. Core ones: **BootstrapFewShot** (learns few-shot demos from examples), **MIPRO** (iterative prompt search), **BootstrapFinetune** (exports fine-tuning data), plus COPRO and KNNFewShot.
 
-#### BootstrapFewShot
-Learns from examples:
-
-```python
-from dspy.teleprompt import BootstrapFewShot
-
-# Training data
-trainset = [
-    dspy.Example(question="What is 2+2?", answer="4").with_inputs("question"),
-    dspy.Example(question="What is 3+5?", answer="8").with_inputs("question"),
-]
-
-# Define metric
-def validate_answer(example, pred, trace=None):
-    return example.answer == pred.answer
-
-# Optimize
-optimizer = BootstrapFewShot(metric=validate_answer, max_bootstrapped_demos=3)
-optimized_qa = optimizer.compile(qa, trainset=trainset)
-
-# Now optimized_qa performs better!
-```
-
-#### MIPRO (Most Important Prompt Optimization)
-Iteratively improves prompts:
-
-```python
-from dspy.teleprompt import MIPRO
-
-optimizer = MIPRO(
-    metric=validate_answer,
-    num_candidates=10,
-    init_temperature=1.0
-)
-
-optimized_cot = optimizer.compile(
-    cot,
-    trainset=trainset,
-    num_trials=100
-)
-```
-
-#### BootstrapFinetune
-Creates datasets for model fine-tuning:
-
-```python
-from dspy.teleprompt import BootstrapFinetune
-
-optimizer = BootstrapFinetune(metric=validate_answer)
-optimized_module = optimizer.compile(qa, trainset=trainset)
-
-# Exports training data for fine-tuning
-```
+Full compile() usage per optimizer, writing metrics (binary/continuous/multi-factor), train/val/test workflow, and common pitfalls (overfitting, mismatched metrics, insufficient data): read `references/optimizers.md`.
 
 ### 4. Building Complex Systems
 
-#### Multi-Stage Pipeline
-
-```python
-import dspy
-
-class MultiHopQA(dspy.Module):
-    def __init__(self):
-        super().__init__()
-        self.retrieve = dspy.Retrieve(k=3)
-        self.generate_query = dspy.ChainOfThought("question -> search_query")
-        self.generate_answer = dspy.ChainOfThought("context, question -> answer")
-
-    def forward(self, question):
-        # Stage 1: Generate search query
-        search_query = self.generate_query(question=question).search_query
-
-        # Stage 2: Retrieve context
-        passages = self.retrieve(search_query).passages
-        context = "\n".join(passages)
-
-        # Stage 3: Generate answer
-        answer = self.generate_answer(context=context, question=question).answer
-        return dspy.Prediction(answer=answer, context=context)
-
-# Use the pipeline
-qa_system = MultiHopQA()
-result = qa_system(question="Who wrote the book that inspired the movie Blade Runner?")
-```
-
-#### RAG System with Optimization
-
-```python
-import dspy
-from dspy.retrieve.chromadb_rm import ChromadbRM
-
-# Configure retriever
-retriever = ChromadbRM(
-    collection_name="documents",
-    persist_directory="./chroma_db"
-)
-
-class RAG(dspy.Module):
-    def __init__(self, num_passages=3):
-        super().__init__()
-        self.retrieve = dspy.Retrieve(k=num_passages)
-        self.generate = dspy.ChainOfThought("context, question -> answer")
-
-    def forward(self, question):
-        context = self.retrieve(question).passages
-        return self.generate(context=context, question=question)
-
-# Create and optimize
-rag = RAG()
-
-# Optimize with training data
-from dspy.teleprompt import BootstrapFewShot
-
-optimizer = BootstrapFewShot(metric=validate_answer)
-optimized_rag = optimizer.compile(rag, trainset=trainset)
-```
+Modules compose into multi-stage pipelines by subclassing `dspy.Module` and defining `forward()` — e.g. a multi-hop QA system that generates a search query, retrieves, then answers. Full multi-stage pipeline, RAG-with-optimization, multi-hop RAG, agent systems, and classifier examples: read `references/examples.md`.
 
 ## LM Provider Configuration
 
@@ -311,249 +136,27 @@ lm = dspy.OpenAI(
 dspy.settings.configure(lm=lm)
 ```
 
-### Local Models (Ollama)
+### Local Models & Multiple Models
 
-```python
-lm = dspy.OllamaLocal(
-    model="llama3.1",
-    base_url="http://localhost:11434"
-)
-dspy.settings.configure(lm=lm)
-```
-
-### Multiple Models
-
-```python
-# Different models for different tasks
-cheap_lm = dspy.OpenAI(model="gpt-3.5-turbo")
-strong_lm = dspy.Claude(model="claude-sonnet-4-5-20250929")
-
-# Use cheap model for retrieval, strong model for reasoning
-with dspy.settings.context(lm=cheap_lm):
-    context = retriever(question)
-
-with dspy.settings.context(lm=strong_lm):
-    answer = generator(context=context, question=question)
-```
+`dspy.OllamaLocal(model="llama3.1", base_url="http://localhost:11434")` for local inference. For mixed pipelines, scope a cheaper model to retrieval and a stronger one to reasoning with `with dspy.settings.context(lm=...)`.
 
 ## Common Patterns
 
-### Pattern 1: Structured Output
-
-```python
-from pydantic import BaseModel, Field
-
-class PersonInfo(BaseModel):
-    name: str = Field(description="Full name")
-    age: int = Field(description="Age in years")
-    occupation: str = Field(description="Current job")
-
-class ExtractPerson(dspy.Signature):
-    """Extract person information from text."""
-    text = dspy.InputField()
-    person: PersonInfo = dspy.OutputField()
-
-extractor = dspy.TypedPredictor(ExtractPerson)
-result = extractor(text="John Doe is a 35-year-old software engineer.")
-print(result.person.name)  # "John Doe"
-print(result.person.age)   # 35
-```
-
-### Pattern 2: Assertion-Driven Optimization
-
-```python
-import dspy
-from dspy.primitives.assertions import assert_transform_module, backtrack_handler
-
-class MathQA(dspy.Module):
-    def __init__(self):
-        super().__init__()
-        self.solve = dspy.ChainOfThought("problem -> solution: float")
-
-    def forward(self, problem):
-        solution = self.solve(problem=problem).solution
-
-        # Assert solution is numeric
-        dspy.Assert(
-            isinstance(float(solution), float),
-            "Solution must be a number",
-            backtrack=backtrack_handler
-        )
-
-        return dspy.Prediction(solution=solution)
-```
-
-### Pattern 3: Self-Consistency
-
-```python
-import dspy
-from collections import Counter
-
-class ConsistentQA(dspy.Module):
-    def __init__(self, num_samples=5):
-        super().__init__()
-        self.qa = dspy.ChainOfThought("question -> answer")
-        self.num_samples = num_samples
-
-    def forward(self, question):
-        # Generate multiple answers
-        answers = []
-        for _ in range(self.num_samples):
-            result = self.qa(question=question)
-            answers.append(result.answer)
-
-        # Return most common answer
-        most_common = Counter(answers).most_common(1)[0][0]
-        return dspy.Prediction(answer=most_common)
-```
-
-### Pattern 4: Retrieval with Reranking
-
-```python
-class RerankedRAG(dspy.Module):
-    def __init__(self):
-        super().__init__()
-        self.retrieve = dspy.Retrieve(k=10)
-        self.rerank = dspy.Predict("question, passage -> relevance_score: float")
-        self.answer = dspy.ChainOfThought("context, question -> answer")
-
-    def forward(self, question):
-        # Retrieve candidates
-        passages = self.retrieve(question).passages
-
-        # Rerank passages
-        scored = []
-        for passage in passages:
-            score = float(self.rerank(question=question, passage=passage).relevance_score)
-            scored.append((score, passage))
-
-        # Take top 3
-        top_passages = [p for _, p in sorted(scored, reverse=True)[:3]]
-        context = "\n\n".join(top_passages)
-
-        # Generate answer
-        return self.answer(context=context, question=question)
-```
+Structured output via `dspy.TypedPredictor` + Pydantic models, assertion-driven optimization (`dspy.Assert` + backtracking), self-consistency (sample N times, take majority answer), and retrieval-with-reranking are all common compositions of the modules above. Full code for each: read `references/examples.md` and `references/modules.md` (TypedPredictor/Assert/majority sections).
 
 ## Evaluation and Metrics
 
-### Custom Metrics
+Write a metric function `(example, pred, trace=None) -> bool | float` (exact-match, F1, or custom), then run it with `dspy.evaluate.Evaluate(devset=testset, metric=metric, num_threads=4)` — call the evaluator on both the baseline and optimized module to measure improvement.
 
-```python
-def exact_match(example, pred, trace=None):
-    """Exact match metric."""
-    return example.answer.lower() == pred.answer.lower()
-
-def f1_score(example, pred, trace=None):
-    """F1 score for text overlap."""
-    pred_tokens = set(pred.answer.lower().split())
-    gold_tokens = set(example.answer.lower().split())
-
-    if not pred_tokens:
-        return 0.0
-
-    precision = len(pred_tokens & gold_tokens) / len(pred_tokens)
-    recall = len(pred_tokens & gold_tokens) / len(gold_tokens)
-
-    if precision + recall == 0:
-        return 0.0
-
-    return 2 * (precision * recall) / (precision + recall)
-```
-
-### Evaluation
-
-```python
-from dspy.evaluate import Evaluate
-
-# Create evaluator
-evaluator = Evaluate(
-    devset=testset,
-    metric=exact_match,
-    num_threads=4,
-    display_progress=True
-)
-
-# Evaluate model
-score = evaluator(qa_system)
-print(f"Accuracy: {score}")
-
-# Compare optimized vs unoptimized
-score_before = evaluator(qa)
-score_after = evaluator(optimized_qa)
-print(f"Improvement: {score_after - score_before:.2%}")
-```
+Metric design (binary/continuous/multi-factor), train/val/test splitting, and cross-validation: read `references/optimizers.md` (Writing Metrics, Evaluation Best Practices).
 
 ## Best Practices
 
-### 1. Start Simple, Iterate
-
-```python
-# Start with Predict
-qa = dspy.Predict("question -> answer")
-
-# Add reasoning if needed
-qa = dspy.ChainOfThought("question -> answer")
-
-# Add optimization when you have data
-optimized_qa = optimizer.compile(qa, trainset=data)
-```
-
-### 2. Use Descriptive Signatures
-
-```python
-# ❌ Bad: Vague
-class Task(dspy.Signature):
-    input = dspy.InputField()
-    output = dspy.OutputField()
-
-# ✅ Good: Descriptive
-class SummarizeArticle(dspy.Signature):
-    """Summarize news articles into 3-5 key points."""
-    article = dspy.InputField(desc="full article text")
-    summary = dspy.OutputField(desc="bullet points, 3-5 items")
-```
-
-### 3. Optimize with Representative Data
-
-```python
-# Create diverse training examples
-trainset = [
-    dspy.Example(question="factual", answer="...).with_inputs("question"),
-    dspy.Example(question="reasoning", answer="...").with_inputs("question"),
-    dspy.Example(question="calculation", answer="...").with_inputs("question"),
-]
-
-# Use validation set for metric
-def metric(example, pred, trace=None):
-    return example.answer in pred.answer
-```
-
-### 4. Save and Load Optimized Models
-
-```python
-# Save
-optimized_qa.save("models/qa_v1.json")
-
-# Load
-loaded_qa = dspy.ChainOfThought("question -> answer")
-loaded_qa.load("models/qa_v1.json")
-```
-
-### 5. Monitor and Debug
-
-```python
-# Enable tracing
-dspy.settings.configure(lm=lm, trace=[])
-
-# Run prediction
-result = qa(question="...")
-
-# Inspect trace
-for call in dspy.settings.trace:
-    print(f"Prompt: {call['prompt']}")
-    print(f"Response: {call['response']}")
-```
+1. **Start simple, iterate** — `Predict` → `ChainOfThought` → optimizer, only adding complexity once the simpler stage is validated.
+2. **Use descriptive signatures** — name fields and write docstrings/`desc=` instead of generic `input`/`output`; DSPy's optimizers use these descriptions.
+3. **Optimize with representative, diverse training data** — and hold out a separate validation set for the metric.
+4. **Save/load optimized modules** — `module.save("path.json")` / `module.load("path.json")` so a compile step isn't repeated.
+5. **Enable tracing when debugging** — `dspy.settings.configure(lm=lm, trace=[])`, then inspect `dspy.settings.trace` for the actual prompts/responses sent.
 
 ## Comparison to Other Approaches
 

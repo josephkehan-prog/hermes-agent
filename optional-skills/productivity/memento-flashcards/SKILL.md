@@ -125,200 +125,21 @@ Then call `memento_cards.py add` as above.
 
 ### Reviewing Due Cards
 
-When the user wants to review, fetch all due cards:
-
-```bash
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/memento_cards.py due
-```
-
-This returns a JSON array of cards where `next_review_at <= now`. If a collection filter is needed:
-
-```bash
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/memento_cards.py due --collection "History"
-```
-
-**Review flow (free-text grading):**
-
-Here is an example of the EXACT interaction pattern you must follow. The user answers, you grade them, tell them the correct answer, then rate the card.
-
-**Example interaction:**
-
-> **Agent:** What year did the Berlin Wall fall?
->
-> **User:** 1991
->
-> **Agent:** Not quite. The Berlin Wall fell in 1989. Next review is tomorrow.
-> *(agent calls: memento_cards.py rate --id ABC --rating hard --user-answer "1991")*
->
-> Next question: Who was the first person to walk on the moon?
-
-**The rules:**
-
-1. Show only the question. Wait for the user to answer.
-2. After receiving their answer, compare it to the expected answer and grade it:
-   - **correct** → user got the key fact right (even if worded differently)
-   - **partial** → right track but missing the core detail
-   - **incorrect** → wrong or off-topic
-3. **You MUST tell the user the correct answer and how they did.** Keep it short and plain-text. Use this format:
-   - correct: "Correct. Answer: {answer}. Next review in 7 days."
-   - partial: "Close. Answer: {answer}. {what they missed}. Next review in 3 days."
-   - incorrect: "Not quite. Answer: {answer}. Next review tomorrow."
-4. Then call the rate command: correct→easy, partial→good, incorrect→hard.
-5. Then show the next question.
-
-```bash
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/memento_cards.py rate \
-  --id CARD_ID --rating easy --user-answer "what the user said"
-```
-
-**Never skip step 3.** The user must always see the correct answer and feedback before you move on.
-
-If no cards are due, tell the user: "No cards due for review right now. Check back later!"
-
-**Retire override:** At any point the user can say "retire this card" to permanently remove it from reviews. Use `--rating retire` for this.
-
-### Spaced Repetition Algorithm
-
-The rating determines the next review interval:
-
-| Rating | Interval | ease_streak | Status change |
-|---|---|---|---|
-| **hard** | +1 day | reset to 0 | stays learning |
-| **good** | +3 days | reset to 0 | stays learning |
-| **easy** | +7 days | +1 | if ease_streak >= 3 → retired |
-| **retire** | permanent | reset to 0 | → retired |
-
-- **learning**: card is actively in rotation
-- **retired**: card won't appear in reviews (user has mastered it or manually retired it)
-- Three consecutive "easy" ratings automatically retire a card
+Fetch due cards with `memento_cards.py due` (optionally `--collection NAME`).
+Full free-text grading procedure — the exact interaction pattern, grading
+rubric, feedback wording, and the spaced-repetition interval table — is
+mandatory reading before your first review turn: `references/review-flow.md`.
 
 ### YouTube Quiz Generation
 
-When the user sends a YouTube URL and wants a quiz:
+Fetch the transcript with `youtube_quiz.py fetch VIDEO_ID`, then generate and
+store 5 questions. Full procedure — video-ID extraction, the exact
+quiz-generation prompt, validation, storage, and per-question presentation
+flow — read before running a quiz: `references/youtube-quiz.md`.
 
-**Step 1:** Extract the video ID from the URL (e.g. `dQw4w9WgXcQ` from `https://www.youtube.com/watch?v=dQw4w9WgXcQ`).
+### Export/Import CSV & Statistics
 
-**Step 2:** Fetch the transcript:
-
-```bash
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/youtube_quiz.py fetch VIDEO_ID
-```
-
-This returns `{"title": "...", "transcript": "..."}` or an error.
-
-If the script reports `missing_dependency`, tell the user to install it:
-```bash
-pip install youtube-transcript-api
-```
-
-**Step 3:** Generate 5 quiz questions from the transcript. Use these rules:
-
-```
-You are creating a 5-question quiz for a podcast episode.
-Return ONLY a JSON array with exactly 5 objects.
-Each object must contain keys 'question' and 'answer'.
-
-Selection criteria:
-- Prioritize important, surprising, or foundational facts.
-- Skip filler, obvious details, and facts that require heavy context.
-- Never return true/false questions.
-- Never ask only for a date.
-
-Question rules:
-- Each question must test exactly one discrete fact.
-- Use clear, unambiguous wording.
-- Prefer What, Who, How many, Which.
-- Avoid open-ended Describe or Explain prompts.
-
-Answer rules:
-- Each answer must be under 240 characters.
-- Lead with the answer itself, not preamble.
-- Add only minimal clarifying detail if needed.
-```
-
-Use the first 15,000 characters of the transcript as context. Generate the questions yourself (you are the LLM).
-
-**Step 4:** Validate the output is valid JSON with exactly 5 items, each having non-empty `question` and `answer` strings. If validation fails, retry once.
-
-**Step 5:** Store quiz cards:
-
-```bash
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/memento_cards.py add-quiz \
-  --video-id "VIDEO_ID" \
-  --questions '[{"question":"...","answer":"..."},...]' \
-  --collection "Quiz - Episode Title"
-```
-
-The script deduplicates by `video_id` — if cards for that video already exist, it skips creation and reports the existing cards.
-
-**Step 6:** Present questions one-by-one using the same free-text grading flow:
-1. Show "Question 1/5: ..." and wait for the user's answer. Never include the answer or any hint about revealing it.
-2. Wait for the user to answer in their own words
-3. Grade their answer using the grading prompt (see "Reviewing Due Cards" section)
-4. **IMPORTANT: You MUST reply to the user with feedback before doing anything else.** Show the grade, the correct answer, and when the card is next due. Do NOT silently skip to the next question. Keep it short and plain-text. Example: "Not quite. Answer: {answer}. Next review tomorrow."
-5. **After showing feedback**, call the rate command and then show the next question in the same message:
-```bash
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/memento_cards.py rate \
-  --id CARD_ID --rating easy --user-answer "what the user said"
-```
-6. Repeat. Every answer MUST receive visible feedback before the next question.
-
-### Export/Import CSV
-
-**Export:**
-```bash
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/memento_cards.py export \
-  --output ~/flashcards.csv
-```
-
-Produces a 3-column CSV: `question,answer,collection` (no header row).
-
-**Import:**
-```bash
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/memento_cards.py import \
-  --file ~/flashcards.csv \
-  --collection "Imported"
-```
-
-Reads a CSV with columns: question, answer, and optionally collection (column 3). If the collection column is missing, uses the `--collection` argument.
-
-### Statistics
-
-```bash
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/memento_cards.py stats
-```
-
-Returns JSON with:
-- `total`: total card count
-- `learning`: cards in active rotation
-- `retired`: mastered cards
-- `due_now`: cards due for review right now
-- `collections`: breakdown by collection name
-
-## Pitfalls
-
-- **Never edit `cards.json` directly** — always use the script subcommands to avoid corruption
-- **Transcript failures** — some YouTube videos have no English transcript or have transcripts disabled; inform the user and suggest another video
-- **Optional dependency** — `youtube_quiz.py` needs `youtube-transcript-api`; if missing, tell the user to run `pip install youtube-transcript-api`
-- **Large imports** — CSV imports with thousands of rows work fine but the JSON output may be verbose; summarize the result for the user
-- **Video ID extraction** — support both `youtube.com/watch?v=ID` and `youtu.be/ID` URL formats
-
-## Verification
-
-Verify the helper scripts directly:
-
-```bash
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/memento_cards.py stats
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/memento_cards.py add --question "Capital of France?" --answer "Paris" --collection "General"
-python3 ~/.hermes/skills/productivity/memento-flashcards/scripts/memento_cards.py due
-```
-
-If you are testing from the repo checkout, run:
-
-```bash
-pytest tests/skills/test_memento_cards.py tests/skills/test_youtube_quiz.py -q
-```
-
-Agent-level verification:
-- Start a review and confirm feedback is plain text, brief, and always includes the correct answer before the next card
-- Run a YouTube quiz flow and confirm each answer receives visible feedback before the next question
+`memento_cards.py export --output PATH`, `import --file PATH --collection NAME`,
+and `stats` cover data management. Full column formats, JSON stats shape,
+known pitfalls (transcript failures, missing deps, video-ID formats), and
+verification commands: `references/data-management.md`.

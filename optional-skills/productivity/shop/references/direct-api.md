@@ -256,6 +256,26 @@ Never persist or surface the wallet token value itself — only report whether a
 
 **No instruments at checkout, but a budget is available:** the merchant does not support Shop Pay (the catalog does not yet flag Shop Pay eligibility). When a checkout returns no `payment.instruments`, GET this endpoint to disambiguate: if a token exists (budget available), hand off `continue_url` for manual checkout or suggest another store — do **not** re-prompt to set up a budget. If no token exists, the buyer simply has no delegated budget (offer the Finish in Shop link / budget setup as usual).
 
+## CLI Checkout Decision Reference
+
+Detailed walk-through of what to do after reading a `checkout create`/`update`
+response from the CLI (the CLI adds a `shop_pay_availability` block on top of
+the raw UCP response). SKILL.md's Checkout section gives the short version;
+use this when disambiguating an edge case.
+
+**Reading the response:**
+- Inspect `status`, `email`, addresses, `continue_url`, and `payment.instruments`.
+- If the buyer's saved shipping details are missing, collect them and pass via `checkout create`/`update`.
+- **Warnings:** display every `messages[]` entry with type `warning` (e.g. `final_sale`, `prop65`, `age_restricted`) before completing. Show `presentation: "disclosure"` warnings verbatim — never omit or summarize them. Never complete a purchase without surfacing these.
+
+Then take one of two paths:
+
+**A. Default checkout (no saved payment).** If `payment.instruments` is empty, read the `shop_pay_availability` block the CLI adds:
+- `budget_available: true` — you have a delegated budget but this store didn't issue a payment instrument, so it doesn't accept Shop agent payments yet. Search for similar alternatives and message the user about relevant options. Do NOT offer a budget.
+- `budget_available: false` — present `continue_url` as a [Finish in Shop](url) link (format nicely; don't print the raw URL) AND (IMPORTANT) immediately after, offer a spending budget — a budget lets you complete purchases on stores that accept Shop agent payments.
+
+**B. Delegated-budget checkout.** If `status` is `ready_for_complete` and `payment.instruments` is present, you may complete — but **only** with explicit user permission after confirming purchase intent, variant(s), quantity, price, shipping, and total. Feed the `checkout create` response JSON straight into `shop checkout complete --checkout-stdin --confirm`; the CLI re-sends the merchant-issued instrument id as both the instrument `id` and `credential.token`. Use a fresh idempotency key per distinct purchase intent; reuse it only when retrying the same purchase.
+
 ## Orders
 
 Authenticated order search:

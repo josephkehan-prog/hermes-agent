@@ -135,3 +135,32 @@ The headless browser needs namespace permissions for sandboxing.
 ## Bug reports
 
 Include `npx hyperframes info` output + the full error log. File at [github.com/heygen-com/hyperframes](https://github.com/heygen-com/hyperframes/issues).
+
+## Composition pitfalls (full detail)
+
+- **`repeat: -1` anywhere** breaks the capture engine. Always compute a finite repeat count: `repeat: Math.ceil(duration / cycleDuration) - 1`.
+- **`gsap.set()` on clip elements that enter later** — the element doesn't exist at page load. Use `tl.set(selector, vars, timePosition)` inside the timeline instead, at or after the clip's `data-start`.
+- **`<br>` inside content text** — forced breaks don't know the rendered font width, so natural wrap + `<br>` double-breaks. Use `max-width` to let text wrap. Exception: short display titles where each word is deliberately on its own line.
+- **Animating `visibility` or `display`** — GSAP can't tween these. Use `autoAlpha` (handles both visibility and opacity).
+- **Calling `video.play()` or `audio.play()`** — the framework owns playback. Never call these yourself.
+- **Building timelines async** — the capture engine reads `window.__timelines` synchronously after page load. Never wrap timeline construction in `async`, `setTimeout`, or a Promise.
+- **Standalone `index.html` wrapped in `<template>`** — hides all content from the browser. Only **sub-compositions** loaded via `data-composition-src` use `<template>`.
+- **Using video for audio** — always muted `<video>` + separate `<audio>`.
+
+## Verification checklist (full detail)
+
+Before and after rendering:
+
+1. **Lint + validate + inspect pass:** `npx hyperframes lint --strict && npx hyperframes validate && npx hyperframes inspect` (lint catches structural issues, validate catches contrast, inspect catches visual layout / overflow issues).
+2. **Animation choreography** — for new compositions or significant animation changes, run the animation map (copied project-local by `npx hyperframes init`):
+   ```bash
+   node skills/hyperframes/scripts/animation-map.mjs <composition-dir> \
+     --out <composition-dir>/.hyperframes/anim-map
+   ```
+   Outputs a single `animation-map.json` with per-tween summaries, ASCII Gantt timeline, stagger detection, dead zones (>1s with no animation), element lifecycles, and flags (`offscreen`, `collision`, `invisible`, `paced-fast` <0.2s, `paced-slow` >2s). Scan summaries and flags — fix or justify each. Skip on small edits.
+3. **File exists + non-zero:** `ls -lh final.mp4`.
+4. **Duration matches `data-duration`:** `ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 final.mp4`.
+5. **Visual check:** extract a mid-composition frame: `ffmpeg -i final.mp4 -ss 00:00:05 -vframes 1 preview.png`.
+6. **Audio present if expected:** `ffprobe -v error -show_streams -select_streams a -of default=nw=1:nk=1 final.mp4 | head -1`.
+
+If `hyperframes render` fails, run `npx hyperframes doctor` and attach its output when reporting.

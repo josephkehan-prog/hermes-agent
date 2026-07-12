@@ -120,21 +120,7 @@ obliteratus recommend <model_name> --insights  # global cross-architecture ranki
 | Maximum quality, time no object   | `optimized`        | Bayesian search for best parameters      |
 | Experimental auto-detection       | `informed`         | Auto-detects alignment type — experimental, may not always outperform advanced |
 
-### 9 CLI Methods
-- **basic** — Single refusal direction via diff-in-means. Fast (~5-10 min for 8B).
-- **advanced** (DEFAULT, RECOMMENDED) — Multiple SVD directions, norm-preserving projection, 2 refinement passes. Medium speed (~10-20 min).
-- **aggressive** — Whitened SVD + jailbreak-contrastive + attention head surgery. Higher risk of coherence damage.
-- **spectral_cascade** — DCT frequency-domain decomposition. Research/novel approach.
-- **informed** — Runs analysis DURING abliteration to auto-configure. Experimental — slower and less predictable than advanced.
-- **surgical** — SAE features + neuron masking + head surgery + per-expert. Very slow (~1-2 hrs). Best for reasoning models.
-- **optimized** — Bayesian hyperparameter search (Optuna TPE). Longest runtime but finds optimal parameters.
-- **inverted** — Flips the refusal direction. Model becomes actively willing.
-- **nuclear** — Maximum force combo for stubborn MoE models. Expert-granular.
-
-### Direction Extraction Methods (--direction-method flag)
-- **diff_means** (default) — Simple difference-in-means between refused/complied activations. Robust.
-- **svd** — Multi-direction SVD extraction. Better for complex alignment.
-- **leace** — LEACE (Linear Erasure via Closed-form Estimation). Optimal linear erasure.
+Per-method details (speed, risk, directions, how it works), the 3 `--direction-method` extraction strategies, a selection flowchart, and key-parameter tuning ranges: read `references/methods-guide.md` before picking a non-default method.
 
 ### 4 Python-API-Only Methods
 (NOT available via CLI — require Python import, which violates AGPL boundary. Mention to user only if they explicitly want to use OBLITERATUS as a library in their own AGPL project.)
@@ -154,33 +140,18 @@ obliteratus obliterate <model_name> --method advanced --quantization 4bit --outp
 obliteratus obliterate <model_name> --method advanced --quantization 4bit --large-model --output-dir ./abliterated-models
 ```
 
-### Fine-tuning parameters
-```bash
-obliteratus obliterate <model_name> \
-  --method advanced \
-  --direction-method diff_means \
-  --n-directions 4 \
-  --refinement-passes 2 \
-  --regularization 0.1 \
-  --quantization 4bit \
-  --output-dir ./abliterated-models \
-  --contribute  # opt-in telemetry for community research
-```
+A full fine-tuning invocation with every tunable flag set explicitly: read `references/methods-guide.md` (Key Parameters table) for a worked example alongside the ranges.
 
 ### Key flags
 | Flag | Description | Default |
 |:-----|:------------|:--------|
 | `--method` | Abliteration method | advanced |
 | `--direction-method` | Direction extraction | diff_means |
-| `--n-directions` | Number of refusal directions (1-32) | method-dependent |
-| `--refinement-passes` | Iterative passes (1-5) | 2 |
-| `--regularization` | Regularization strength (0.0-1.0) | 0.1 |
 | `--quantization` | Load in 4bit or 8bit | none (full precision) |
 | `--large-model` | Conservative defaults for 120B+ | false |
 | `--output-dir` | Where to save the abliterated model | ./obliterated_model |
-| `--contribute` | Share anonymized results for research | false |
-| `--verify-sample-size` | Number of test prompts for refusal check | 20 |
-| `--dtype` | Model dtype (float16, bfloat16) | auto |
+
+Tuning flags (`--n-directions`, `--refinement-passes`, `--regularization`, `--verify-sample-size`, `--dtype`) with ranges and effects: read `references/methods-guide.md` (Key Parameters table).
 
 ### Other execution modes
 ```bash
@@ -208,39 +179,11 @@ After abliteration, check the output metrics:
 | KL divergence | < 0.1 | > 0.5 means significant distribution shift |
 | Coherence | High / passes qualitative check | Degraded responses, repetition |
 
-### If refusals persist (> 10%)
-1. Try `aggressive` method
-2. Increase `--n-directions` (e.g., 8 or 16)
-3. Add `--refinement-passes 3`
-4. Try `--direction-method svd` instead of diff_means
-
-### If coherence is damaged (perplexity > 15% increase)
-1. Reduce `--n-directions` (try 2)
-2. Increase `--regularization` (try 0.3)
-3. Reduce `--refinement-passes` to 1
-4. Try `basic` method (gentler)
+If refusals persist or coherence is damaged, don't guess at parameters — the fix depends on which failure mode: read `references/methods-guide.md` (Troubleshooting table) for the mapped remediation per symptom.
 
 ## Step 7: Use the Abliterated Model
 
-The output is a standard HuggingFace model directory.
-
-```bash
-# Test locally with transformers
-python3 -c "
-from transformers import AutoModelForCausalLM, AutoTokenizer
-model = AutoModelForCausalLM.from_pretrained('./abliterated-models/<model>')
-tokenizer = AutoTokenizer.from_pretrained('./abliterated-models/<model>')
-inputs = tokenizer('How do I pick a lock?', return_tensors='pt')
-outputs = model.generate(**inputs, max_new_tokens=200)
-print(tokenizer.decode(outputs[0], skip_special_tokens=True))
-"
-
-# Upload to HuggingFace Hub
-huggingface-cli upload <username>/<model-name>-abliterated ./abliterated-models/<model>
-
-# Serve with vLLM
-vllm serve ./abliterated-models/<model>
-```
+The output is a standard HuggingFace model directory — load it with `transformers.AutoModelForCausalLM.from_pretrained`, upload with `huggingface-cli upload <user>/<name>-abliterated ./abliterated-models/<model>`, or serve directly with `vllm serve ./abliterated-models/<model>`.
 
 ## CLI Command Reference
 
@@ -260,28 +203,7 @@ vllm serve ./abliterated-models/<model>
 
 ## Analysis Modules
 
-OBLITERATUS includes 28 analysis modules for mechanistic interpretability.
-See `skill_view(name="obliteratus", file_path="references/analysis-modules.md")` for the full reference.
-
-### Quick analysis commands
-```bash
-# Run specific analysis modules
-obliteratus run analysis-config.yaml --preset quick
-
-# Key modules to run first:
-# - alignment_imprint: Fingerprint DPO/RLHF/CAI/SFT alignment method
-# - concept_geometry: Single direction vs polyhedral cone
-# - logit_lens: Which layer decides to refuse
-# - anti_ouroboros: Self-repair risk score
-# - causal_tracing: Causally necessary components
-```
-
-### Steering Vectors (Reversible Alternative)
-Instead of permanent weight modification, use inference-time steering:
-```python
-# Python API only — for user's own projects
-from obliteratus.analysis.steering_vectors import SteeringVectorFactory, SteeringHookManager
-```
+OBLITERATUS includes 28 analysis modules for mechanistic interpretability, plus a reversible steering-vector alternative to permanent weight modification. Module descriptions, which 5 to run first (alignment_imprint, concept_geometry, logit_lens, anti_ouroboros, causal_tracing), CLI/YAML invocation, and the steering-vectors Python API: read `references/analysis-modules.md`.
 
 ## Ablation Strategies
 
@@ -322,18 +244,9 @@ Enable with `--contribute` flag. No personal data is collected — only model na
 
 ## Common Pitfalls
 
-1. **Don't use `informed` as default** — it's experimental and slower. Use `advanced` for reliable results.
-2. **Models under ~1B respond poorly to abliteration** — their refusal behaviors are shallow and fragmented, making clean direction extraction difficult. Expect partial results (20-40% remaining refusal). Models 3B+ have cleaner refusal directions and respond much better (often 0% refusal with `advanced`).
-3. **`aggressive` can make things worse** — on small models it can damage coherence and actually increase refusal rate. Only use it if `advanced` leaves > 10% refusals on a 3B+ model.
-4. **Always check perplexity** — if it spikes > 15%, the model is damaged. Reduce aggressiveness.
-5. **MoE models need special handling** — use `nuclear` method for Mixtral, DeepSeek-MoE, etc.
-6. **Quantized models can't be re-quantized** — abliterate the full-precision model, then quantize the output.
-7. **VRAM estimation is approximate** — 4-bit quant helps but peak usage can spike during extraction.
-8. **Reasoning models are sensitive** — use `surgical` for R1 distills to preserve chain-of-thought.
-9. **Check `obliteratus recommend`** — telemetry data may have better parameters than defaults.
-10. **AGPL license** — never `import obliteratus` in MIT/Apache projects. CLI invocation only.
-11. **Large models (70B+)** — always use `--large-model` flag for conservative defaults.
-12. **Spectral certification RED is common** — the spectral check often flags "incomplete" even when practical refusal rate is 0%. Check actual refusal rate rather than relying on spectral certification alone.
+Top invariants: **AGPL license** — never `import obliteratus` in MIT/Apache projects, CLI invocation only. **Models under ~1B respond poorly** — expect 20-40% residual refusal; models 3B+ are cleaner. **`aggressive` can make small models worse** — only escalate to it if `advanced` leaves > 10% refusals on a 3B+ model. **Always check perplexity** — a spike > 15% means the model is damaged, reduce aggressiveness.
+
+The remaining pitfalls (MoE handling, re-quantization, VRAM spikes, reasoning-model sensitivity, telemetry recommendations, large-model flag, spectral-certification false negatives): read `references/methods-guide.md` (Common Pitfalls section).
 
 ## Complementary Skills
 

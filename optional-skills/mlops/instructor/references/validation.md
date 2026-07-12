@@ -600,6 +600,49 @@ class Stage2(BaseModel):
 # Use Stage2 for final validation
 ```
 
+## General Best Practices
+
+### Clear Field Descriptions
+
+```python
+# Bad: Vague
+class Product(BaseModel):
+    name: str
+    price: float
+
+# Good: Descriptive
+class Product(BaseModel):
+    name: str = Field(description="Product name from the text")
+    price: float = Field(description="Price in USD, without currency symbol")
+```
+
+### Provide Examples in Prompts
+
+```python
+messages = [{
+    "role": "user",
+    "content": """Extract person info from: "John, 30, engineer"
+
+Example format:
+{
+  "name": "John Doe",
+  "age": 30,
+  "occupation": "engineer"
+}"""
+}]
+```
+
+### Handle Missing Data Gracefully
+
+```python
+class PartialData(BaseModel):
+    required_field: str
+    optional_field: Optional[str] = None
+    default_field: str = "default_value"
+
+# LLM only needs to provide required_field
+```
+
 ## Resources
 
 - **Pydantic Docs**: https://docs.pydantic.dev/latest/concepts/validators/

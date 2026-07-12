@@ -142,249 +142,25 @@ qmd status   # shows index health, collection stats, model info
 
 ## Search Patterns
 
-### Fast Keyword Search (BM25)
+Three basic modes: `qmd search "..."` (BM25 keyword, instant, no models),
+`qmd vsearch "..."` (semantic vector, ~3s), `qmd query "..."` (hybrid +
+reranking, best quality). Scope any of them with `--collection NAME`.
 
-Best for: exact terms, code identifiers, names, known phrases.
-No models loaded — near-instant results.
-
-```bash
-qmd search "authentication middleware"
-qmd search "handleError async"
-```
-
-### Semantic Vector Search
-
-Best for: natural language questions, conceptual queries.
-Loads embedding model (~3s first query).
-
-```bash
-qmd vsearch "how does the rate limiter handle burst traffic"
-qmd vsearch "ideas for improving onboarding flow"
-```
-
-### Hybrid Search with Reranking (Best Quality)
-
-Best for: important queries where quality matters most.
-Uses all 3 models — query expansion, parallel BM25+vector, reranking.
-
-```bash
-qmd query "what decisions were made about the database migration"
-```
-
-### Structured Multi-Mode Queries
-
-Combine different search types in a single query for precision:
-
-```bash
-# BM25 for exact term + vector for concept
-qmd query $'lex: rate limiter\nvec: how does throttling work under load'
-
-# With query expansion
-qmd query $'expand: database migration plan\nlex: "schema change"'
-```
-
-### Query Syntax (lex/BM25 mode)
-
-| Syntax | Effect | Example |
-|--------|--------|---------|
-| `term` | Prefix match | `perf` matches "performance" |
-| `"phrase"` | Exact phrase | `"rate limiter"` |
-| `-term` | Exclude term | `performance -sports` |
-
-### HyDE (Hypothetical Document Embeddings)
-
-For complex topics, write what you expect the answer to look like:
-
-```bash
-qmd query $'hyde: The migration plan involves three phases. First, we add the new columns without dropping the old ones. Then we backfill data. Finally we cut over and remove legacy columns.'
-```
-
-### Scoping to Collections
-
-```bash
-qmd search "query" --collection notes
-qmd query "query" --collection project-docs
-```
-
-### Output Formats
-
-```bash
-qmd search "query" --json        # JSON output (best for parsing)
-qmd search "query" --limit 5     # Limit results
-qmd get "#abc123"                # Get by document ID
-qmd get "path/to/file.md"       # Get by file path
-qmd get "file.md:50" -l 100     # Get specific line range
-qmd multi-get "journals/*.md" --json  # Batch retrieve by glob
-```
+Detailed query syntax (lex/BM25 operators, structured multi-mode queries,
+HyDE, output formats, CLI-without-MCP usage) and how the ranking pipeline
+works internally (query expansion → RRF fusion → LLM reranking →
+position-aware blending): read `references/search-patterns.md` before
+tuning a query that isn't returning good results.
 
 ## MCP Integration (Recommended)
 
-qmd exposes an MCP server that provides search tools directly to
-Hermes Agent via the native MCP client. This is the preferred
-integration — once configured, the agent gets qmd tools automatically
-without needing to load this skill.
-
-### Option A: Stdio Mode (Simple)
-
-Add to `~/.hermes/config.yaml`:
-
-```yaml
-mcp_servers:
-  qmd:
-    command: "qmd"
-    args: ["mcp"]
-    timeout: 30
-    connect_timeout: 45
-```
-
-This registers tools: `mcp_qmd_search`, `mcp_qmd_vsearch`,
-`mcp_qmd_deep_search`, `mcp_qmd_get`, `mcp_qmd_status`.
-
-**Tradeoff:** Models load on first search call (~19s cold start),
-then stay warm for the session. Acceptable for occasional use.
-
-### Option B: HTTP Daemon Mode (Fast, Recommended for Heavy Use)
-
-Start the qmd daemon separately — it keeps models warm in memory:
-
-```bash
-# Start daemon (persists across agent restarts)
-qmd mcp --http --daemon
-
-# Runs on http://localhost:8181 by default
-```
-
-Then configure Hermes Agent to connect via HTTP:
-
-```yaml
-mcp_servers:
-  qmd:
-    url: "http://localhost:8181/mcp"
-    timeout: 30
-```
-
-**Tradeoff:** Uses ~2GB RAM while running, but every query is fast
-(~2-3s). Best for users who search frequently.
-
-### Keeping the Daemon Running
-
-#### macOS (launchd)
-
-```bash
-cat > ~/Library/LaunchAgents/com.qmd.daemon.plist << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>com.qmd.daemon</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>qmd</string>
-    <string>mcp</string>
-    <string>--http</string>
-    <string>--daemon</string>
-  </array>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>KeepAlive</key>
-  <true/>
-  <key>StandardOutPath</key>
-  <string>/tmp/qmd-daemon.log</string>
-  <key>StandardErrorPath</key>
-  <string>/tmp/qmd-daemon.log</string>
-</dict>
-</plist>
-EOF
-
-launchctl load ~/Library/LaunchAgents/com.qmd.daemon.plist
-```
-
-#### Linux (systemd user service)
-
-```bash
-mkdir -p ~/.config/systemd/user
-
-cat > ~/.config/systemd/user/qmd-daemon.service << 'EOF'
-[Unit]
-Description=QMD MCP Daemon
-After=network.target
-
-[Service]
-ExecStart=qmd mcp --http --daemon
-Restart=on-failure
-RestartSec=10
-Environment=PATH=/usr/local/bin:/usr/bin:/bin
-
-[Install]
-WantedBy=default.target
-EOF
-
-systemctl --user daemon-reload
-systemctl --user enable --now qmd-daemon
-systemctl --user status qmd-daemon
-```
-
-### MCP Tools Reference
-
-Once connected, these tools are available as `mcp_qmd_*`:
-
-| MCP Tool | Maps To | Description |
-|----------|---------|-------------|
-| `mcp_qmd_search` | `qmd search` | BM25 keyword search |
-| `mcp_qmd_vsearch` | `qmd vsearch` | Semantic vector search |
-| `mcp_qmd_deep_search` | `qmd query` | Hybrid search + reranking |
-| `mcp_qmd_get` | `qmd get` | Retrieve document by ID or path |
-| `mcp_qmd_status` | `qmd status` | Index health and stats |
-
-The MCP tools accept structured JSON queries for multi-mode search:
-
-```json
-{
-  "searches": [
-    {"type": "lex", "query": "authentication middleware"},
-    {"type": "vec", "query": "how user login is verified"}
-  ],
-  "collections": ["project-docs"],
-  "limit": 10
-}
-```
-
-## CLI Usage (Without MCP)
-
-When MCP is not configured, use qmd directly via terminal:
-
-```
-terminal(command="qmd query 'what was decided about the API redesign' --json", timeout=30)
-```
-
-For setup and management tasks, always use terminal:
-
-```
-terminal(command="qmd collection add ~/Documents/notes --name notes")
-terminal(command="qmd context add qmd://notes 'Personal research notes and ideas'")
-terminal(command="qmd embed")
-terminal(command="qmd status")
-```
-
-## How the Search Pipeline Works
-
-Understanding the internals helps choose the right search mode:
-
-1. **Query Expansion** — A fine-tuned 1.7B model generates 2 alternative
-   queries. The original gets 2x weight in fusion.
-2. **Parallel Retrieval** — BM25 (SQLite FTS5) and vector search run
-   simultaneously across all query variants.
-3. **RRF Fusion** — Reciprocal Rank Fusion (k=60) merges results.
-   Top-rank bonus: #1 gets +0.05, #2-3 get +0.02.
-4. **LLM Reranking** — qwen3-reranker scores top 30 candidates (0.0-1.0).
-5. **Position-Aware Blending** — Ranks 1-3: 75% retrieval / 25% reranker.
-   Ranks 4-10: 60/40. Ranks 11+: 40/60 (trusts reranker more for long tail).
-
-**Smart Chunking:** Documents are split at natural break points (headings,
-code blocks, blank lines) targeting ~900 tokens with 15% overlap. Code
-blocks are never split mid-block.
+qmd exposes an MCP server (`mcp_qmd_search`, `mcp_qmd_vsearch`,
+`mcp_qmd_deep_search`, `mcp_qmd_get`, `mcp_qmd_status`) so the agent gets
+native tools without loading this skill each time — the preferred setup over
+calling the CLI via `terminal`. Full stdio-vs-HTTP-daemon config, launchd/
+systemd daemon persistence, and the structured JSON query shape: read
+`references/mcp-setup.md` before configuring `mcp_servers` in
+`~/.hermes/config.yaml`.
 
 ## Best Practices
 
@@ -403,39 +179,10 @@ blocks are never split mid-block.
 7. **First query in structured search gets 2x weight** — put the most
    important/certain query first when combining lex and vec.
 
-## Troubleshooting
+## Troubleshooting & Data Storage
 
-### "Models downloading on first run"
-Normal — qmd auto-downloads ~2GB of GGUF models on first use.
-This is a one-time operation.
-
-### Cold start latency (~19s)
-This happens when models aren't loaded in memory. Solutions:
-- Use HTTP daemon mode (`qmd mcp --http --daemon`) to keep warm
-- Use `qmd search` (BM25 only) when models aren't needed
-- MCP stdio mode loads models on first search, stays warm for session
-
-### macOS: "unable to load extension"
-Install Homebrew SQLite: `brew install sqlite`
-Then ensure it's on PATH before system SQLite.
-
-### "No collections found"
-Run `qmd collection add <path> --name <name>` to add directories,
-then `qmd embed` to index them.
-
-### Embedding model override (CJK/multilingual)
-Set `QMD_EMBED_MODEL` environment variable for non-English content:
-```bash
-export QMD_EMBED_MODEL="your-multilingual-model"
-```
-
-## Data Storage
-
-- **Index & vectors:** `~/.cache/qmd/index.sqlite`
-- **Models:** Auto-downloaded to local cache on first run
-- **No cloud dependencies** — everything runs locally
-
-## References
-
-- [GitHub: tobi/qmd](https://github.com/tobi/qmd)
-- [QMD Changelog](https://github.com/tobi/qmd/blob/main/CHANGELOG.md)
+Index/vectors live at `~/.cache/qmd/index.sqlite`; everything runs locally,
+no cloud dependencies. Fixes for cold-start latency, "unable to load
+extension" on macOS, "No collections found", and multilingual embedding
+overrides: read `references/troubleshooting.md` when a qmd command fails or
+behaves unexpectedly. It also links the upstream GitHub repo and changelog.

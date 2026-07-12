@@ -53,91 +53,7 @@ For arXiv-specific search (papers, Semantic Scholar citations, BibTeX), use the
 
 ## Query Cookbook
 
-### OpenAlex — works and authors
-
-```bash
-curl -s "https://api.openalex.org/works?search=CRISPR%20gene%20editing&per-page=5&mailto=you@example.com" | python3 -m json.tool
-curl -s "https://api.openalex.org/authors?search=Jennifer%20Doudna&mailto=you@example.com" | python3 -m json.tool
-```
-
-### Crossref — works by keyword or DOI
-
-```bash
-curl -s "https://api.crossref.org/works?query=CRISPR&rows=5&mailto=you@example.com" | python3 -m json.tool
-curl -s "https://api.crossref.org/works/10.1126/science.1231143" | python3 -m json.tool
-```
-
-### PubMed E-utilities (keyless tier)
-
-```bash
-# Search -> list of PMIDs
-curl -s "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=CRISPR+AND+2024[pdat]&retmode=json&retmax=10"
-
-# Fetch summaries for PMIDs
-curl -s "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=38000000,38000001&retmode=json"
-```
-
-### Wikidata SPARQL
-
-```bash
-curl -s -H "Accept: application/sparql-results+json" \
-  --data-urlencode 'query=SELECT ?item ?itemLabel WHERE {
-    ?item wdt:P31 wd:Q5 .
-    ?item wdt:P106 wd:Q901 .
-    SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
-  } LIMIT 10' \
-  "https://query.wikidata.org/sparql"
-```
-
-### SEC EDGAR full-text search + company facts
-
-```bash
-# Full-text search across filings (User-Agent is mandatory, see Pitfalls)
-curl -s -H "User-Agent: research-agent you@example.com" \
-  "https://efts.sec.gov/LATEST/search-index?q=%22Apple+Inc%22&forms=10-K"
-
-# Company facts (XBRL) by CIK, zero-padded to 10 digits
-curl -s -H "User-Agent: research-agent you@example.com" \
-  "https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json" | python3 -m json.tool
-```
-
-### archive.org advancedsearch + Wayback CDX
-
-```bash
-# Search archive.org's item catalog
-curl -s "https://archive.org/advancedsearch.php?q=title%3A%28CRISPR%29&fl%5B%5D=identifier&fl%5B%5D=title&output=json&rows=5"
-
-# List every archived snapshot of a URL
-curl -s "https://web.archive.org/cdx/search/cdx?url=example.com&output=json&limit=10"
-
-# Fetch a specific snapshot
-curl -s "http://web.archive.org/web/20020120142510/http://example.com/"
-```
-
-### OpenLibrary
-
-```bash
-curl -s "https://openlibrary.org/search.json?q=the+selfish+gene&limit=5" | python3 -m json.tool
-curl -s "https://openlibrary.org/isbn/9780198788607.json" | python3 -m json.tool
-```
-
-### WHOIS / DNS
-
-```bash
-whois example.com
-dig +short example.com A
-dig +short example.com MX
-dig +short -x 93.184.216.34   # reverse lookup
-```
-
-### data.gov / EU Open Data Portal
-
-```bash
-# data.gov's CKAN API now lives under api.gsa.gov and requires api_key=
-# (the shared public DEMO_KEY works with no registration, rate-limited)
-curl -s "https://api.gsa.gov/technology/datagov/v3/action/package_search?q=climate&rows=5&api_key=DEMO_KEY" | python3 -m json.tool
-curl -s "https://data.europa.eu/api/hub/search/search?q=climate&limit=5" | python3 -m json.tool
-```
+Every source in the catalog above has a ready-to-run `curl` example (OpenAlex, Crossref, PubMed E-utilities, Wikidata SPARQL, SEC EDGAR full-text + company facts, archive.org/Wayback CDX, OpenLibrary, WHOIS/DNS, data.gov/EU Open Data Portal). Copy-paste commands for each: read `references/query-cookbook.md` before hand-writing a query against any of these APIs.
 
 ## Helper Script
 
@@ -195,59 +111,7 @@ stdlib `sqlite3` when it's absent — never install it silently.
 
 ## Model Wiring
 
-For research workflows that need to normalize or synthesize across these
-sources, two local endpoints are wired (see the `scrapling` skill for the
-full pattern; summarized here for this skill's use case):
-
-| Task | Model | Endpoint | Why |
-|------|-------|----------|-----|
-| Deterministic field extraction/normalization (e.g. "pull DOI/title/year as JSON from this record") | **agent1** | Ollama `http://localhost:11434/api/chat`, `"options": {"temperature": 0}` | Temperature 0 for repeatable structured output |
-| Cross-source synthesis (e.g. "reconcile what OpenAlex, Crossref, and Wikidata say about this entity") | **ornith** | llama-swap `http://localhost:1235/v1/chat/completions`, `"chat_template_kwargs": {"enable_thinking": false}` | Reasoning model with thinking disabled for fast, terse synthesis |
-
-```python
-import json
-import urllib.request
-
-# agent1: deterministic normalization, temperature 0
-payload = {
-    "model": "hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest",
-    "messages": [
-        {"role": "system", "content": "Extract structured data as JSON only. No prose, no markdown fences."},
-        {"role": "user", "content": f"Normalize this record to {{doi, title, year, source}}.\n\n{record_text}"},
-    ],
-    "options": {"temperature": 0},
-    "stream": False,
-}
-req = urllib.request.Request(
-    "http://localhost:11434/api/chat",
-    data=json.dumps(payload).encode(),
-    headers={"Content-Type": "application/json"},
-)
-result = json.loads(urllib.request.urlopen(req, timeout=120).read())["message"]["content"]
-```
-
-```python
-# ornith: cross-source synthesis, thinking disabled
-payload = {
-    "model": "ornith-uncensored",
-    "messages": [{"role": "user", "content": f"Reconcile these records from OpenAlex, Crossref, and Wikidata; note any disagreements.\n\n{combined_records}"}],
-    "chat_template_kwargs": {"enable_thinking": False},
-    "stream": False,
-}
-req = urllib.request.Request(
-    "http://localhost:1235/v1/chat/completions",
-    data=json.dumps(payload).encode(),
-    headers={"Content-Type": "application/json"},
-)
-result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][0]["message"]["content"]
-```
-
-Verify wiring before relying on it:
-
-```bash
-curl -s http://localhost:11434/api/tags | grep -o '"hf.co/InternScience/Agents-A1[^"]*"'
-curl -s http://localhost:1235/v1/models | grep -o '"ornith-uncensored"'
-```
+For research workflows that need to normalize or synthesize across these sources, two local endpoints are wired: **agent1** (Ollama, temperature 0) for deterministic field extraction/normalization, and **ornith** (llama-swap, thinking disabled) for cross-source synthesis and reconciliation — see the `scrapling` skill for the full pattern. Endpoint URLs, request payloads, and a verify-wiring check: read `references/model-wiring.md` when a research task needs to normalize or reconcile records across sources.
 
 ## Pitfalls
 
@@ -283,3 +147,8 @@ curl -s http://localhost:1235/v1/models | grep -o '"ornith-uncensored"'
 - **Don't reinvent arXiv or DuckDuckGo search**: this skill deliberately
   excludes arXiv (see the `arxiv` skill) and general web search (see the
   `duckduckgo-search` skill) — use those directly.
+
+## References
+
+- **[Query Cookbook](references/query-cookbook.md)** - Ready-to-run `curl` commands for every source in the catalog
+- **[Model Wiring](references/model-wiring.md)** - Local endpoint payloads for cross-source normalization/synthesis
