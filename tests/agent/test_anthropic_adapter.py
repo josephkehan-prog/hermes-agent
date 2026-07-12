@@ -29,6 +29,23 @@ from agent.anthropic_adapter import (
 from agent.transports import get_transport
 
 
+@pytest.fixture(autouse=True)
+def _isolate_macos_keychain(monkeypatch):
+    """Neutralize the real macOS Keychain for every test in this module.
+
+    Token resolution reads Claude Code OAuth creds from the Keychain
+    (``security find-generic-password``) as one source. Tests mock env vars
+    and ``Path.home`` but cannot cover the Keychain that way, so on a dev
+    machine with real Claude Code creds the live token leaks in and breaks the
+    resolution assertions. Default it to "no keychain creds"; a test that
+    exercises the Keychain path can re-patch it explicitly.
+    """
+    monkeypatch.setattr(
+        "agent.anthropic_adapter._read_claude_code_credentials_from_keychain",
+        lambda: None,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Auth helpers
 # ---------------------------------------------------------------------------
