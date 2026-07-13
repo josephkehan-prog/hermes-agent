@@ -1,6 +1,6 @@
 ---
 name: hermes-agent-skill-authoring
-description: "Use when creating, revising, validating, or bundling Hermes skills in this repository. Covers trigger design, progressive disclosure, umbrella orchestration, member integrity, and repository validation."
+description: "Create, revise, validate, and bundle Hermes repo skills."
 version: 2.0.0
 author: Hermes Agent
 license: MIT
@@ -80,11 +80,15 @@ Runtime constraints from `tools/skill_manager_tool.py`:
 - complete file: at most 100,000 characters
 - non-empty Markdown body after valid YAML frontmatter
 
-Local-model context budget enforced by the in-repo validator (the whole body is
-injected verbatim on invocation, so it must fit small context windows):
+Local-model context budget enforced by the in-repo validator (the
+whitespace-trimmed body is injected on invocation, so it must fit small
+context windows; limits defined in `scripts/validate_skills.py`):
 
 - body over 12,000 characters: validation ERROR — split detail into `references/`
 - body over 8,000 characters: validation WARN — consider a `references/` split
+
+Bundle integrity: members of a bundle under `skills/` must also live under
+`skills/`; optional-only members are rejected (not installed by default).
 
 ## Authoring Workflow
 

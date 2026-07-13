@@ -165,6 +165,63 @@ def test_skill_index_discovers_optional_skills(tmp_path: Path) -> None:
     assert index == {"core-skill": [core], "opt-skill": [optional]}
 
 
+BUNDLE_BODY = (
+    "# B\n## Routing Table\n## Orchestration Workflow\n"
+    "## Handoff Record\n## Stop Conditions\n## Completion Gate"
+)
+
+
+def test_active_bundle_rejects_optional_only_member(tmp_path: Path) -> None:
+    bundle = write_skill(
+        tmp_path / "skills" / "cat" / "bundle",
+        name="bundle",
+        metadata=(
+            "{hermes: {bundle: true, domain: demo, "
+            "related_skills: [opt-only, one, two]}}"
+        ),
+        body=BUNDLE_BODY,
+    )
+    index = {
+        "bundle": [bundle],
+        "opt-only": [tmp_path / "optional-skills" / "cat" / "opt-only" / "SKILL.md"],
+        "one": [tmp_path / "skills" / "cat" / "one" / "SKILL.md"],
+        "two": [tmp_path / "skills" / "cat" / "two" / "SKILL.md"],
+    }
+
+    errors = validator.validate(bundle, index, tmp_path)
+
+    assert "bundle members resolve only under optional-skills: opt-only" in errors
+
+
+def test_optional_bundle_may_reference_optional_members(tmp_path: Path) -> None:
+    bundle = write_skill(
+        tmp_path / "optional-skills" / "cat" / "bundle",
+        name="bundle",
+        metadata=(
+            "{hermes: {bundle: true, domain: demo, "
+            "related_skills: [opt-a, opt-b, opt-c]}}"
+        ),
+        body=BUNDLE_BODY,
+    )
+    index = {"bundle": [bundle]} | {
+        f"opt-{s}": [tmp_path / "optional-skills" / "cat" / f"opt-{s}" / "SKILL.md"]
+        for s in ("a", "b", "c")
+    }
+
+    errors = validator.validate(bundle, index, tmp_path)
+
+    assert errors == []
+
+
+def test_is_optional_anchors_to_repo_root(tmp_path: Path) -> None:
+    root = tmp_path / "optional-skills" / "checkout"
+    active = root / "skills" / "cat" / "demo" / "SKILL.md"
+    optional = root / "optional-skills" / "cat" / "demo" / "SKILL.md"
+
+    assert validator._is_optional(active, root) is False
+    assert validator._is_optional(optional, root) is True
+
+
 def test_cli_requires_an_explicit_target() -> None:
     result = subprocess.run(
         [sys.executable, str(SCRIPT)],

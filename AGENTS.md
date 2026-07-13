@@ -851,7 +851,8 @@ violate them.
    `## Prerequisites`, `## How to Run`, `## Quick Reference`,
    `## Procedure`, `## Pitfalls`, `## Verification`. Target ~200 lines
    complex / ~100 simple. Body ≤ 12,000 chars (validator ERROR; WARN
-   over 8,000) — split detail into `references/`.
+   over 8,000; limits defined in the skill-authoring skill's
+   `scripts/validate_skills.py`) — split detail into `references/`.
 
 6. **Scripts go in `scripts/`, references in `references/`, templates
    in `templates/`.** Ship helper scripts for non-trivial logic;

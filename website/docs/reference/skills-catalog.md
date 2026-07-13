@@ -217,7 +217,7 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 | Skill | Description | Path |
 |-------|-------------|------|
 | [`git-bisect`](/docs/user-guide/skills/bundled/software-development/software-development-git-bisect) | Use when a bug appeared between two commits and the user wants to find the exact commit that introduced it. | `software-development/git-bisect` |
-| [`hermes-agent-skill-authoring`](/docs/user-guide/skills/bundled/software-development/software-development-hermes-agent-skill-authoring) | Use when creating, revising, validating, or bundling Hermes skills in this repository. Covers trigger design, progressive disclosure, umbrella orchestration, member integrity, and repository validation. | `software-development/hermes-agent-skill-authoring` |
+| [`hermes-agent-skill-authoring`](/docs/user-guide/skills/bundled/software-development/software-development-hermes-agent-skill-authoring) | Create, revise, validate, and bundle Hermes repo skills. | `software-development/hermes-agent-skill-authoring` |
 | [`llama-cpp`](/docs/user-guide/skills/bundled/software-development/software-development-llama-cpp) | llama.cpp local GGUF inference + HF Hub model discovery. | `software-development/llama-cpp` |
 | [`node-inspect-debugger`](/docs/user-guide/skills/bundled/software-development/software-development-node-inspect-debugger) | Debug Node.js via --inspect + Chrome DevTools Protocol CLI. | `software-development/node-inspect-debugger` |
 | [`plan`](/docs/user-guide/skills/bundled/software-development/software-development-plan) | Plan mode: write an actionable markdown plan to .hermes/plans/, no execution. Bite-sized tasks, exact paths, complete code. | `software-development/plan` |

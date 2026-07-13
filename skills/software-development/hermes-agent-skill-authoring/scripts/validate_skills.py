@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Validate Hermes skill packages and orchestration-bundle invariants."""
+"""Validate Hermes skill packages and orchestration-bundle invariants.
+
+Deliberately standalone (stdlib + yaml only) so the skill package works when
+copied out of this repository; do not import hermes modules here.
+"""
 
 from __future__ import annotations
 
@@ -17,6 +21,8 @@ MAX_DESCRIPTION_LENGTH = 1024
 MAX_CONTENT_LENGTH = 100_000
 # Local-model context budget: bodies above FAIL must split into references/;
 # bodies above WARN should consider it (~4 chars/token, so 12k ≈ 3k tokens).
+# These limits are restated in prose in this skill's SKILL.md ("Validation
+# rules") and AGENTS.md ("Skill authoring") — update those when changing.
 MAX_BODY_LENGTH_FAIL = 12_000
 BODY_LENGTH_WARN = 8_000
 
@@ -25,7 +31,7 @@ def repository_root() -> Path:
     return Path(__file__).resolve().parents[4]
 
 
-def parse_skill(path: Path) -> tuple[dict, str]:
+def parse_skill(path: Path) -> tuple[dict, str, str]:
     content = path.read_text(encoding="utf-8")
     if not content.startswith("---\n"):
         raise ValueError("frontmatter must start at byte zero")
@@ -38,12 +44,7 @@ def parse_skill(path: Path) -> tuple[dict, str]:
     body = content[end + 5 :].strip()
     if not body:
         raise ValueError("Markdown body is empty")
-    return frontmatter, content
-
-
-def skill_body(content: str) -> str:
-    end = content.find("\n---\n", 4)
-    return content[end + 5 :].strip() if end >= 0 else content.strip()
+    return frontmatter, content, body
 
 
 def skill_index(root: Path) -> dict[str, list[Path]]:
@@ -53,7 +54,7 @@ def skill_index(root: Path) -> dict[str, list[Path]]:
     )
     for path in paths:
         try:
-            frontmatter, _ = parse_skill(path)
+            frontmatter, _, _ = parse_skill(path)
         except (OSError, ValueError, yaml.YAMLError):
             # A malformed unrelated skill must not prevent targeted validation.
             # If it is a requested target, validate() reports its precise error.
@@ -65,18 +66,41 @@ def skill_index(root: Path) -> dict[str, list[Path]]:
     return index
 
 
-def validate(path: Path, index: dict[str, list[Path]]) -> list[str]:
-    errors, _ = validate_with_warnings(path, index)
+def _is_optional(path: Path, root: Path | None) -> bool:
+    """True when the skill ships only under optional-skills/ (inactive by default).
+
+    With a known repo root the check is anchored to the tree top, so a checkout
+    that happens to live under a directory named "optional-skills" is not
+    misclassified. Without a root (unit tests), fall back to path components.
+    """
+    if root is not None and path.is_relative_to(root):
+        parts = path.relative_to(root).parts
+        return bool(parts) and parts[0] == "optional-skills"
+    return "optional-skills" in path.parts
+
+
+def _active_paths(member: str, index: dict[str, list[Path]], root: Path | None) -> list[Path]:
+    # A skill shipped in both skills/ and optional-skills/ resolves to the
+    # active (skills/) copy, so it is not ambiguous for bundle routing.
+    paths = index.get(member, [])
+    active = [p for p in paths if not _is_optional(p, root)]
+    return active or paths
+
+
+def validate(
+    path: Path, index: dict[str, list[Path]], root: Path | None = None
+) -> list[str]:
+    errors, _ = validate_with_warnings(path, index, root)
     return errors
 
 
 def validate_with_warnings(
-    path: Path, index: dict[str, list[Path]]
+    path: Path, index: dict[str, list[Path]], root: Path | None = None
 ) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
     try:
-        frontmatter, content = parse_skill(path)
+        frontmatter, content, body = parse_skill(path)
     except (OSError, ValueError, yaml.YAMLError) as exc:
         return [str(exc)], warnings
 
@@ -95,7 +119,7 @@ def validate_with_warnings(
         errors.append(f"description exceeds {MAX_DESCRIPTION_LENGTH} characters")
     if len(content) > MAX_CONTENT_LENGTH:
         errors.append(f"content exceeds {MAX_CONTENT_LENGTH} characters")
-    body_length = len(skill_body(content))
+    body_length = len(body)
     if body_length > MAX_BODY_LENGTH_FAIL:
         errors.append(
             f"body exceeds {MAX_BODY_LENGTH_FAIL} characters ({body_length}); "
@@ -133,14 +157,24 @@ def validate_with_warnings(
         missing = sorted(member for member in related if member not in index)
         if missing:
             errors.append(f"bundle members do not resolve in-repo: {', '.join(missing)}")
-        # A skill shipped in both skills/ and optional-skills/ resolves to the
-        # active (skills/) copy, so it is not ambiguous for bundle routing.
-        def _active_paths(member: str) -> list[Path]:
-            paths = index.get(member, [])
-            active = [p for p in paths if "optional-skills" not in p.parts]
-            return active or paths
-
-        ambiguous = sorted(member for member in related if len(_active_paths(member)) > 1)
+        if not _is_optional(path, root):
+            # An active bundle must route only to active skills; a member that
+            # ships solely under optional-skills/ is not installed by default,
+            # so the bundle's handoff to it has no target at runtime.
+            optional_only = sorted(
+                member
+                for member in related
+                if member in index
+                and all(_is_optional(p, root) for p in index[member])
+            )
+            if optional_only:
+                errors.append(
+                    "bundle members resolve only under optional-skills: "
+                    + ", ".join(optional_only)
+                )
+        ambiguous = sorted(
+            member for member in related if len(_active_paths(member, index, root)) > 1
+        )
         if ambiguous:
             errors.append(f"bundle members resolve ambiguously in-repo: {', '.join(ambiguous)}")
         required_headings = (
@@ -173,7 +207,7 @@ def main() -> int:
 
     failed = False
     for path in target_files(args.paths):
-        errors, warnings = validate_with_warnings(path, index)
+        errors, warnings = validate_with_warnings(path, index, root)
         label = path.relative_to(root) if path.is_relative_to(root) else path
         for warning in warnings:
             print(f"{label}: WARN: {warning}", file=sys.stderr)
