@@ -1,0 +1,318 @@
+# Instincts generated from https://github.com/josephkehan-prog/hermes-agent
+# Generated: 2026-07-13T12:36:10.077Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: hermes-agent-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: chore, fix
+
+## Evidence
+
+- 2 commits analyzed
+- Detected conventional commit pattern
+- Examples: chore: remove agent-learning handoff artifact from public tree, fix(docs): rejoin multi-line inline code that broke MDX compile
+
+---
+id: hermes-agent-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Commit Length
+
+## Action
+
+Write moderate-length commit messages (~63 characters)
+
+## Evidence
+
+- Average commit message length: 63 chars
+- Based on 2 commits
+
+---
+id: hermes-agent-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Naming Files
+
+## Action
+
+Use kebab-case naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: kebab-case
+
+---
+id: hermes-agent-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: hermes-agent-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Export Style
+
+## Action
+
+Prefer default exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: default
+
+---
+id: hermes-agent-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: hermes-agent-instinct-file-naming
+trigger: "When creating a new file"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Instinct File Naming
+
+## Action
+
+Name the file using kebab-case
+
+## Evidence
+
+- Pattern in namingConventions.files: kebab-case
+
+---
+id: hermes-agent-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Instinct Function Naming
+
+## Action
+
+Use camelCase for the function name
+
+## Evidence
+
+- Pattern in namingConventions.functions: camelCase
+
+---
+id: hermes-agent-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Instinct Class Naming
+
+## Action
+
+Use PascalCase for the class name
+
+## Evidence
+
+- Pattern in namingConventions.classes: PascalCase
+
+---
+id: hermes-agent-instinct-constant-naming
+trigger: "When declaring a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Instinct Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for the constant name
+
+## Evidence
+
+- Pattern in namingConventions.constants: SCREAMING_SNAKE_CASE
+
+---
+id: hermes-agent-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Instinct Import Style
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- Pattern in importStyle: relative
+
+---
+id: hermes-agent-instinct-export-style
+trigger: "When exporting modules or components"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Instinct Export Style
+
+## Action
+
+Use default exports
+
+## Evidence
+
+- Pattern in exportStyle: default
+
+---
+id: hermes-agent-instinct-commit-format
+trigger: "When making a git commit"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Instinct Commit Format
+
+## Action
+
+Format the commit message using the conventional commit style with prefixes such as 'chore' or 'fix', followed by a colon and a brief description
+
+## Evidence
+
+- Seen in commit: chore: remove agent-learning handoff artifact from public tree
+- Seen in commit: fix(docs): rejoin multi-line inline code that broke MDX compile
+
+---
+id: hermes-agent-instinct-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Instinct Commit Length
+
+## Action
+
+Keep the commit message concise, averaging around 63 characters
+
+## Evidence
+
+- Pattern in commits.averageLength: 63
+
+---
+id: hermes-agent-instinct-test-location
+trigger: "When adding new tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Instinct Test Location
+
+## Action
+
+Place tests in a separate directory from source code
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation: separate
+
+---
+id: hermes-agent-instinct-website-folder
+trigger: "When working with documentation or web assets"
+confidence: 0.7
+domain: architecture
+source: repo-analysis
+source_repo: josephkehan-prog/hermes-agent
+---
+
+# Hermes Agent Instinct Website Folder
+
+## Action
+
+Use the 'website' folder for related files
+
+## Evidence
+
+- Pattern in architecture.folderStructure.commonFolders: website
+
