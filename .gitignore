@@ -159,3 +159,6 @@ infographic/
 
 # Claude Code session state (machine-local, never commit)
 .claude/
+
+# agent handoff/learning artifacts
+APPROVED_INSTINCTS.md

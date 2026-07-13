@@ -142,9 +142,8 @@ Full ownership-cluster doctrine, per-broker recipes, and the meta-search skip-li
    Execute without pausing in `autonomy=full`; honor `confirm_first` in `assisted`.
 4. **Scanning (when `next` says so).** `fanout_scan`: run `$PDD fanout <subject>` and spawn one
    `delegate_task` subagent per `batch` in parallel with its ready-made `brief` — never scan
-   sequentially yourself. `scan_inline`: scan the few brokers yourself. Record with `$PDD record
-   <subject> <broker> <found|not_found|indirect_exposure|blocked> --found <bool> --evidence
-   '{"listing_urls":[...]}'`. A 404 is INCONCLUSIVE, not `not_found`; parent re-verifies subagent
+   sequentially yourself. `scan_inline`: scan the few brokers yourself. Record with
+   `$PDD record <subject> <broker> <found|not_found|indirect_exposure|blocked> --found <bool> --evidence '{"listing_urls":[...]}'`. A 404 is INCONCLUSIVE, not `not_found`; parent re-verifies subagent
    `found` claims. Full scan ladder and false-positive traps: read `references/methods.md`.
 5. **Opt-outs (when `next` says so).** Pre-ordered parents-first with `steps` from each broker's
    field-verified `optout.playbook`. Deletion usually beats suppression except PeopleConnect

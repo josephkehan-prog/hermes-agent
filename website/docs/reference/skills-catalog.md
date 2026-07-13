@@ -20,7 +20,6 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 | [`apple-reminders`](/docs/user-guide/skills/bundled/apple/apple-apple-reminders) | Apple Reminders via remindctl: add, list, complete. | `apple/apple-reminders` |
 | [`findmy`](/docs/user-guide/skills/bundled/apple/apple-findmy) | Track Apple devices/AirTags via FindMy.app on macOS. | `apple/findmy` |
 | [`imessage`](/docs/user-guide/skills/bundled/apple/apple-imessage) | Send and receive iMessages/SMS via the imsg CLI on macOS. | `apple/imessage` |
-| [`macos-computer-use`](/docs/user-guide/skills/bundled/apple/apple-macos-computer-use) | Drive the macOS desktop in the background — screenshots, mouse, keyboard, scroll, drag — without stealing the user's cursor, keyboard focus, or Space. Works with any tool-capable model. Load this skill whenever the `computer_use` tool is... | `apple/macos-computer-use` |
 
 ## autonomous-ai-agents
 
@@ -30,6 +29,13 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 | [`codex`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-codex) | Delegate coding to OpenAI Codex CLI (features, PRs). | `autonomous-ai-agents/codex` |
 | [`hermes-agent`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-hermes-agent) | Configure, extend, or contribute to Hermes Agent. | `autonomous-ai-agents/hermes-agent` |
 | [`opencode`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-opencode) | Delegate coding to OpenCode CLI (features, PR review). | `autonomous-ai-agents/opencode` |
+
+## computer-use
+
+| Skill | Description | Path |
+|-------|-------------|------|
+| [`browser-first`](/docs/user-guide/skills/bundled/computer-use/computer-use-browser-first) | For ANY web task (open a URL, read a page, search, dork, fetch a profile, click, fill a form), use the browser toolset — NOT computer_use. computer_use (screen/mouse control of the whole Mac) is a last resort for native desktop apps only... | `computer-use/browser-first` |
+| [`computer-use`](/docs/user-guide/skills/bundled/computer-use/computer-use-computer-use) | Drive the user's desktop in the background — clicking, typing, scrolling, dragging — without stealing the cursor, keyboard focus, or switching virtual desktops / Spaces. Cross-platform: macOS, Windows, Linux. Works with any tool-capable... | `computer-use` |
 
 ## creative
 
@@ -41,10 +47,12 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 | [`baoyu-infographic`](/docs/user-guide/skills/bundled/creative/creative-baoyu-infographic) | Infographics: 21 layouts x 21 styles (信息图, 可视化). | `creative/baoyu-infographic` |
 | [`claude-design`](/docs/user-guide/skills/bundled/creative/creative-claude-design) | Design one-off HTML artifacts (landing, deck, prototype). | `creative/claude-design` |
 | [`comfyui`](/docs/user-guide/skills/bundled/creative/creative-comfyui) | Generate images, video, and audio with ComfyUI — install, launch, manage nodes/models, run workflows with parameter injection. Uses the official comfy-cli for lifecycle and direct REST/WebSocket API for execution. | `creative/comfyui` |
+| [`creative-production-bundle`](/docs/user-guide/skills/bundled/creative/creative-creative-production-bundle) | Use when turning a creative brief into a coherent visual concept, design system, interface direction, diagram, or generative artifact across multiple media. Routes concept, style, structure, and production without flattening them into on... | `creative/creative-production-bundle` |
 | [`design-md`](/docs/user-guide/skills/bundled/creative/creative-design-md) | Author/validate/export Google's DESIGN.md token spec files. | `creative/design-md` |
 | [`excalidraw`](/docs/user-guide/skills/bundled/creative/creative-excalidraw) | Hand-drawn Excalidraw JSON diagrams (arch, flow, seq). | `creative/excalidraw` |
 | [`humanizer`](/docs/user-guide/skills/bundled/creative/creative-humanizer) | Humanize text: strip AI-isms and add real voice. | `creative/humanizer` |
 | [`manim-video`](/docs/user-guide/skills/bundled/creative/creative-manim-video) | Manim CE animations: 3Blue1Brown math/algo videos. | `creative/manim-video` |
+| [`novel-generator`](/docs/user-guide/skills/bundled/creative/creative-novel-generator) | Generate full novels autonomously via Claude Code or Codex — one-shot creative writing agents that plan, draft chapters, and deliver a complete manuscript without human-in-the-loop each turn. | `creative/novel-generator` |
 | [`p5js`](/docs/user-guide/skills/bundled/creative/creative-p5js) | p5.js sketches: gen art, shaders, interactive, 3D. | `creative/p5js` |
 | [`popular-web-designs`](/docs/user-guide/skills/bundled/creative/creative-popular-web-designs) | 54 real design systems (Stripe, Linear, Vercel) as HTML/CSS. | `creative/popular-web-designs` |
 | [`pretext`](/docs/user-guide/skills/bundled/creative/creative-pretext) | Use when building creative browser demos with @chenglou/pretext — DOM-free text layout for ASCII art, typographic flow around obstacles, text-as-geometry games, kinetic typography, and text-powered generative art. Produces single-file HT... | `creative/pretext` |
@@ -62,13 +70,27 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 
 | Skill | Description | Path |
 |-------|-------------|------|
-
+| [`changelog`](/docs/user-guide/skills/bundled/devops/devops-changelog) | Generate and maintain a Keep-a-Changelog CHANGELOG.md from git history using conventional-commit prefixes. Keyless, git-only, no cloud API. | `devops/changelog` |
+| [`cron-schedule`](/docs/user-guide/skills/bundled/devops/devops-cron-schedule) | Use when the user wants to write, read, fix, or explain a cron expression for scheduling a job. | `devops/cron-schedule` |
+| [`dependency-audit`](/docs/user-guide/skills/bundled/devops/devops-dependency-audit) | Audit dependencies for staleness and vulnerabilities using free, local, keyless tools only — npm audit, pip-audit, cargo audit, OSV-Scanner. No paid services. | `devops/dependency-audit` |
+| [`dockerfile-lint`](/docs/user-guide/skills/bundled/devops/devops-dockerfile-lint) | Use when the user wants a Dockerfile reviewed for security, correctness, and image-size problems before building. | `devops/dockerfile-lint` |
+| [`env-audit`](/docs/user-guide/skills/bundled/devops/devops-env-audit) | Use when the user wants to check a project's environment variables — missing keys, keys defined but unused, or drift between .env and .env.example. | `devops/env-audit` |
+| [`git-hygiene`](/docs/user-guide/skills/bundled/devops/devops-git-hygiene) | Keep a repo clean — .gitignore, no committed secrets, no large binaries, branch naming, atomic conventional commits. Plain git commands, no cloud API. | `devops/git-hygiene` |
+| [`log-triage`](/docs/user-guide/skills/bundled/devops/devops-log-triage) | Parse, classify, and summarize log files for incident triage — tail-and-cap scanning, severity classification, and error clustering for plain text, JSON-lines, syslog, and common app log formats. Local files only, no network. Includes sc... | `devops/log-triage` |
+| [`reliability-operations-bundle`](/docs/user-guide/skills/bundled/devops/devops-reliability-operations-bundle) | Use when diagnosing, repairing, and preventing service or automation failures across logs, infrastructure checks, dependency health, monitoring, and self-healing. Coordinates a conservative reliability response from signal to verified re... | `devops/reliability-operations-bundle` |
+| [`self-healing`](/docs/user-guide/skills/bundled/devops/devops-self-healing) | Monitor→detect→remediate runbook engine for local services — HTTP/process/disk/load health checks, gated destructive remediation (restart/clear-temp), and ntfy alerts. Composes uptime_check_tool, notify_tool, and the local-model-ops endp... | `devops/self-healing` |
 
 ## dogfood
 
 | Skill | Description | Path |
 |-------|-------------|------|
 | [`dogfood`](/docs/user-guide/skills/bundled/dogfood/dogfood-dogfood) | Exploratory QA of web apps: find bugs, evidence, reports. | `dogfood` |
+
+## duckduckgo-search
+
+| Skill | Description | Path |
+|-------|-------------|------|
+| [`duckduckgo-search`](/docs/user-guide/skills/bundled/duckduckgo-search/duckduckgo-search-duckduckgo-search) | Free web search via DuckDuckGo — text, news, images, videos. No API key needed. Prefer the `ddgs` CLI when installed; use the Python DDGS library only after verifying that `ddgs` is available in the current runtime. | `duckduckgo-search` |
 
 ## email
 
@@ -84,6 +106,7 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 | [`github-auth`](/docs/user-guide/skills/bundled/github/github-github-auth) | GitHub auth setup: HTTPS tokens, SSH keys, gh CLI login. | `github/github-auth` |
 | [`github-code-review`](/docs/user-guide/skills/bundled/github/github-github-code-review) | Review PRs: diffs, inline comments via gh or REST. | `github/github-code-review` |
 | [`github-issues`](/docs/user-guide/skills/bundled/github/github-github-issues) | Create, triage, label, assign GitHub issues via gh or REST. | `github/github-issues` |
+| [`github-maintainer-bundle`](/docs/user-guide/skills/bundled/github/github-github-maintainer-bundle) | Use when maintaining a GitHub repository across authentication, issue triage, code inspection, pull-request creation, review, CI follow-up, and merge readiness. Orchestrates the complete repository-maintenance lifecycle. | `github/github-maintainer-bundle` |
 | [`github-pr-workflow`](/docs/user-guide/skills/bundled/github/github-github-pr-workflow) | GitHub PR lifecycle: branch, commit, open, CI, merge. | `github/github-pr-workflow` |
 | [`github-repo-management`](/docs/user-guide/skills/bundled/github/github-github-repo-management) | Clone/create/fork repos; manage remotes, releases. | `github/github-repo-management` |
 
@@ -93,6 +116,7 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 |-------|-------------|------|
 | [`gif-search`](/docs/user-guide/skills/bundled/media/media-gif-search) | Search/download GIFs from Tenor via curl + jq. | `media/gif-search` |
 | [`heartmula`](/docs/user-guide/skills/bundled/media/media-heartmula) | HeartMuLa: Suno-like song generation from lyrics + tags. | `media/heartmula` |
+| [`media-production-bundle`](/docs/user-guide/skills/bundled/media/media-media-production-bundle) | Use when producing a multi-format media package from source content through transcript analysis, audio or music, visualization, animation, and publication-ready assets. Coordinates narrative and technical continuity across media outputs. | `media/media-production-bundle` |
 | [`songsee`](/docs/user-guide/skills/bundled/media/media-songsee) | Audio spectrograms/features (mel, chroma, MFCC) via CLI. | `media/songsee` |
 | [`youtube-content`](/docs/user-guide/skills/bundled/media/media-youtube-content) | YouTube transcripts to summaries, threads, blogs. | `media/youtube-content` |
 
@@ -104,6 +128,8 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 | [`huggingface-hub`](/docs/user-guide/skills/bundled/mlops/mlops-huggingface-hub) | HuggingFace hf CLI: search/download/upload models, datasets. | `mlops/huggingface-hub` |
 | [`llama-cpp`](/docs/user-guide/skills/bundled/mlops/mlops-inference-llama-cpp) | llama.cpp local GGUF inference + HF Hub model discovery. | `mlops/inference/llama-cpp` |
 | [`evaluating-llms-harness`](/docs/user-guide/skills/bundled/mlops/mlops-evaluation-lm-evaluation-harness) | lm-eval-harness: benchmark LLMs (MMLU, GSM8K, etc.). | `mlops/evaluation/lm-evaluation-harness` |
+| [`local-ai-lifecycle-bundle`](/docs/user-guide/skills/bundled/mlops/mlops-local-ai-lifecycle-bundle) | Use when selecting, acquiring, serving, evaluating, and operating local or self-hosted language models across hardware constraints and knowledge workflows. Coordinates the model lifecycle from requirements to measured runtime behavior. | `mlops/local-ai-lifecycle-bundle` |
+| [`local-model-ops`](/docs/user-guide/skills/bundled/mlops/mlops-local-model-ops) | Manage Hermes's own local inference stack on the 64GB Mac — Agents-A1 via Ollama (localhost:11434) and ornith-uncensored 35B 4-bit via llama-server (localhost:1235). Check what's loaded, free RAM before loading, unload/swap models, healt... | `mlops/local-model-ops` |
 | [`segment-anything-model`](/docs/user-guide/skills/bundled/mlops/mlops-models-segment-anything) | SAM: zero-shot image segmentation via points, boxes, masks. | `mlops/models/segment-anything` |
 | [`serving-llms-vllm`](/docs/user-guide/skills/bundled/mlops/mlops-inference-vllm) | vLLM: high-throughput LLM serving, OpenAI API, quantization. | `mlops/inference/vllm` |
 | [`weights-and-biases`](/docs/user-guide/skills/bundled/mlops/mlops-evaluation-weights-and-biases) | W&B: log ML experiments, sweeps, model registry, dashboards. | `mlops/evaluation/weights-and-biases` |
@@ -114,19 +140,34 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 |-------|-------------|------|
 | [`obsidian`](/docs/user-guide/skills/bundled/note-taking/note-taking-obsidian) | Read, search, create, and edit notes in the Obsidian vault. | `note-taking/obsidian` |
 
+## osint-investigation
+
+| Skill | Description | Path |
+|-------|-------------|------|
+| [`osint-investigation`](/docs/user-guide/skills/bundled/osint-investigation/osint-investigation-osint-investigation) | Public-records OSINT investigation framework — SEC EDGAR filings, USAspending contracts, Senate lobbying, OFAC sanctions, ICIJ offshore leaks, NYC property records (ACRIS), OpenCorporates registries, CourtListener court records, Wayback... | `osint-investigation` |
+
 ## productivity
 
 | Skill | Description | Path |
 |-------|-------------|------|
 | [`airtable`](/docs/user-guide/skills/bundled/productivity/productivity-airtable) | Airtable REST API via curl. Records CRUD, filters, upserts. | `productivity/airtable` |
+| [`career-campaign-bundle`](/docs/user-guide/skills/bundled/productivity/productivity-career-campaign-bundle) | Use when running an end-to-end job campaign from opportunity tracking through tailored resume, cover letter, interview preparation, follow-up, and document delivery. Maintains one factual candidate record across every application artifact. | `productivity/career-campaign-bundle` |
+| [`cover-letter`](/docs/user-guide/skills/bundled/productivity/productivity-cover-letter) | Draft a structured, 4-paragraph cover letter for a specific job posting — hook, fit evidence, org-specific detail, close. Tuned for teaching roles and for small local models that need explicit step-by-step instructions. | `productivity/cover-letter` |
+| [`csv-insights`](/docs/user-guide/skills/bundled/productivity/productivity-csv-insights) | Use when the user wants to inspect, summarize, filter, or compute aggregates over a CSV, TSV, or other delimited data file. | `productivity/csv-insights` |
 | [`google-workspace`](/docs/user-guide/skills/bundled/productivity/productivity-google-workspace) | Gmail, Calendar, Drive, Docs, Sheets via gws CLI or Python. | `productivity/google-workspace` |
+| [`ics-calendar`](/docs/user-guide/skills/bundled/productivity/productivity-ics-calendar) | Use when the user wants to create an .ics calendar file or invite for an event they can import into any calendar app. | `productivity/ics-calendar` |
+| [`interview-prep`](/docs/user-guide/skills/bundled/productivity/productivity-interview-prep) | Prepare for a teaching-role interview from a specific job posting — generate likely behavioral, pedagogy, and demo-lesson questions, scaffold STAR answers, and produce a one-page cheat sheet. No cloud API. | `productivity/interview-prep` |
+| [`job-search-tracking`](/docs/user-guide/skills/bundled/productivity/productivity-job-search-tracking) | Track job applications and monitor new listings locally — CSV-backed tracker plus RSS watchers for remote/education job boards. No cloud account required. | `productivity/job-search-tracking` |
+| [`knowledge-workflow-bundle`](/docs/user-guide/skills/bundled/productivity/productivity-knowledge-workflow-bundle) | Use when capturing, extracting, organizing, transforming, and presenting knowledge across notes, documents, PDFs, slides, and workspace services. Preserves provenance and one canonical source while producing multiple usable formats. | `productivity/knowledge-workflow-bundle` |
 | [`maps`](/docs/user-guide/skills/bundled/productivity/productivity-maps) | Geocode, POIs, routes, timezones via OpenStreetMap/OSRM. | `productivity/maps` |
 | [`nano-pdf`](/docs/user-guide/skills/bundled/productivity/productivity-nano-pdf) | Edit PDF text/typos/titles via nano-pdf CLI (NL prompts). | `productivity/nano-pdf` |
 | [`notion`](/docs/user-guide/skills/bundled/productivity/productivity-notion) | Notion API + ntn CLI: pages, databases, markdown, Workers. | `productivity/notion` |
 | [`ocr-and-documents`](/docs/user-guide/skills/bundled/productivity/productivity-ocr-and-documents) | Extract text from PDFs/scans (pymupdf, marker-pdf). | `productivity/ocr-and-documents` |
 | [`petdex`](/docs/user-guide/skills/bundled/productivity/productivity-petdex) | Install and select animated petdex mascots for Hermes. | `productivity/petdex` |
 | [`powerpoint`](/docs/user-guide/skills/bundled/productivity/productivity-powerpoint) | Create, read, edit .pptx decks, slides, notes, templates. | `productivity/powerpoint` |
+| [`resume-tailor`](/docs/user-guide/skills/bundled/productivity/productivity-resume-tailor) | Tailor a base resume to a specific job posting — extract required keywords, map them to the user's existing experience, and produce edited bullet points. No cloud API, no paid resume tools. | `productivity/resume-tailor` |
 | [`teams-meeting-pipeline`](/docs/user-guide/skills/bundled/productivity/productivity-teams-meeting-pipeline) | Operate the Teams meeting summary pipeline via Hermes CLI — summarize meetings, inspect pipeline status, replay jobs, manage Microsoft Graph subscriptions. | `productivity/teams-meeting-pipeline` |
+| [`time-tracking`](/docs/user-guide/skills/bundled/productivity/productivity-time-tracking) | Use when the user asks to start, stop, or report time spent on a task, project, or work session. Tracks intervals in a local JSONL ledger with tags. | `productivity/time-tracking` |
 
 ## research
 
@@ -134,9 +175,29 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 |-------|-------------|------|
 | [`arxiv`](/docs/user-guide/skills/bundled/research/research-arxiv) | Search arXiv papers by keyword, author, category, or ID. | `research/arxiv` |
 | [`blogwatcher`](/docs/user-guide/skills/bundled/research/research-blogwatcher) | Monitor blogs and RSS/Atom feeds via blogwatcher-cli tool. | `research/blogwatcher` |
+| [`crypto-market`](/docs/user-guide/skills/bundled/research/research-crypto-market) | Keyless crypto market data (prices, trends, sentiment) and public wallet lookups (Bitcoin, Ethereum/MetaMask, Monero, any coin) via CoinGecko, alternative.me, Cloudflare's ETH gateway, and Blockchair. Includes scripts/crypto.py. | `research/crypto-market` |
+| [`deal-hunting`](/docs/user-guide/skills/bundled/research/research-deal-hunting) | Hunt software and hardware deals from free, keyless sources — Slickdeals, OzBargain, and Reddit (r/buildapcsales, r/GameDeals) RSS feeds. No paid APIs, no API keys. Includes scripts/deals.py for search and watchlist tracking, plus local-... | `research/deal-hunting` |
+| [`ethical-investigation-bundle`](/docs/user-guide/skills/bundled/research/research-ethical-investigation-bundle) | Use when conducting authorized open-source investigations across people, organizations, domains, infrastructure, public records, and social footprints. Coordinates evidence collection and entity resolution with privacy and confidence con... | `research/ethical-investigation-bundle` |
+| [`evidence-research-bundle`](/docs/user-guide/skills/bundled/research/research-evidence-research-bundle) | Use when answering a consequential research question with current web evidence, scholarly literature, public datasets, local knowledge, and a cited synthesis. Routes discovery and verification by source type and claim strength. | `research/evidence-research-bundle` |
+| [`infra-monitor`](/docs/user-guide/skills/bundled/research/research-infra-monitor) | Infrastructure drift monitoring for a domain over time — DNS record changes, new/expiring TLS certs via Certificate Transparency logs, IP/ASN changes, and security-header regressions. Composes network-recon's DoH/crt.sh tooling into snap... | `research/infra-monitor` |
+| [`last30days`](/docs/user-guide/skills/bundled/research/research-last30days) | Research what people actually said about a topic in the last ~30 days across Reddit, Hacker News, Polymarket, and GitHub — using only keyless public endpoints and Hermes's own web/browser tools. No paid API keys. For recency checks, sent... | `research/last30days` |
 | [`llm-wiki`](/docs/user-guide/skills/bundled/research/research-llm-wiki) | Karpathy's LLM Wiki: build/query interlinked markdown KB. | `research/llm-wiki` |
+| [`market-pulse`](/docs/user-guide/skills/bundled/research/research-market-pulse) | One-shot market-snapshot dashboard combining keyless crypto and prediction-market signals — top coin prices, the Fear & Greed Index, and Polymarket's trending markets — into a single "how's the market doing" read. Includes scripts/pulse.py. | `research/market-pulse` |
+| [`network-recon`](/docs/user-guide/skills/bundled/research/research-network-recon) | Keyless DNS and infrastructure reconnaissance — DNS-over-HTTPS record lookup, Certificate Transparency subdomain discovery (crt.sh), reverse DNS/PTR, WHOIS, HTTP header/security-header fingerprinting. Includes scripts/recon.py. | `research/network-recon` |
+| [`open-databases`](/docs/user-guide/skills/bundled/research/research-open-databases) | Query free public research databases with no API key — OpenAlex, Crossref, Wikidata SPARQL, SEC EDGAR, archive.org/Wayback, OpenLibrary, PubMed, WHOIS/DNS. Includes scripts/dbquery.py. | `research/open-databases` |
 | [`polymarket`](/docs/user-guide/skills/bundled/research/research-polymarket) | Query Polymarket: markets, prices, orderbooks, history. | `research/polymarket` |
+| [`portfolio-tracker`](/docs/user-guide/skills/bundled/research/research-portfolio-tracker) | Keyless crypto portfolio valuation from a local holdings file (JSON list of &#123;coin_id, amount&#125;). Fetches spot prices from CoinGecko in one batched call, computes per-holding and total value, and reports risk/concentration reads. Includes... | `research/portfolio-tracker` |
+| [`quick-summary`](/docs/user-guide/skills/bundled/research/research-quick-summary) | Use when the user asks to summarize, condense, TL;DR, or extract key points from a document, article, transcript, or long block of text. | `research/quick-summary` |
 | [`research-paper-writing`](/docs/user-guide/skills/bundled/research/research-research-paper-writing) | Write ML papers for NeurIPS/ICML/ICLR: design→submit. | `research/research-paper-writing` |
+| [`social-footprint`](/docs/user-guide/skills/bundled/research/research-social-footprint) | Username + email footprint reconnaissance — curated keyless platform-presence checks, email permutation generation, and Gravatar lookup. Authorized/defensive/research use only. Includes scripts/footprint.py. | `research/social-footprint` |
+| [`watch-notify`](/docs/user-guide/skills/bundled/research/research-watch-notify) | Generic "watch a source, detect a change, alert" monitoring engine — content-hash diffing for any URL, JSON-field value tracking, and keyless push notification via ntfy.sh. No external CLI, no API keys. Includes scripts/watch.py. | `research/watch-notify` |
+| [`workspace-rag`](/docs/user-guide/skills/bundled/research/research-workspace-rag) | Semantic search over local Hermes workspace notes (memories, IMPROVEMENTS.md, WORKSPACE.md) via sqlite-vec + local Ollama embeddings. No server, no cloud API. | `research/workspace-rag` |
+
+## scrapling
+
+| Skill | Description | Path |
+|-------|-------------|------|
+| [`scrapling`](/docs/user-guide/skills/bundled/scrapling/scrapling-scrapling) | Web scraping with Scrapling - HTTP fetching, stealth browser automation, Cloudflare bypass, and spider crawling via CLI and Python. Includes local-model-assisted extraction (agent1/ornith) and scripts/extract.py. | `scrapling` |
 
 ## smart-home
 
@@ -148,19 +209,26 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 
 | Skill | Description | Path |
 |-------|-------------|------|
+| [`scrapecreators`](/docs/user-guide/skills/bundled/social-media/social-media-scrapecreators) | ScrapeCreators API wrapper for public social-media profile/post scraping across TikTok, Instagram, YouTube, X/Twitter, Reddit, LinkedIn, Facebook, Threads. PAID API — requires SCRAPECREATORS_API_KEY. Includes scripts/scrapecreators.py. | `social-media/scrapecreators` |
 | [`xurl`](/docs/user-guide/skills/bundled/social-media/social-media-xurl) | X/Twitter via xurl CLI: post, search, DM, media, v2 API. | `social-media/xurl` |
 
 ## software-development
 
 | Skill | Description | Path |
 |-------|-------------|------|
-| [`hermes-agent-skill-authoring`](/docs/user-guide/skills/bundled/software-development/software-development-hermes-agent-skill-authoring) | Author in-repo SKILL.md: frontmatter, validator, structure. | `software-development/hermes-agent-skill-authoring` |
+| [`git-bisect`](/docs/user-guide/skills/bundled/software-development/software-development-git-bisect) | Use when a bug appeared between two commits and the user wants to find the exact commit that introduced it. | `software-development/git-bisect` |
+| [`hermes-agent-skill-authoring`](/docs/user-guide/skills/bundled/software-development/software-development-hermes-agent-skill-authoring) | Use when creating, revising, validating, or bundling Hermes skills in this repository. Covers trigger design, progressive disclosure, umbrella orchestration, member integrity, and repository validation. | `software-development/hermes-agent-skill-authoring` |
+| [`llama-cpp`](/docs/user-guide/skills/bundled/software-development/software-development-llama-cpp) | llama.cpp local GGUF inference + HF Hub model discovery. | `software-development/llama-cpp` |
 | [`node-inspect-debugger`](/docs/user-guide/skills/bundled/software-development/software-development-node-inspect-debugger) | Debug Node.js via --inspect + Chrome DevTools Protocol CLI. | `software-development/node-inspect-debugger` |
 | [`plan`](/docs/user-guide/skills/bundled/software-development/software-development-plan) | Plan mode: write an actionable markdown plan to .hermes/plans/, no execution. Bite-sized tasks, exact paths, complete code. | `software-development/plan` |
 | [`python-debugpy`](/docs/user-guide/skills/bundled/software-development/software-development-python-debugpy) | Debug Python: pdb REPL + debugpy remote (DAP). | `software-development/python-debugpy` |
+| [`regex-craft`](/docs/user-guide/skills/bundled/software-development/software-development-regex-craft) | Use when the user wants help writing, fixing, testing, or explaining a regular expression. | `software-development/regex-craft` |
 | [`requesting-code-review`](/docs/user-guide/skills/bundled/software-development/software-development-requesting-code-review) | Pre-commit review: security scan, quality gates, auto-fix. | `software-development/requesting-code-review` |
 | [`simplify-code`](/docs/user-guide/skills/bundled/software-development/software-development-simplify-code) | Parallel 3-agent cleanup of recent code changes. | `software-development/simplify-code` |
+| [`software-delivery-bundle`](/docs/user-guide/skills/bundled/software-development/software-development-software-delivery-bundle) | Use when taking a software change from an unclear request through design, implementation, debugging, simplification, and review. Routes each delivery stage to the smallest appropriate Hermes development skill. | `software-development/software-delivery-bundle` |
 | [`spike`](/docs/user-guide/skills/bundled/software-development/software-development-spike) | Throwaway experiments to validate an idea before build. | `software-development/spike` |
+| [`sql-review`](/docs/user-guide/skills/bundled/software-development/software-development-sql-review) | Use when the user wants a SQL query or statement reviewed for correctness, safety, and performance before running it. | `software-development/sql-review` |
+| [`stacktrace-triage`](/docs/user-guide/skills/bundled/software-development/software-development-stacktrace-triage) | Use when the user pastes an error stack trace or traceback and wants to know where the failure originates and what to look at. | `software-development/stacktrace-triage` |
 | [`systematic-debugging`](/docs/user-guide/skills/bundled/software-development/software-development-systematic-debugging) | 4-phase root cause debugging: understand bugs before fixing. | `software-development/systematic-debugging` |
 | [`test-driven-development`](/docs/user-guide/skills/bundled/software-development/software-development-test-driven-development) | TDD: enforce RED-GREEN-REFACTOR, tests before code. | `software-development/test-driven-development` |
 
