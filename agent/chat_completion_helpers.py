@@ -2876,6 +2876,24 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
                                 for phrase in _SSE_CONN_PHRASES
                             )
 
+                    # Some OpenAI-compatible local servers accept stream=True
+                    # but close the SSE response without yielding a chunk or
+                    # finish_reason. Repeating the same streaming request only
+                    # reproduces the empty response. Mark streaming unsupported
+                    # for this agent session so the main retry loop immediately
+                    # uses the already-supported non-streaming path.
+                    _is_completed_empty_stream = (
+                        "empty stream with no finish_reason" in str(e).lower()
+                    )
+                    if _is_completed_empty_stream:
+                        agent._disable_streaming = True
+                        logger.warning(
+                            "Provider completed an empty stream; switching this "
+                            "agent session to non-streaming requests."
+                        )
+                        result["error"] = e
+                        return
+
                     if _is_timeout or _is_conn_err or _is_sse_conn_err or _is_stream_parse_err:
                         # Transient network / timeout error. Retry the
                         # streaming request with a fresh connection first.

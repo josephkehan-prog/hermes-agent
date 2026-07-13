@@ -1060,6 +1060,62 @@ async def _vision_analyze_native(
                 pass
 
 
+def _native_ollama_vision_url(vision_cfg: Dict[str, Any]) -> Optional[str]:
+    """Return Ollama's native chat URL for an explicitly local endpoint."""
+    base_url = str(vision_cfg.get("base_url") or "").strip()
+    if not base_url:
+        return None
+    parsed = urlparse(base_url)
+    if parsed.scheme not in {"http", "https"}:
+        return None
+    if parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
+        return None
+    if parsed.port != 11434:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}/api/chat"
+
+
+async def _call_ollama_native_vision(
+    *,
+    endpoint: str,
+    model: str,
+    prompt: str,
+    image_data_url: str,
+    timeout: float,
+    temperature: float,
+    max_tokens: int,
+    context_length: int,
+) -> str:
+    """Analyze one image through Ollama's native multimodal request shape."""
+    try:
+        image_b64 = image_data_url.split(",", 1)[1]
+    except IndexError as exc:
+        raise ValueError("Invalid base64 image data URL") from exc
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "user", "content": prompt, "images": [image_b64]}
+        ],
+        "stream": False,
+        "think": False,
+        "options": {
+            "temperature": temperature,
+            "num_predict": max_tokens,
+            "num_ctx": context_length,
+        },
+    }
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(endpoint, json=payload)
+        response.raise_for_status()
+        data = response.json()
+
+    analysis = str((data.get("message") or {}).get("content") or "").strip()
+    if not analysis:
+        raise RuntimeError("Ollama native vision returned empty content")
+    return analysis
+
+
 async def vision_analyze_tool(
     image_url: str,
     user_prompt: str,
@@ -1227,16 +1283,23 @@ async def vision_analyze_tool(
         # Local vision models (llama.cpp, ollama) can take well over 30s.
         vision_timeout = 120.0
         vision_temperature = 0.1
+        vision_context_length = 16384
+        vision_cfg: Dict[str, Any] = {}
         try:
             from hermes_cli.config import cfg_get, load_config
             _cfg = load_config()
             _vision_cfg = cfg_get(_cfg, "auxiliary", "vision", default={})
+            if isinstance(_vision_cfg, dict):
+                vision_cfg = _vision_cfg
             _vt = _vision_cfg.get("timeout")
             if _vt is not None:
                 vision_timeout = float(_vt)
             _vtemp = _vision_cfg.get("temperature")
             if _vtemp is not None:
                 vision_temperature = float(_vtemp)
+            _vctx = _vision_cfg.get("context_length")
+            if _vctx is not None:
+                vision_context_length = max(4096, int(_vctx))
         except Exception:
             pass
         call_kwargs = {
@@ -1248,34 +1311,51 @@ async def vision_analyze_tool(
         }
         if model:
             call_kwargs["model"] = model
-        # Try full-size image first; on size-related rejection, downscale and retry.
-        try:
-            response = await async_call_llm(**call_kwargs)
-        except Exception as _api_err:
-            if (_is_image_size_error(_api_err)
-                    and len(image_data_url) > _RESIZE_TARGET_BYTES):
-                logger.info(
-                    "API rejected image (%.1f MB, likely too large); "
-                    "auto-resizing to ~%.0f MB and retrying...",
-                    len(image_data_url) / (1024 * 1024),
-                    _RESIZE_TARGET_BYTES / (1024 * 1024),
-                )
-                image_data_url = await _run_encode_on_cpu_executor(
-                    _resize_image_for_vision,
-                    temp_image_path, mime_type=detected_mime_type)
-                messages[0]["content"][1]["image_url"]["url"] = image_data_url
+        native_ollama_url = _native_ollama_vision_url(vision_cfg)
+        if native_ollama_url:
+            native_model = str(model or vision_cfg.get("model") or "").strip()
+            if not native_model:
+                raise RuntimeError("Ollama native vision requires a model")
+            logger.info("Using Ollama native vision transport for %s", native_model)
+            analysis = await _call_ollama_native_vision(
+                endpoint=native_ollama_url,
+                model=native_model,
+                prompt=comprehensive_prompt,
+                image_data_url=image_data_url,
+                timeout=vision_timeout,
+                temperature=vision_temperature,
+                max_tokens=2000,
+                context_length=vision_context_length,
+            )
+        else:
+            # Try full-size image first; on size-related rejection, downscale and retry.
+            try:
                 response = await async_call_llm(**call_kwargs)
-            else:
-                raise
-        
-        # Extract the analysis — fall back to reasoning if content is empty
-        analysis = extract_content_or_reasoning(response)
+            except Exception as _api_err:
+                if (_is_image_size_error(_api_err)
+                        and len(image_data_url) > _RESIZE_TARGET_BYTES):
+                    logger.info(
+                        "API rejected image (%.1f MB, likely too large); "
+                        "auto-resizing to ~%.0f MB and retrying...",
+                        len(image_data_url) / (1024 * 1024),
+                        _RESIZE_TARGET_BYTES / (1024 * 1024),
+                    )
+                    image_data_url = await _run_encode_on_cpu_executor(
+                        _resize_image_for_vision,
+                        temp_image_path, mime_type=detected_mime_type)
+                    messages[0]["content"][1]["image_url"]["url"] = image_data_url
+                    response = await async_call_llm(**call_kwargs)
+                else:
+                    raise
 
-        # Retry once on empty content (reasoning-only response)
-        if not analysis:
-            logger.warning("Vision LLM returned empty content, retrying once")
-            response = await async_call_llm(**call_kwargs)
+            # Extract the analysis — fall back to reasoning if content is empty
             analysis = extract_content_or_reasoning(response)
+
+            # Retry once on empty content (reasoning-only response)
+            if not analysis:
+                logger.warning("Vision LLM returned empty content, retrying once")
+                response = await async_call_llm(**call_kwargs)
+                analysis = extract_content_or_reasoning(response)
 
         analysis_length = len(analysis)
         

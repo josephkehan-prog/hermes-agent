@@ -600,6 +600,35 @@ class TestStreamingFallback:
 
     @patch("run_agent.AIAgent._create_request_openai_client")
     @patch("run_agent.AIAgent._close_request_openai_client")
+    def test_completed_empty_stream_sets_flag_without_stream_retries(
+        self, mock_close, mock_create
+    ):
+        """Zero-chunk SSE falls back to non-streaming on the main retry."""
+        from run_agent import AIAgent
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = iter([])
+        mock_create.return_value = mock_client
+
+        agent = AIAgent(
+            api_key="test-key",
+            base_url="http://localhost:11434/v1",
+            model="local/vision-model",
+            quiet_mode=True,
+            skip_context_files=True,
+            skip_memory=True,
+        )
+        agent.api_mode = "chat_completions"
+        agent._interrupt_requested = False
+
+        with pytest.raises(RuntimeError, match="empty stream with no finish_reason"):
+            agent._interruptible_streaming_api_call({})
+
+        assert agent._disable_streaming is True
+        assert mock_client.chat.completions.create.call_count == 1
+
+    @patch("run_agent.AIAgent._create_request_openai_client")
+    @patch("run_agent.AIAgent._close_request_openai_client")
     def test_non_transport_error_propagates(self, mock_close, mock_create):
         """Non-transport streaming errors propagate to the main retry loop."""
         from run_agent import AIAgent

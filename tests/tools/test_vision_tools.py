@@ -423,6 +423,43 @@ class TestErrorLoggingExcInfo:
 
 class TestVisionConfig:
     @pytest.mark.asyncio
+    async def test_local_ollama_vision_uses_native_transport(self, tmp_path):
+        img = tmp_path / "test.png"
+        img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8)
+
+        with (
+            patch("hermes_cli.config.load_config", return_value={
+                "auxiliary": {"vision": {
+                    "base_url": "http://localhost:11434/v1",
+                    "model": "qwen3-vl:test",
+                    "timeout": 77,
+                    "context_length": 16384,
+                }}
+            }),
+            patch(
+                "tools.vision_tools._image_to_base64_data_url",
+                return_value="data:image/png;base64,YWJj",
+            ),
+            patch(
+                "tools.vision_tools._call_ollama_native_vision",
+                new_callable=AsyncMock,
+                return_value="Native Ollama analysis",
+            ) as mock_native,
+            patch(
+                "tools.vision_tools.async_call_llm", new_callable=AsyncMock
+            ) as mock_openai,
+        ):
+            result = json.loads(
+                await vision_analyze_tool(str(img), "describe this", "qwen3-vl:test")
+            )
+
+        assert result == {"success": True, "analysis": "Native Ollama analysis"}
+        assert mock_native.await_args.kwargs["endpoint"] == "http://localhost:11434/api/chat"
+        assert mock_native.await_args.kwargs["timeout"] == 77.0
+        assert mock_native.await_args.kwargs["context_length"] == 16384
+        mock_openai.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_vision_uses_configured_temperature_and_timeout(self, tmp_path):
         img = tmp_path / "test.png"
         img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8)
