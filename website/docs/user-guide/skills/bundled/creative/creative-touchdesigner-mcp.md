@@ -182,49 +182,7 @@ win.par.winopen.pulse()
 | `td_get_hints` | Get patterns/tips before building |
 | `td_get_focus` | What network is open, what's selected |
 
-**Read/Write:**
-| Tool | What |
-|------|------|
-| `td_read_dat` | Read DAT text content |
-| `td_write_dat` | Write/patch DAT content |
-| `td_read_chop` | Read CHOP channel values |
-| `td_read_textport` | Read TD console output |
-
-**Visual:**
-| Tool | What |
-|------|------|
-| `td_get_screenshot` | Capture one OP viewer to file |
-| `td_get_screenshots` | Capture multiple OPs at once |
-| `td_get_screen_screenshot` | Capture actual screen via TD |
-| `td_navigate_to` | Jump network editor to an OP |
-
-**Search:**
-| Tool | What |
-|------|------|
-| `td_find_op` | Find ops by name/type across project |
-| `td_search` | Search code, expressions, string params |
-
-**System:**
-| Tool | What |
-|------|------|
-| `td_get_perf` | Performance profiling (FPS, slow ops) |
-| `td_list_instances` | List all running TD instances |
-| `td_get_docs` | In-depth docs on a TD topic |
-| `td_agents_md` | Read/write per-COMP markdown docs |
-| `td_reinit_extension` | Reload extension after code edit |
-| `td_clear_textport` | Clear console before debug session |
-
-**Input Automation:**
-| Tool | What |
-|------|------|
-| `td_input_execute` | Send mouse/keyboard to TD |
-| `td_input_status` | Poll input queue status |
-| `td_input_clear` | Stop input automation |
-| `td_op_screen_rect` | Get screen coords of a node |
-| `td_click_screen_point` | Click a point in a screenshot |
-| `td_screen_point_to_global` | Convert screenshot pixel to absolute screen coords |
-
-The table above covers the 32 tools used in typical creative workflows. The remaining 4 tools (`td_project_quit`, `td_test_session`, `td_dev_log`, `td_clear_dev_log`) are admin/dev-mode utilities — see `references/mcp-tools.md` for the full 36-tool reference with complete parameter schemas.
+The Core table above covers the 10 tools used in almost every session. The remaining 26 (Read/Write: `td_read_dat`/`td_write_dat`/`td_read_chop`/`td_read_textport`; Visual: `td_get_screenshot(s)`/`td_get_screen_screenshot`/`td_navigate_to`; Search: `td_find_op`/`td_search`; System: `td_get_perf`/`td_list_instances`/`td_get_docs`/`td_agents_md`/`td_reinit_extension`/`td_clear_textport`; Input Automation: `td_input_execute`/`td_input_status`/`td_input_clear`/`td_op_screen_rect`/`td_click_screen_point`/`td_screen_point_to_global`; plus 4 admin/dev-mode tools) with complete parameter schemas: read `references/mcp-tools.md`.
 
 ## Key Implementation Rules
 
@@ -255,73 +213,15 @@ Fallback: Constant TOP in `rgba32float` format (8-bit clamps to 0-1, freezing th
 
 ## Recording / Exporting Video
 
-```python
-# via td_execute_python:
-root = op('/project1')
-rec = root.create(moviefileoutTOP, 'recorder')
-op('/project1/out').outputConnectors[0].connect(rec.inputConnectors[0])
-rec.par.type = 'movie'
-rec.par.file = '/tmp/output.mov'
-rec.par.videocodec = 'prores'  # Apple ProRes — NOT license-restricted on macOS
-rec.par.record = True   # start
-# rec.par.record = False  # stop (call separately later)
-```
+Build a `moviefileoutTOP`, wire your output chain into it, and toggle `rec.par.record = True` / `False` to start/stop (the `.record()` method may not exist — use the parameter). Use `prores` codec on macOS (not license-restricted) or `mjpa` as fallback; H.264/H.265/AV1 need a Commercial license. **`TOP.save()` is useless for animation** — it captures the same GPU texture every time; always use MovieFileOut. Extract frames with `ffmpeg -i output.mov -vframes 120 frames/frame_%06d.png`.
 
-H.264/H.265/AV1 need Commercial license. Use `prores` on macOS or `mjpa` as fallback.
-Extract frames: `ffmpeg -i /tmp/output.mov -vframes 120 /tmp/frames/frame_%06d.png`
+Before recording, verify FPS > 0 (`td_get_perf`) and shader output isn't black (`td_get_screenshot`) — both cause silently-empty recordings. Full recipe, audio-cue timing, and codec details: read `references/pitfalls.md` (Recording & Codecs section, pitfalls #16-19, #38-39, #46).
 
-**TOP.save() is useless for animation** — captures same GPU texture every time. Always use MovieFileOut.
+## Audio-Reactive GLSL
 
-### Before Recording: Checklist
+**Hard rule:** never use Lag CHOP or Filter CHOP for spectrum smoothing — both run in timeslice mode and expand a 256-sample spectrum to 2400+, averaging every value to near-zero (~1e-06), the #1 audio-sync failure in testing. Smooth in the GLSL shader instead via temporal lerp against a feedback texture.
 
-1. **Verify FPS > 0** via `td_get_perf`. If FPS=0 the recording will be empty. See pitfalls #38-39.
-2. **Verify shader output is not black** via `td_get_screenshot`. Black output = shader error or missing input. See pitfalls #8, #40.
-3. **If recording with audio:** cue audio to start first, then delay recording by 3 frames. See pitfalls #19.
-4. **Set output path before starting record** — setting both in the same script can race.
-
-## Audio-Reactive GLSL (Proven Recipe)
-
-### Correct signal chain (tested April 2026)
-
-```
-AudioFileIn CHOP (playmode=sequential)
-  → AudioSpectrum CHOP (FFT=512, outputmenu=setmanually, outlength=256, timeslice=ON)
-  → Math CHOP (gain=10)
-  → CHOP to TOP (dataformat=r, layout=rowscropped)
-  → GLSL TOP input 1 (spectrum texture, 256x2)
-
-Constant TOP (rgba32float, time) → GLSL TOP input 0
-GLSL TOP → Null TOP → MovieFileOut
-```
-
-### Critical audio-reactive rules (empirically verified)
-
-1. **TimeSlice must stay ON** for AudioSpectrum. OFF = processes entire audio file → 24000+ samples → CHOP to TOP overflow.
-2. **Set Output Length manually** to 256 via `outputmenu='setmanually'` and `outlength=256`. Default outputs 22050 samples.
-3. **DO NOT use Lag CHOP for spectrum smoothing.** Lag CHOP operates in timeslice mode and expands 256 samples to 2400+, averaging all values to near-zero (~1e-06). The shader receives no usable data. This was the #1 audio sync failure in testing.
-4. **DO NOT use Filter CHOP either** — same timeslice expansion problem with spectrum data.
-5. **Smoothing belongs in the GLSL shader** if needed, via temporal lerp with a feedback texture: `mix(prevValue, newValue, 0.3)`. This gives frame-perfect sync with zero pipeline latency.
-6. **CHOP to TOP dataformat = 'r'**, layout = 'rowscropped'. Spectrum output is 256x2 (stereo). Sample at y=0.25 for first channel.
-7. **Math gain = 10** (not 5). Raw spectrum values are ~0.19 in bass range. Gain of 10 gives usable ~5.0 for the shader.
-8. **No Resample CHOP needed.** Control output size via AudioSpectrum's `outlength` param directly.
-
-### GLSL spectrum sampling
-
-```glsl
-// Input 0 = time (1x1 rgba32float), Input 1 = spectrum (256x2)
-float iTime = texture(sTD2DInputs[0], vec2(0.5)).r;
-
-// Sample multiple points per band and average for stability:
-// NOTE: y=0.25 for first channel (stereo texture is 256x2, first row center is 0.25)
-float bass = (texture(sTD2DInputs[1], vec2(0.02, 0.25)).r +
-              texture(sTD2DInputs[1], vec2(0.05, 0.25)).r) / 2.0;
-float mid  = (texture(sTD2DInputs[1], vec2(0.2, 0.25)).r +
-              texture(sTD2DInputs[1], vec2(0.35, 0.25)).r) / 2.0;
-float hi   = (texture(sTD2DInputs[1], vec2(0.6, 0.25)).r +
-              texture(sTD2DInputs[1], vec2(0.8, 0.25)).r) / 2.0;
-```
-
-See `references/network-patterns.md` for complete build scripts + shader code.
+The proven AudioSpectrum→GLSL signal chain, TimeSlice/outlength settings, gain tuning, and GLSL spectrum-sampling code: read `references/audio-reactive.md` before wiring an audio-reactive shader.
 
 ## Operator Quick Reference
 
