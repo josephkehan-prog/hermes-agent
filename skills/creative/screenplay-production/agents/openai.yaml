@@ -1,0 +1,4 @@
+interface:
+  display_name: "Screenplay Production"
+  short_description: "Develop scripts, scenes, and adaptations"
+  default_prompt: "Use $screenplay-production to build this screenplay or scripted narrative package."

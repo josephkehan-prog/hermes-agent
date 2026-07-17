@@ -1,0 +1,4 @@
+interface:
+  display_name: "Previsualization Production"
+  short_description: "Build storyboards, shots, and animatic proofs"
+  default_prompt: "Use $previsualization-production to create a reproducible previs package."

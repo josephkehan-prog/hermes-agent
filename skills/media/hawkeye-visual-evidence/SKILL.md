@@ -10,7 +10,7 @@ metadata:
     bundle: true
     domain: hawkeye-visual-evidence
     tags: [bundle, hawkeye, vision, ui, ocr, documents]
-    related_skills: [computer-use, dogfood, ocr-and-documents, nano-pdf, segment-anything-model]
+    related_skills: [computer-use, dogfood, ocr-and-documents, nano-pdf, segment-anything-model, war-room-specialist-cascade]
 ---
 
 # Hawkeye Visual Evidence
@@ -29,6 +29,7 @@ conduct broad research, or implement production code beyond a necessary test fix
 | Text in images or documents | `ocr-and-documents` | Deterministic extraction before interpretation |
 | PDF layout and page evidence | `nano-pdf` | Deterministic page rendering |
 | Object or region isolation | `segment-anything-model` | Deterministic coordinates and masks |
+| Schema-first document fields or tables | `war-room-specialist-cascade` | Hidden `extractor` profile |
 
 ## Orchestration Workflow
 
@@ -38,6 +39,8 @@ conduct broad research, or implement production code beyond a necessary test fix
 3. Separate observations from inferences and attach a screenshot or file path.
 4. Repeat the same deterministic action after any fix and compare evidence.
 5. Route asset creation to Canvas and code changes to Vanguard.
+6. Route schema-first extraction to Extractor; Hawkeye remains responsible for
+   pixel evidence and visual ambiguity, not canonical records.
 
 ## Handoff Record
 

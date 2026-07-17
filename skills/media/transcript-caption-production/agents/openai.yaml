@@ -1,0 +1,4 @@
+interface:
+  display_name: "Transcript and Caption Production"
+  short_description: "Transcribe, segment, and verify captions"
+  default_prompt: "Use $transcript-caption-production to create a timed transcript and caption package."

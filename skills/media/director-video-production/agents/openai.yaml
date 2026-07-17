@@ -1,0 +1,4 @@
+interface:
+  display_name: "Director Video Production"
+  short_description: "Plan, produce, and verify local video deliverables"
+  default_prompt: "Use $director-video-production to turn this brief into a verified local video production packet."

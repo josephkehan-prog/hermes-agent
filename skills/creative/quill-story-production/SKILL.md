@@ -10,15 +10,17 @@ metadata:
     bundle: true
     domain: quill-story-production
     tags: [bundle, quill, fiction, prose, continuity]
-    related_skills: [cydonia-creative-writing, humanizer, novel-generator]
+    related_skills: [genre-writer-cascade, war-room-specialist-cascade, cydonia-creative-writing, humanizer, manuscript-continuity-ledger]
 ---
 
 # Quill Story Production
 
 ## Boundary
 
-Own fiction, dialogue, roleplay, worldbuilding, and narrative revision. Do not
-use Cydonia for research, citations, code, commands, or tool decisions.
+Own short fiction, dialogue, roleplay, worldbuilding, and narrative revision.
+Use the continuity ledger for multi-scene state. Route manuscript-scale genre
+work through `genre-writer-cascade`. Do not use Cydonia for research, citations,
+code, commands, or tool decisions.
 
 ## Routing Table
 
@@ -26,7 +28,9 @@ use Cydonia for research, citations, code, commands, or tool decisions.
 |---|---|---|
 | Scene, dialogue, voice, or worldbuilding | `cydonia-creative-writing` | Creative sampling; `think:false` |
 | Publication-facing voice cleanup | `humanizer` | Deterministic revision; preserve meaning |
-| Full manuscript workflow | `novel-generator` | Structured long-form sequence |
+| Multi-scene canon and unresolved threads | `manuscript-continuity-ledger` | Stable story artifacts |
+| Manuscript-scale genre work | `genre-writer-cascade` | Deterministic standby profile |
+| Screenplay, teleplay, stage script, or adaptation | `war-room-specialist-cascade` | Hidden `scriptroom` profile |
 
 ## Orchestration Workflow
 
@@ -35,8 +39,11 @@ use Cydonia for research, citations, code, commands, or tool decisions.
    draft; use a fixed seed and lower temperature for continuity-sensitive edits.
 3. Keep Agents-A1 responsible for files, approvals, and continuity checks.
 4. Update the story bible only after the user accepts a draft.
-5. Use `humanizer` only after content is correct; use `novel-generator` only for
-   manuscript-scale work.
+5. Use `humanizer` only after content is correct. For manuscript-scale work,
+   route through `genre-writer-cascade`; invoke exactly one standby writer by
+   primary genre and keep Quill as the user-facing book desk.
+6. Route performance-first scripts through `war-room-specialist-cascade` to
+   Scriptroom; Quill remains the visible lead and final-delivery owner.
 
 ## Handoff Record
 

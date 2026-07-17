@@ -1,0 +1,4 @@
+interface:
+  display_name: "Forge GitHub Delivery"
+  short_description: "Deliver scoped GitHub changes from issue to merge readiness"
+  default_prompt: "Use Forge to take this repository task through issue alignment, implementation review, CI, and a merge-ready handoff."

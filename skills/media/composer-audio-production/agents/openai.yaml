@@ -1,0 +1,4 @@
+interface:
+  display_name: "Composer Audio Production"
+  short_description: "Plan, generate, analyze, and package local audio"
+  default_prompt: "Use $composer-audio-production to produce a verified local audio or music package from this brief."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sentinel Security Assurance"
+  short_description: "Audit code, dependencies, environments, and exposed services"
+  default_prompt: "Use Sentinel to produce an evidence-backed security assurance report for this authorized scope."

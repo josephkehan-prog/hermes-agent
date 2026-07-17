@@ -1,0 +1,4 @@
+interface:
+  display_name: "Genre Novel Production"
+  short_description: "Plan, draft, and continuity-check genre novels"
+  default_prompt: "Use $genre-novel-production to build this genre novel chapter by chapter with a persistent story bible."

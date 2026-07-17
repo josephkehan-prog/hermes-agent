@@ -8,7 +8,7 @@ platforms: [macos]
 metadata:
   hermes:
     tags: [creative-writing, fiction, prose, dialogue, roleplay, local-model]
-    related_skills: [humanizer, novel-generator]
+    related_skills: [humanizer, manuscript-continuity-ledger, genre-novel-production, genre-writer-cascade]
 ---
 
 # Write with Cydonia
@@ -54,7 +54,9 @@ or `--seed` always wins over the mode default.
 4. Have Agents-A1 check the draft against the brief and story bible. Reject
    continuity breaks, generic filler, repeated beats, and unearned tonal shifts.
 5. Use `humanizer` for a final voice pass when the user requests natural or
-   publication-facing prose. Use `novel-generator` only for complete manuscripts.
+   publication-facing prose. For complete local manuscripts, route through
+   `genre-novel-production` and `manuscript-continuity-ledger`; use
+   `novel-generator` only when the user explicitly requests another harness.
 6. Save accepted prose and update the story bible before drafting the next unit.
 
 ## Boundaries
