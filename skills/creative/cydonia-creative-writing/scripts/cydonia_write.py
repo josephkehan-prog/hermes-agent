@@ -11,7 +11,7 @@ import urllib.request
 from pathlib import Path
 
 
-MODEL = "hf.co/mradermacher/Cydonia-24B-v4.3-heretic-v2-i1-GGUF:Q4_K_M"
+MODEL = "hf.co/mradermacher/Cydonia-24B-v4.3-heretic-v4-i1-GGUF:Q4_K_M"
 ENDPOINT = "http://127.0.0.1:11434/api/chat"
 
 

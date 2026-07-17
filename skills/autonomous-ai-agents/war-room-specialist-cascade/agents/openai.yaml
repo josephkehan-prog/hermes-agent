@@ -1,0 +1,4 @@
+interface:
+  display_name: "War Room Specialist Cascade"
+  short_description: "Route niche work to hidden local specialists"
+  default_prompt: "Use $war-room-specialist-cascade to select the narrowest hidden specialist for this request."

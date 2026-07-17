@@ -1,0 +1,4 @@
+interface:
+  display_name: "Structured Document Extraction"
+  short_description: "Extract validated JSON from visual documents"
+  default_prompt: "Use $structured-document-extraction to extract this document into a validated schema."

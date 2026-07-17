@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sentry Incident Response"
+  short_description: "Diagnose and recover service incidents conservatively"
+  default_prompt: "Use Sentry to investigate this incident, preserve evidence, verify recovery, and define rollback and monitoring."

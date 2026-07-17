@@ -1,0 +1,4 @@
+interface:
+  display_name: "Genre Writer Cascade"
+  short_description: "Route manuscripts to hidden genre specialists"
+  default_prompt: "Use $genre-writer-cascade to select and invoke the correct hidden genre writer for this manuscript."

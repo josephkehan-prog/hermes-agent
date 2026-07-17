@@ -1,0 +1,4 @@
+interface:
+  display_name: "Archivist Knowledge Pipeline"
+  short_description: "Turn source artifacts into canonical, traceable knowledge"
+  default_prompt: "Use Archivist to extract these sources, preserve provenance, and produce one canonical knowledge artifact plus requested derivatives."

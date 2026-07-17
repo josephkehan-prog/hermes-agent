@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manuscript Continuity Ledger"
+  short_description: "Maintain canon, chapters, clues, and unresolved threads"
+  default_prompt: "Use $manuscript-continuity-ledger to build or audit the continuity artifacts for this manuscript."

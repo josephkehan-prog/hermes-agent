@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audiobook Narration Production"
+  short_description: "Render and verify local narrated audio"
+  default_prompt: "Use $audiobook-narration-production to produce this local audiobook narration package."
