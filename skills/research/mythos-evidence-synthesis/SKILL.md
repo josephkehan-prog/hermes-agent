@@ -35,10 +35,20 @@ operate services, make visual claims without Hawkeye, or draft fiction for Quill
 
 1. Decompose the question into claims and define an evidence class for each.
 2. Build the claim ledger before drafting conclusions.
-3. Call Qwythos with `think:false`, no tools, and a bounded source packet; treat
-   its output as an analytical draft that must map back to the ledger.
+3. Call Qwythos through the bundled helper with `think:false`, no tools, and a
+   bounded source packet; treat its output as an analytical draft that must map
+   back to the ledger.
 4. Reconcile contradictions explicitly and label every inference.
 5. Produce the smallest format that answers the question with nearby citations.
+
+```bash
+python "$HERMES_HOME/hermes-agent/skills/research/mythos-evidence-synthesis/scripts/qwythos_synthesize.py" \
+  --packet-file EVIDENCE-PACKET.md --output SYNTHESIS-DRAFT.md
+```
+
+Use the 32K default for normal evidence packets. Increase toward 128K only for
+an explicit long-context job after checking memory pressure; the controller and
+Qwythos are separate resident models on unified memory.
 
 ## Handoff Record
 

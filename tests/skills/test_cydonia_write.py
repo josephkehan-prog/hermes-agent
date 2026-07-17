@@ -64,6 +64,7 @@ def capture_payload(monkeypatch, module, request_args):
 
 def test_creative_mode_uses_open_sampling_without_fixed_seed(monkeypatch):
     module = load_module()
+    assert "heretic-v4" in module.MODEL
     payload = capture_payload(monkeypatch, module, args())
 
     assert payload["think"] is False
