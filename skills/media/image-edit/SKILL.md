@@ -1,6 +1,6 @@
 ---
 name: image-edit
-description: "Edit images locally with sips (built-in) or ImageMagick — resize, crop, rotate, convert, compose. No MCP tool needed."
+description: Edit images locally with sips or ImageMagick.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

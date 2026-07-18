@@ -1,6 +1,6 @@
 ---
 name: network-recon
-description: Keyless DNS and infrastructure reconnaissance — DNS-over-HTTPS record lookup, Certificate Transparency subdomain discovery (crt.sh), reverse DNS/PTR, WHOIS, HTTP header/security-header fingerprinting. Includes scripts/recon.py.
+description: Keyless DNS and infrastructure reconnaissance.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

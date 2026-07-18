@@ -1,6 +1,6 @@
 ---
 name: interview-prep
-description: Prepare for a teaching-role interview from a specific job posting — generate likely behavioral, pedagogy, and demo-lesson questions, scaffold STAR answers, and produce a one-page cheat sheet. No cloud API.
+description: Prep for a teaching-role interview from a posting.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

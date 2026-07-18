@@ -1,6 +1,6 @@
 ---
 name: transcript-caption-production
-description: "Use when transcribing local audio or video, producing timestamped JSON, SRT captions, subtitle drafts, searchable dialogue, or caption QA with the installed MLX Whisper model and explicit timing evidence."
+description: Transcribe local audio to timestamped captions.
 license: MIT
 metadata:
   hermes:

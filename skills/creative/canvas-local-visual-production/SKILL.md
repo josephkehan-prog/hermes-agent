@@ -1,6 +1,6 @@
 ---
 name: canvas-local-visual-production
-description: "Use when Canvas must turn a visual brief into a locally rendered, reproducible image and verify the result with visual evidence."
+description: Render a visual brief locally and verify the image.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

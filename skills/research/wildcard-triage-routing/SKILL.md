@@ -1,6 +1,6 @@
 ---
 name: wildcard-triage-routing
-description: "Use when Wildcard must turn an ambiguous request into an evidence-backed scope and route it to the correct War Room specialist without duplicating specialist work."
+description: Scope a request and route to a War Room specialist.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: tor-fetch
-description: "Fetch a webpage over Tor — including .onion hidden services. Use whenever the user gives a .onion URL, asks to open/read/check a site 'over Tor', 'via Tor', 'anonymously', or wants an onion service reached. Also for toggling Hermes' global Tor routing on/off."
+description: Fetch a webpage over Tor, including .onion sites.
 version: 1.0.0
 platforms: [macos, linux]
 metadata:

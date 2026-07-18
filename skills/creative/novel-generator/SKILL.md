@@ -1,6 +1,6 @@
 ---
 name: novel-generator
-description: "Generate full novels autonomously via Claude Code or Codex — one-shot creative writing agents that plan, draft chapters, and deliver a complete manuscript without human-in-the-loop each turn."
+description: Generate full novels autonomously via Claude or Codex.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: vanguard-engineering-ops
-description: "Use when Vanguard owns a multi-step engineering or local-model operation that must move from repository discovery through implementation, debugging, verification, and reversible handoff."
+description: Own multi-step engineering and local-model ops.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

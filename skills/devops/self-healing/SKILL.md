@@ -1,6 +1,6 @@
 ---
 name: self-healing
-description: Monitor→detect→remediate runbook engine for local services — HTTP/process/disk/load health checks, gated destructive remediation (restart/clear-temp), and ntfy alerts. Composes uptime_check_tool, notify_tool, and the local-model-ops endpoints; dry-run by default, --confirm required for any destructive action. Includes scripts/selfheal.py.
+description: Monitor, detect, and remediate local service health.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

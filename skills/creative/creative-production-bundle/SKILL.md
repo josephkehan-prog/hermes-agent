@@ -1,6 +1,6 @@
 ---
 name: creative-production-bundle
-description: "Use when turning a creative brief into a coherent visual concept, design system, interface direction, diagram, or generative artifact across multiple media. Routes concept, style, structure, and production without flattening them into one generic design pass."
+description: Route a creative brief across visual media specialists.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

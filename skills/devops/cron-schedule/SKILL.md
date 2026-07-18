@@ -1,6 +1,6 @@
 ---
 name: cron-schedule
-description: "Use when the user wants to write, read, fix, or explain a cron expression for scheduling a job."
+description: Write, read, fix, or explain cron expressions.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

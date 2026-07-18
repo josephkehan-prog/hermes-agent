@@ -1,6 +1,6 @@
 ---
 name: specialist-routing
-description: "Route a task to the right local specialist model via hermes-specialist — decision table, commands, and the never-promote-a-specialist-to-default rule."
+description: Route a task to the right local specialist model.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

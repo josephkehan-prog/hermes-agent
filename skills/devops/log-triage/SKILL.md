@@ -1,6 +1,6 @@
 ---
 name: log-triage
-description: Parse, classify, and summarize log files for incident triage — tail-and-cap scanning, severity classification, and error clustering for plain text, JSON-lines, syslog, and common app log formats. Local files only, no network. Includes scripts/logtriage.py.
+description: Parse and cluster log files for incident triage.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

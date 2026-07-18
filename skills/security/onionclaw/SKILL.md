@@ -1,6 +1,6 @@
 ---
 name: onionclaw
-description: Search the Tor dark web, fetch .onion hidden service pages, rotate Tor identity, and run structured OSINT investigations. Use when user asks to search dark web, investigate .onion sites, find if data appeared on dark web, conduct Tor-based OSINT, look up dark web leaks, fetch any .onion URL, check for leaked credentials, or investigate ransomware groups.
+description: Search the Tor dark web and fetch .onion pages.
 homepage: https://github.com/JacobJandon/OnionClaw
 metadata:
   {

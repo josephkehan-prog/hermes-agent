@@ -1,6 +1,6 @@
 ---
 name: workspace-rag
-description: "Semantic search over local Hermes workspace notes (memories, IMPROVEMENTS.md, WORKSPACE.md) via sqlite-vec + local Ollama embeddings. No server, no cloud API."
+description: Local semantic search over Hermes workspace notes.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

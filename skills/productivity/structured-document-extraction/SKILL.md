@@ -1,6 +1,6 @@
 ---
 name: structured-document-extraction
-description: "Use when extracting named fields, tables, entities, or validated JSON from invoices, receipts, forms, contracts, reports, scans, screenshots, or rendered PDFs with Qwen3-VL and a caller-supplied schema."
+description: Extract JSON fields and tables from documents.
 license: MIT
 metadata:
   hermes:

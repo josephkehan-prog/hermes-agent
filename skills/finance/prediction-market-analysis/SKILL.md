@@ -1,6 +1,6 @@
 ---
 name: prediction-market-analysis
-description: "Find mispriced Polymarket outcomes using local LLM probability estimation, multi-stage scanning pipelines, Kelly Criterion risk management. Covers model selection for your hardware, edge detection strategies, and trading workflow."
+description: Find mispriced Polymarket outcomes with local LLMs.
 version: 1.0.0
 author: Hermes Agent
 tags: [polymarket, prediction-markets, local-llm, ollama, quantitative-trading, risk-management]

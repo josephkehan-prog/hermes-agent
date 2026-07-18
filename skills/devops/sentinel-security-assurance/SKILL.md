@@ -1,6 +1,6 @@
 ---
 name: sentinel-security-assurance
-description: "Use when Sentinel must audit an authorized codebase or local runtime for dependency, configuration, container, review, or exposed-service risks and return prioritized evidence without performing intrusive exploitation."
+description: Audit a codebase or runtime for security risks.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

@@ -3,7 +3,7 @@ name: Skill Factory
 version: 1.0.0
 author: community
 category: meta
-description: A meta-skill that silently watches your workflows and automatically generates reusable Hermes skills from them.
+description: Generate reusable Hermes skills from workflows.
 tags: [meta, automation, skills, learning, productivity]
 ---
 

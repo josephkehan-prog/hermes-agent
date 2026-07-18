@@ -1,6 +1,6 @@
 ---
 name: signal
-description: Send and receive messages via Signal using signal-cli CLI or the Signal MCP server. Covers account status, sending, receiving, groups, and contacts.
+description: Send and receive Signal messages via signal-cli.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

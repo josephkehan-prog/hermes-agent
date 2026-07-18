@@ -1,6 +1,6 @@
 ---
 name: github-maintainer-bundle
-description: "Use when maintaining a GitHub repository across authentication, issue triage, code inspection, pull-request creation, review, CI follow-up, and merge readiness. Orchestrates the complete repository-maintenance lifecycle."
+description: Maintain a GitHub repo across the full lifecycle.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

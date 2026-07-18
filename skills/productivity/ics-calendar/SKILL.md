@@ -1,6 +1,6 @@
 ---
 name: ics-calendar
-description: "Use when the user wants to create an .ics calendar file or invite for an event they can import into any calendar app."
+description: Create an .ics calendar file or event invite.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

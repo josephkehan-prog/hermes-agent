@@ -1,6 +1,6 @@
 ---
 name: chatterbox-tts
-description: "Local high-quality TTS via Chatterbox MLX (Resemble AI) — voice cloning, emotion control, multilingual. Apple-Silicon native, offline, no cloud."
+description: Local TTS with voice cloning via Chatterbox MLX.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

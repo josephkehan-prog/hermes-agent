@@ -1,6 +1,6 @@
 ---
 name: osint-reconnaissance  
-description: Open-source intelligence and digital footprint analysis across social networks, professional platforms, and content sites using Sherlock CLI + browser-based Google Dorks workflows.
+description: Digital footprint OSINT via Sherlock and Google Dorks.
 version: 1.0.0  
 author: hermes-agent  
 license: MIT  

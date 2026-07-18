@@ -1,6 +1,6 @@
 ---
 name: repo-location-discovery
-description: "Find where hermes-agent (or any project) actually lives before writing files — verify path via config, find command, or git status rather than assuming."
+description: Verify where a project lives before writing files.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

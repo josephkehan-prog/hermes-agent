@@ -1,6 +1,6 @@
 ---
 name: ethical-investigation-bundle
-description: "Use when conducting authorized open-source investigations across people, organizations, domains, infrastructure, public records, and social footprints. Coordinates evidence collection and entity resolution with privacy and confidence controls."
+description: Authorized OSINT investigations with evidence control.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

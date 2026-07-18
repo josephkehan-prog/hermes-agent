@@ -1,6 +1,6 @@
 ---
 name: open-databases
-description: Query free public research databases with no API key — OpenAlex, Crossref, Wikidata SPARQL, SEC EDGAR, archive.org/Wayback, OpenLibrary, PubMed, WHOIS/DNS. Includes scripts/dbquery.py.
+description: Query free keyless public research databases.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

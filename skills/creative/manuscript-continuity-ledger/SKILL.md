@@ -1,6 +1,6 @@
 ---
 name: manuscript-continuity-ledger
-description: "Use when creating or auditing the deterministic continuity artifacts for a long-form manuscript: story bible, chapter obligations, character and place canon, rules, timeline, clues, unresolved threads, retcons, revision history, and assembly checks."
+description: Build and audit manuscript continuity artifacts.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

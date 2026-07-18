@@ -1,6 +1,6 @@
 ---
 name: director-video-production
-description: "Use when planning, producing, rendering, or validating a local video deliverable from a brief, source video, script, storyboard, or audio track. Routes narrative structure, technical animation, real-time visuals, and ffmpeg assembly while exposing missing runtimes before production starts."
+description: Produce local video from brief to final artifact.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

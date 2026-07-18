@@ -1,6 +1,6 @@
 ---
 name: cydonia-creative-writing
-description: "Use when drafting or revising fiction, scenes, dialogue, roleplay, character voice, worldbuilding, or long-form narrative with the local Cydonia writing model. Runs an uncensored no-tool prose engine behind the Agents-A1 controller and preserves continuity through explicit story artifacts."
+description: Draft and revise fiction with the local Cydonia model.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

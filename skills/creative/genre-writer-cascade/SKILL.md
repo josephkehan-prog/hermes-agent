@@ -1,6 +1,6 @@
 ---
 name: genre-writer-cascade
-description: "Use when Quill receives manuscript-scale romance, fantasy, science-fiction, horror, mystery, thriller, or blended-genre work and must deterministically select and invoke the matching standby genre profile without exposing every specialist in the active War Room roster."
+description: Select the matching standby genre profile for Quill.
 license: MIT
 metadata:
   hermes:

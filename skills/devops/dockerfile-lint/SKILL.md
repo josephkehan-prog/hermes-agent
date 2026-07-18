@@ -1,6 +1,6 @@
 ---
 name: dockerfile-lint
-description: "Use when the user wants a Dockerfile reviewed for security, correctness, and image-size problems before building."
+description: Lint a Dockerfile for security, correctness, and size.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

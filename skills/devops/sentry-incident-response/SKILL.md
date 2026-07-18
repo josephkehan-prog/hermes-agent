@@ -1,6 +1,6 @@
 ---
 name: sentry-incident-response
-description: "Use when Sentry must diagnose a service, automation, or runtime incident from first signal through reversible recovery, same-signal verification, and bounded recurrence monitoring."
+description: Diagnose and recover from a runtime incident.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: rag-retrieval
-description: "Local RAG retrieval stack — unified Qwen3-Embedding backend, per-corpus indexes, and 2-stage rerank via hermes-rerank."
+description: Local RAG retrieval with embeddings and reranking.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

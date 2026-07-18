@@ -1,6 +1,6 @@
 ---
 name: quill-story-production
-description: "Use when Quill must draft or revise fiction with Cydonia while preserving voice, continuity, requested boundaries, and a clean handoff to publication or manuscript workflows."
+description: Draft and revise fiction with Cydonia as Quill.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

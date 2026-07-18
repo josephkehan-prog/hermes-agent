@@ -1,6 +1,6 @@
 ---
 name: csv-insights
-description: "Use when the user wants to inspect, summarize, filter, or compute aggregates over a CSV, TSV, or other delimited data file."
+description: Summarize, filter, and aggregate CSV or TSV files.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

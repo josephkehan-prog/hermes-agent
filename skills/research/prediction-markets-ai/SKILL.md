@@ -1,6 +1,6 @@
 ---
 name: prediction-markets-ai
-description: "Use local LLMs to find mispriced opportunities on Polymarket, Kalshi, and other prediction markets via probability estimation, cross-market arbitrage detection, and risk sizing."
+description: Find mispriced prediction markets with local LLMs.
 version: 1.0.0
 author: Hermes Agent
 tags: [prediction-markets, polymarket, kalshi, ollama, ai-trading, quantitative]

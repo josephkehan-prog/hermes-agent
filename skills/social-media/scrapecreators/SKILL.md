@@ -1,6 +1,6 @@
 ---
 name: scrapecreators
-description: ScrapeCreators API wrapper for public social-media profile/post scraping across TikTok, Instagram, YouTube, X/Twitter, Reddit, LinkedIn, Facebook, Threads. PAID API — requires SCRAPECREATORS_API_KEY. Includes scripts/scrapecreators.py.
+description: ScrapeCreators API for social profiles (paid key).
 version: 1.0.0
 author: Hermes Agent
 license: MIT

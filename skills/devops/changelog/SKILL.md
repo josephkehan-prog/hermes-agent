@@ -1,6 +1,6 @@
 ---
 name: changelog
-description: Generate and maintain a Keep-a-Changelog CHANGELOG.md from git history using conventional-commit prefixes. Keyless, git-only, no cloud API.
+description: Build a Keep-a-Changelog CHANGELOG.md from git history.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

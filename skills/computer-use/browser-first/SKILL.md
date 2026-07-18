@@ -1,6 +1,6 @@
 ---
 name: browser-first
-description: For ANY web task (open a URL, read a page, search, dork, fetch a profile, click, fill a form), use the browser toolset — NOT computer_use. computer_use (screen/mouse control of the whole Mac) is a last resort for native desktop apps only. If the browser tool errors with no CDP endpoint, start one with bin/hermes-browser and connect. Local, no cloud, no API key.
+description: Prefer the browser toolset over computer_use for web.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

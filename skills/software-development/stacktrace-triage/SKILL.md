@@ -1,6 +1,6 @@
 ---
 name: stacktrace-triage
-description: "Use when the user pastes an error stack trace or traceback and wants to know where the failure originates and what to look at."
+description: Localize where a stack trace or traceback fails.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: env-audit
-description: "Use when the user wants to check a project's environment variables — missing keys, keys defined but unused, or drift between .env and .env.example."
+description: Check env vars for missing, unused, or drifted keys.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

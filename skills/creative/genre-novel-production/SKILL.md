@@ -1,6 +1,6 @@
 ---
 name: genre-novel-production
-description: "Use when planning, drafting, revising, or continuity-checking a romance, fantasy, science-fiction, horror, mystery, or thriller novel with the local Cydonia prose engine. Enforces genre-specific promises, chapter ledgers, story-bible updates, and manuscript-scale verification."
+description: Write genre novels with Cydonia and continuity checks.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

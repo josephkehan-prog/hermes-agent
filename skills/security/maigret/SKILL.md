@@ -1,6 +1,6 @@
 ---
 name: maigret
-description: OSINT username search across 500+ social networks using Maigret CLI. Hunt down accounts, email links, and cross-platform presence.
+description: OSINT username search across networks via Maigret.
 version: 1.0.0
 author: hermes-agent
 license: MIT

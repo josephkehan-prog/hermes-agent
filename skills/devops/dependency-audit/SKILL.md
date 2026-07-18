@@ -1,6 +1,6 @@
 ---
 name: dependency-audit
-description: Audit dependencies for staleness and vulnerabilities using free, local, keyless tools only — npm audit, pip-audit, cargo audit, OSV-Scanner. No paid services.
+description: Audit deps for staleness and CVEs with local scanners.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

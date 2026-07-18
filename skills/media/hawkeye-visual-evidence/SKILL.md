@@ -1,6 +1,6 @@
 ---
 name: hawkeye-visual-evidence
-description: "Use when Hawkeye must inspect a UI, screenshot, rendered document, or image and return reproducible visual observations separated from inference."
+description: Inspect UIs and images for visual evidence.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

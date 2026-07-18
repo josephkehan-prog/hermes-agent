@@ -1,6 +1,6 @@
 ---
 name: local-model-ops
-description: Operate Hermes local inference safely on this 64GB Mac, including Qwen3.6, Agents-A1, specialist Ollama peers, and context-window limits.
+description: Operate Hermes local inference on this Mac.
 version: 1.0.0
 author: Orchestra Research
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: resume-tailor
-description: Tailor a base resume to a specific job posting — extract required keywords, map them to the user's existing experience, and produce edited bullet points. No cloud API, no paid resume tools.
+description: Tailor a resume to a specific job posting.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

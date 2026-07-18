@@ -1,6 +1,6 @@
 ---
 name: market-pulse
-description: One-shot market-snapshot dashboard combining keyless crypto and prediction-market signals — top coin prices, the Fear & Greed Index, and Polymarket's trending markets — into a single "how's the market doing" read. Includes scripts/pulse.py.
+description: Keyless crypto + prediction-market snapshot dashboard.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: screenplay-production
-description: "Use when developing or revising a screenplay, teleplay, stage script, scripted podcast, cinematic scene, dialogue pass, beat sheet, or prose-to-script adaptation with local Cydonia drafting and explicit scene/continuity artifacts."
+description: Write and revise screenplays with local Cydonia.
 license: MIT
 metadata:
   hermes:

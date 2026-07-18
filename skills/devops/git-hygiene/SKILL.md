@@ -1,6 +1,6 @@
 ---
 name: git-hygiene
-description: Keep a repo clean — .gitignore, no committed secrets, no large binaries, branch naming, atomic conventional commits. Plain git commands, no cloud API.
+description: Keep a repo clean of secrets, big files, bad commits.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

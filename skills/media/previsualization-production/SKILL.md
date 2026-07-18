@@ -1,6 +1,6 @@
 ---
 name: previsualization-production
-description: "Use when turning a script or visual brief into a shot grammar, storyboard, animatic plan, concept trailer, camera blocking study, or low-cost LTX motion proof before full video production."
+description: Turn a script into storyboards and animatics.
 license: MIT
 metadata:
   hermes:

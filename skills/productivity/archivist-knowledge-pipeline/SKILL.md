@@ -1,6 +1,6 @@
 ---
 name: archivist-knowledge-pipeline
-description: "Use when Archivist must turn documents, notes, PDFs, or workspace sources into one canonical, provenance-preserving knowledge artifact and verified derivative formats."
+description: Turn documents into one canonical knowledge artifact.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

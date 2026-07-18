@@ -1,6 +1,6 @@
 ---
 name: composer-audio-production
-description: "Use when planning, writing, generating, editing, analyzing, or packaging local music, sound effects, soundscapes, lyrics, stems, or soundtrack assets. Routes composition, local generation, audio analysis, and ffmpeg mastering while refusing to invent output from an unavailable engine."
+description: Compose and produce local music and audio assets.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: local-ai-lifecycle-bundle
-description: "Use when selecting, acquiring, serving, evaluating, and operating local or self-hosted language models across hardware constraints and knowledge workflows. Coordinates the model lifecycle from requirements to measured runtime behavior."
+description: Manage the local model lifecycle end to end.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

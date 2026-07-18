@@ -1,6 +1,6 @@
 ---
 name: crypto-market
-description: Keyless crypto market data (prices, trends, sentiment) and public wallet lookups (Bitcoin, Ethereum/MetaMask, Monero, any coin) via CoinGecko, alternative.me, Cloudflare's ETH gateway, and Blockchair. Includes scripts/crypto.py.
+description: Keyless crypto market data and public wallet lookups.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

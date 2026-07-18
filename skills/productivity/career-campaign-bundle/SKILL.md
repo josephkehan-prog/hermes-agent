@@ -1,6 +1,6 @@
 ---
 name: career-campaign-bundle
-description: "Use when running an end-to-end job campaign from opportunity tracking through tailored resume, cover letter, interview preparation, follow-up, and document delivery. Maintains one factual candidate record across every application artifact."
+description: Run an end-to-end job application campaign.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

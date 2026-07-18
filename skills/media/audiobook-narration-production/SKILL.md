@@ -1,6 +1,6 @@
 ---
 name: audiobook-narration-production
-description: "Use when producing local audiobook chapters, narrated essays, voiceover, spoken-word proofs, or accessible audio from approved text with Kokoro, ffmpeg assembly, reproducible voice settings, and listening QA."
+description: Produce local audiobook narration with Kokoro.
 license: MIT
 metadata:
   hermes:

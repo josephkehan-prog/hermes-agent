@@ -1,6 +1,6 @@
 ---
 name: local-model-audit
-description: "Verify whether a project's claimed 'local mode' for ML inference actually works — check runtime, weights, and processes across any framework (Ollama, ComfyUI, mflux/MLX, llama.cpp, etc.). Use when the user says 'check local models', 'audit my setup', or asks about 'local mode' status. Covers both LLM stacks and image-gen stacks."
+description: Verify whether a project's local ML mode works.
 version: 1.0.0
 author: Orchestra Research
 license: MIT

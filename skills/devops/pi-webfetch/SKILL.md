@@ -1,6 +1,6 @@
 ---
 name: pi-webfetch
-description: "Web fetch tool extension for the pi coding agent. Fetches URLs as markdown, text, or HTML with bounded timeout and response size controls."
+description: Fetch URLs as markdown, text, or HTML for pi.
 version: 0.1.0
 author: code-yeongyu + hermes adoption
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: forge-github-delivery
-description: "Use when Forge must carry one scoped GitHub change from issue and repository orientation through branch, review, CI, and a merge-ready handoff without silently publishing or merging."
+description: Carry one GitHub change to a merge-ready handoff.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: knowledge-workflow-bundle
-description: "Use when capturing, extracting, organizing, transforming, and presenting knowledge across notes, documents, PDFs, slides, and workspace services. Preserves provenance and one canonical source while producing multiple usable formats."
+description: Capture and transform knowledge across documents.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

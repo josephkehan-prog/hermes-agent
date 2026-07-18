@@ -1,6 +1,6 @@
 ---
 name: scrapling
-description: Web scraping with Scrapling - HTTP fetching, stealth browser automation, Cloudflare bypass, and spider crawling via CLI and Python.
+description: Scrapling web scraping with stealth and crawling.
 version: 1.0.0
 author: FEUAZUR
 license: MIT

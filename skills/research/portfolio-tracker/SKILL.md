@@ -1,6 +1,6 @@
 ---
 name: portfolio-tracker
-description: Keyless crypto portfolio valuation from a local holdings file (JSON list of {coin_id, amount}). Fetches spot prices from CoinGecko in one batched call, computes per-holding and total value, and reports risk/concentration reads. Includes scripts/portfolio.py.
+description: Keyless crypto portfolio valuation from a holdings file.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

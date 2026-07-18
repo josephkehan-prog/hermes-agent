@@ -1,6 +1,6 @@
 ---
 name: social-footprint
-description: Username + email footprint reconnaissance — curated keyless platform-presence checks, email permutation generation, and Gravatar lookup. Authorized/defensive/research use only. Includes scripts/footprint.py.
+description: Keyless username and email footprint recon.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

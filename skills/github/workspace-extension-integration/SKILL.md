@@ -1,6 +1,6 @@
 ---
 name: workspace-extension-integration
-description: "Adopt external tools/repos into hermes ecosystem as plugins/extensions/tools. Covers cloning, installing deps, placing in correct location, smoke testing, and wrapping for hermes toolchain."
+description: Adopt external repos as hermes plugins or tools.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

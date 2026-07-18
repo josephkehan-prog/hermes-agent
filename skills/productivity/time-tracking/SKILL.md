@@ -1,6 +1,6 @@
 ---
 name: time-tracking
-description: "Use when the user asks to start, stop, or report time spent on a task, project, or work session. Tracks intervals in a local JSONL ledger with tags."
+description: Start, stop, and report time in a local ledger.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: infra-monitor
-description: Infrastructure drift monitoring for a domain over time — DNS record changes, new/expiring TLS certs via Certificate Transparency logs, IP/ASN changes, and security-header regressions. Composes network-recon's DoH/crt.sh tooling into snapshot-and-diff workflows. Includes scripts/infra_snapshot.py.
+description: Monitor domain infrastructure drift over time.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

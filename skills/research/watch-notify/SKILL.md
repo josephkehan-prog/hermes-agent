@@ -1,6 +1,6 @@
 ---
 name: watch-notify
-description: Generic "watch a source, detect a change, alert" monitoring engine — content-hash diffing for any URL, JSON-field value tracking, and keyless push notification via ntfy.sh. No external CLI, no API keys. Includes scripts/watch.py.
+description: Watch a URL for changes and push an alert.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

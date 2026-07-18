@@ -1,6 +1,6 @@
 ---
 name: software-delivery-bundle
-description: "Use when taking a software change from an unclear request through design, implementation, debugging, simplification, and review. Routes each delivery stage to the smallest appropriate Hermes development skill."
+description: Route a software change through each delivery stage.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

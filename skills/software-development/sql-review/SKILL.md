@@ -1,6 +1,6 @@
 ---
 name: sql-review
-description: "Use when the user wants a SQL query or statement reviewed for correctness, safety, and performance before running it."
+description: Review a SQL statement for correctness and safety.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

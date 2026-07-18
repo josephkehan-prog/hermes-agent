@@ -1,6 +1,6 @@
 ---
 name: credit-card-investigation
-description: Investigate stolen credit card data on the deep web — cross-reference forum dumps with BIN/IIN clearnet databases, identify issuer, scheme type, and contextualize PII exposure. Use when user asks about a specific card number found on dark web forums, or wants to assess what's exposed in a breach dump.
+description: Investigate leaked card data with BIN/IIN lookups.
 tags: [deep-web, credit-card, bin-inquiry, carding-forum]
 ---
 

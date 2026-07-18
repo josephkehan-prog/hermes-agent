@@ -1,6 +1,6 @@
 ---
 name: quick-summary
-description: "Use when the user asks to summarize, condense, TL;DR, or extract key points from a document, article, transcript, or long block of text."
+description: Summarize or extract key points from text.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

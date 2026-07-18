@@ -1,6 +1,6 @@
 ---
 name: deal-hunting
-description: Hunt software and hardware deals from free, keyless sources — Slickdeals, OzBargain, and Reddit (r/buildapcsales, r/GameDeals) RSS feeds. No paid APIs, no API keys. Includes scripts/deals.py for search and watchlist tracking, plus local-model-assisted dedupe and deal-quality triage.
+description: Hunt software and hardware deals from free RSS feeds.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

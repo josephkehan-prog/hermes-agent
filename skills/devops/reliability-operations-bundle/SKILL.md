@@ -1,6 +1,6 @@
 ---
 name: reliability-operations-bundle
-description: "Use when diagnosing, repairing, and preventing service or automation failures across logs, infrastructure checks, dependency health, monitoring, and self-healing. Coordinates a conservative reliability response from signal to verified recovery."
+description: Coordinate a reliability response from signal to fix.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

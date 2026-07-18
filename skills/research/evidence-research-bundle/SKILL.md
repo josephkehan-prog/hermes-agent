@@ -1,6 +1,6 @@
 ---
 name: evidence-research-bundle
-description: "Use when answering a consequential research question with current web evidence, scholarly literature, public datasets, local knowledge, and a cited synthesis. Routes discovery and verification by source type and claim strength."
+description: Answer research questions with cited web evidence.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

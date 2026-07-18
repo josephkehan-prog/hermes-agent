@@ -1,6 +1,6 @@
 ---
 name: mythos-evidence-synthesis
-description: "Use when Mythos must reconcile multiple sources into a cited analytical brief while preserving contradictions, uncertainty, and the boundary between source claims and inference."
+description: Reconcile multiple sources into a cited brief.
 version: 1.0.0
 author: Hermes War Room
 license: MIT

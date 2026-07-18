@@ -1,6 +1,6 @@
 ---
 name: war-room-specialist-cascade
-description: "Use when Wildcard or a visible War Room lead receives a screenplay, audiobook narration, transcription/caption, structured-document extraction, or video-previsualization request and must invoke one hidden niche profile without activating it in the roster."
+description: Route War Room requests to hidden niche profiles.
 license: MIT
 metadata:
   hermes:

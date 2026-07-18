@@ -1,6 +1,6 @@
 ---
 name: flux-local
-description: "Generate images locally with FLUX.1-dev or FLUX.1-schnell via ComfyUI or a standalone diffusers script — no web UI needed for one-off generation."
+description: Generate images locally with FLUX.1 dev or schnell.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

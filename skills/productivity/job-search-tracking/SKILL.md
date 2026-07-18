@@ -1,6 +1,6 @@
 ---
 name: job-search-tracking
-description: Track job applications and monitor new listings locally — CSV-backed tracker plus RSS watchers for remote/education job boards. No cloud account required.
+description: Track job applications and watch listings locally.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

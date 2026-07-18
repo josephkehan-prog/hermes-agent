@@ -1,6 +1,6 @@
 ---
 name: git-bisect
-description: "Use when a bug appeared between two commits and the user wants to find the exact commit that introduced it."
+description: Find the commit that introduced a regression.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

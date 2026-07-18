@@ -1,6 +1,6 @@
 ---
 name: regex-craft
-description: "Use when the user wants help writing, fixing, testing, or explaining a regular expression."
+description: Write, fix, test, or explain a regular expression.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

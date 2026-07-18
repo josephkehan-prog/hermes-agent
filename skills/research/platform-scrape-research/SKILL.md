@@ -1,6 +1,6 @@
 ---
 name: platform-scrape-research
-description: Lightweight research pipeline for scraping a single platform (Substack, GitHub, Twitter/X, blog) on a specific topic. Uses web_search with site operator plus web_extract to compile a markdown report. No MCPs required.
+description: Scrape one platform on a topic into a report.
 version: 1.0.0
 ---
 

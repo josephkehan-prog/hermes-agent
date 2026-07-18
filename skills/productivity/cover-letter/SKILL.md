@@ -1,6 +1,6 @@
 ---
 name: cover-letter
-description: Draft a structured, 4-paragraph cover letter for a specific job posting — hook, fit evidence, org-specific detail, close. Tuned for teaching roles and for small local models that need explicit step-by-step instructions.
+description: Draft a 4-paragraph cover letter for a job posting.
 version: 1.0.0
 author: Hermes Agent
 license: MIT

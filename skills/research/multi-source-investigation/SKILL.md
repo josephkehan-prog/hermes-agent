@@ -1,9 +1,6 @@
 ---
 name: multi-source-investigation
-description: |
-  Multi-domain investigative framework for professional identity verification, supply chain forensics,
-  and cross-platform data triangulation. Supports evidence-backed reporting across healthcare, tech, finance,
-  and government databases with systematic hypothesis formation and validation protocols.
+description: Cross-database investigation with evidence validation.
 platforms: [linux, macos, windows]
 category: research
 triggers:

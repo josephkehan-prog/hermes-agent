@@ -1,6 +1,6 @@
 ---
 name: media-production-bundle
-description: "Use when producing a multi-format media package from source content through transcript analysis, audio or music, visualization, animation, and publication-ready assets. Coordinates narrative and technical continuity across media outputs."
+description: Produce a coordinated multi-format media package.
 version: 1.0.0
 author: Hermes Agent
 license: MIT
