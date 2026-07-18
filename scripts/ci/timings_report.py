@@ -923,12 +923,22 @@ def main():
         with open(args.from_json, encoding="utf-8") as f:
             timings = json.load(f)
     else:
-        token = expect_env("GITHUB_TOKEN")
-        repo = expect_env("GITHUB_REPOSITORY")
-        run_id = expect_env("GITHUB_RUN_ID")
-        head_sha = expect_env("GITHUB_SHA")
         try:
-            timings = collect_timings(token, repo, run_id, head_sha)
+            # A missing var (e.g. a fork without the AUTOFIX_BOT_PAT secret that
+            # feeds GITHUB_TOKEN here) is treated as unavailable, not fatal —
+            # this observability job must never redden the run.
+            missing = [
+                v for v in ("GITHUB_TOKEN", "GITHUB_REPOSITORY", "GITHUB_RUN_ID", "GITHUB_SHA")
+                if not os.environ.get(v)
+            ]
+            if missing:
+                raise TimingsUnavailable(f"missing environment variable(s): {', '.join(missing)}")
+            timings = collect_timings(
+                os.environ["GITHUB_TOKEN"],
+                os.environ["GITHUB_REPOSITORY"],
+                os.environ["GITHUB_RUN_ID"],
+                os.environ["GITHUB_SHA"],
+            )
         except TimingsUnavailable as e:
             # Observability job: a missing report must never redden the PR.
             # Emit a degraded summary + placeholder artifact and exit 0.
