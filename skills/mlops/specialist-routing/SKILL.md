@@ -29,11 +29,10 @@ request to the right local model and unloads Ollama weights afterward.
 | Coding task handed off as one prompt | `code` | Qwen3.6 35B ablit main route | 64K policy |
 | Multi-step agent / tool controller | `controller` | Agents-A1 34.7B (swap-on-demand) — ⚠ NOT abliterated | 160K |
 | Describe / OCR / analyze an image, first pass | `vision-fast` | Qwen3.6 35B base (has vision) | 128K |
-| Image pass was uncertain or missed fine detail | `vision-quality` | Qwen3-VL 30B | 32K |
 | Evidence synthesis, claims + confidence + caveats | `research` | Qwythos 9B ablit | 32K |
 | Creative prose, scenes, fiction | `writer` | Cydonia 24B v4 heretic | 32K |
 
-Escalation rule: `vision-fast` = the base model's own vision (free, already warm); escalate to `vision-quality` (Qwen3-VL 30B) only for fine detail the base misses. The old abliterated VL-8B lane was pruned 2026-07-17.
+Vision: `vision-fast` = the base 35B model's own projector (free, already warm) — the only vision lane. The abliterated VL-8B (2026-07-17) and Qwen3-VL 30B (2026-07-18) escalation lanes were both pruned; the base handles all image work now.
 
 ⚠ **Agents-A1 (`controller`) is the only big model with intact safety training —
 it refuses.** Verified 2026-07-17: it answers dual-use security questions
@@ -70,7 +69,7 @@ Flags for `run`:
 2. Specialists are single-shot and tool-free — no tool schemas reach them.
    Anything needing tools goes to the default route or `controller`.
 3. `think` and `code` share weights with the default route via llama-swap;
-   swaps are cheap. Ollama roles (`vision-*`, `research`, `writer`) each load
+   swaps are cheap. Ollama roles (`research`, `writer`) each load
    fresh — do not fire them concurrently on this 64GB machine.
 4. Check RAM before big Ollama roles: `memory_pressure -Q`. Unload stragglers
    with `ollama stop <model>` (never for llama-swap-owned models — see

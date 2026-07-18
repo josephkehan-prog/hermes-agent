@@ -15,6 +15,12 @@ metadata:
 
 # Composer Audio Production
 
+> **Engine upgraded (2026-07-18):** ACE-Step 1.5 2B (server/API path) was
+> replaced by **ACE-Step XL turbo 4B, diffusers format** (~11GB, self-contained),
+> driven by the `acestep-compose` CLI. Higher audio quality, simpler runner (no
+> API server, no separate LM). See "Installed ACE-Step route" below.
+
+
 ## Boundary
 
 Own the path from sonic brief to inspected audio package: composition brief,
@@ -27,7 +33,7 @@ CUDA-only HeartMuLa on this Apple-Silicon workstation.
 | Need | Primary skill | Deliverable |
 |---|---|---|
 | Song concept, structure, lyrics, prosody | `songwriting-and-ai-music` | Lyric sheet and production prompt |
-| Local music generation | bundled ACE-Step helper | Seeded 2B-turbo render through local API |
+| Local music generation | `acestep-compose` CLI (ACE-Step XL 4B, diffusers) | Seeded XL-turbo render, direct diffusers |
 | Local sound-effect synthesis | `audiocraft-audio-generation` | Seeded audio render when runtime exists |
 | Spectral, loudness, tempo, or feature QA | `songsee` | Analysis images and findings |
 | Audiobook chapter, narrated essay, or local voiceover | `war-room-specialist-cascade` | Hidden `narrator` profile |
@@ -35,22 +41,31 @@ CUDA-only HeartMuLa on this Apple-Silicon workstation.
 Use `ffmpeg` and `ffprobe` directly for trimming, fades, normalization,
 conversion, muxing, and stream verification.
 
-## Installed ACE-Step route
+## Installed ACE-Step route (XL 4B, diffusers)
 
-The approved runtime is isolated at `~/mac/Hermes/runtimes/ace-step-1.5` with
-the 2B turbo DiT and the 0.6B MLX language model. Preflight or render through:
+Model: `~/models/acestep-xl-turbo-diffusers` (ACE-Step 1.5 XL turbo, ~11GB,
+self-contained diffusers pipeline — transformer + text/condition encoders + vae).
+Driver: `acestep-compose` (on PATH via `~/.local/bin`). Loads `AceStepPipeline`
+on MPS, runs, exits. Uncensored by design (no content filter).
 
 ```bash
-python "$HERMES_HOME/hermes-agent/skills/media/composer-audio-production/scripts/ace_step_render.py" preflight
-python "$HERMES_HOME/hermes-agent/skills/media/composer-audio-production/scripts/ace_step_render.py" generate \
-  --prompt "instrumental production brief" --duration 10 --bpm 96 --output TAKE.wav
+# Instrumental
+acestep-compose --tags "lo-fi hip hop, mellow piano, rainy day" \
+  --duration 30 --steps 27 --seed 7 -o TAKE.wav
+
+# With vocals — pass lyrics ([verse]/[chorus] tags supported)
+acestep-compose --tags "synthwave, driving, female vocal" \
+  --lyrics-file lyrics.txt --duration 60 -o TAKE.wav
 ```
 
-Default `thinking:false` uses deterministic text-to-music and the lowest memory
-path. Add `--thinking` only when the 0.6B LM's query rewrite or audio codes are
-materially useful. The helper starts ACE lazily and stops it after the take.
-Treat ACE as a heavyweight exclusive job: batch size one, audition first, and
-do not overlap it with LTX or another large media model.
+Flags: `--tags` (genre/mood/instrument prompt) · `--lyrics`/`--lyrics-file`
+(omit for instrumental) · `--duration` sec · `--steps` (default 27, turbo is
+few-step) · `--seed`. Output is stereo 44.1kHz WAV. `--guidance` is ignored on
+the turbo (guidance-distilled) checkpoint.
+
+Treat as a heavyweight exclusive job: batch size one, audition first, and do not
+overlap it with LTX video or another large media model. ~11GB resident at gen;
+check `memory_pressure -Q` first (needs >20% free alongside the warm base LLM).
 
 ## Orchestration Workflow
 

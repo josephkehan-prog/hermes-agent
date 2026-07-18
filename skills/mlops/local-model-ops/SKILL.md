@@ -1,6 +1,6 @@
 ---
 name: local-model-ops
-description: Manage Hermes's local inference stack on the 64GB Mac — Qwen3.6 and Agents-A1 through llama-swap (localhost:1235), with specialist and embedding peers through Ollama (localhost:11434). Check load state, memory pressure, swaps, context budgets, endpoints, and common failures. Local only, no cloud APIs.
+description: Operate Hermes local inference safely on this 64GB Mac, including Qwen3.6, Agents-A1, specialist Ollama peers, and context-window limits.
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -10,13 +10,14 @@ metadata:
     tags: [local-inference, ollama, llama-server, memory, health-check, model-swap]
     category: mlops
     requires_toolsets: [terminal]
+    related_skills: [huggingface-hub, llama-cpp, workspace-rag]
 ---
 
 # Local Model Ops
 
 Run these exact commands. Do not use cloud APIs. Two serving lanes:
-- llama-swap (`localhost:1235`): Agents-A1 plus Qwen3.6 daily and thinking routes.
-- Ollama (`localhost:11434`): Qwen3-VL, Qwythos, Cydonia, BGE-M3, and other peers.
+- llama-swap (`localhost:1235`): persistent Agents-A1 controller plus swap-on-demand Qwen3.6 daily and thinking routes.
+- Ollama (`localhost:11434`): Qwen3-VL, Qwythos, Cydonia, embeddings, and other peer models.
 
 ## 1. What is loaded / running?
 
@@ -24,7 +25,7 @@ Run these exact commands. Do not use cloud APIs. Two serving lanes:
 ollama ps                      # models in RAM now
 ollama list                    # models on disk
 curl -s localhost:11434/api/tags | head -c 400     # Ollama API alive?
-curl -s localhost:1235/v1/models                   # llama-server alive?
+curl -s localhost:1235/v1/models                   # llama-swap inventory + load state
 lsof -nP -iTCP:1235 -iTCP:11434 -sTCP:LISTEN       # which ports listen
 ```
 
@@ -35,11 +36,12 @@ memory_pressure -Q       # look at "System-wide memory free percentage"
 ```
 
 Rules on this 64GB Mac:
-- Abliterated Qwen3.6 Q6 uses about 29-31GB including runtime overhead. Load only if free >= 40%.
-- Run one heavyweight llama-swap model at a time; unload large Ollama peers before memory-intensive image work.
+- Agents-A1 is the persistent controller; its two q8 KV slots are intentional.
+- Abliterated Qwen3.6 27B VL Q6 uses about 22-24GB including runtime overhead and replaces Agents-A1 in llama-swap until the next controller request.
+- Avoid loading multiple large Ollama peers while an image or model-generation job is active.
 - Fallback check: `vm_stat | head -5` — "Pages free" x 16384 = free bytes.
 
-## 3. Unload / swap Ollama models
+## 3. Unload Ollama peers
 
 ```bash
 ollama stop <model>       # unload one model from RAM now
@@ -47,6 +49,8 @@ ollama ps                 # confirm it is gone
 # Load with auto-unload after 1 min (use "keep_alive":0 to unload now):
 curl -s localhost:11434/api/generate -d '{"model":"<model>","keep_alive":"1m"}'
 ```
+
+Do not use `ollama stop` for Agents-A1 or Qwen3.6; llama-swap owns them. Query `localhost:1235/v1/models` and let it swap them on demand.
 
 ## 4. Health checks (quick completion test)
 
@@ -56,7 +60,7 @@ curl -s localhost:11434/api/generate -d '{"model":"<model>","prompt":"hi","strea
 
 # llama-server
 curl -s localhost:1235/v1/chat/completions -H 'Content-Type: application/json' \
-  -d '{"messages":[{"role":"user","content":"hi"}],"max_tokens":10}' | head -c 300
+  -d '{"model":"agents-a1","messages":[{"role":"user","content":"hi"}],"max_tokens":64,"chat_template_kwargs":{"enable_thinking":false}}' | head -c 300
 ```
 
 Reply with text = healthy. Empty/error = see step 5.
@@ -77,7 +81,7 @@ ollama stop <model>       # unload it
 memory_pressure -Q        # confirm free % recovered
 ```
 
-Port :1235 is llama-swap (launchd `com.josephhan.llama-swap`, KeepAlive). It swaps large models on demand, so a first request can take 20-60 seconds. Inspect `/tmp/llama-swap.log` if it is down. `curl localhost:1235/v1/models` lists Qwen3.6, Agents-A1, and the Ollama peers with load state.
+Port :1235 is llama-swap (launchd `com.josephhan.llama-swap`, KeepAlive). If it is down, inspect `/tmp/llama-swap.log` before restarting it and notify the user before the service interruption. A first request after swapping Agents-A1 and Qwen3.6 can take 20-60 seconds. `curl localhost:1235/v1/models` reports loaded/unloaded state.
 
 ## Qwen3.6 route policy
 
@@ -87,11 +91,11 @@ Port :1235 is llama-swap (launchd `com.josephhan.llama-swap`, KeepAlive). It swa
 {"model":"ornith-uncensored","messages":[...],"max_tokens":512}
 ```
 
-Use Qwythos only for evidence synthesis and Cydonia only for prose. They stay on Ollama and should not be treated as general tool controllers.
+Agents-A1 keeps its bounded controller reasoning. For Qwythos and Cydonia, use Ollama's native `/api/chat` with `think:false`; their OpenAI-compatible endpoints must not receive tool schemas. Cap Cydonia at 32K context and use it only as a prose engine behind Agents-A1.
 
 ## Specialist harness
 
-Use `hermes-specialist` for explicit, bounded no-tool routing. `check` reads the
+Use `hermes-specialist` for explicit, bounded no-tool routing. `check` reads
 endpoint registries without loading weights; `run` loads only the selected role.
 
 ```bash
@@ -103,8 +107,8 @@ hermes-specialist run writer --prompt-file /path/to/scene-brief.md --temperature
 hermes-specialist run code --prompt-file /path/to/task.md
 ```
 
-Use `vision-fast` for first-pass inspection and `vision-quality` only when the
-8B result is uncertain or misses fine detail. The harness caps research/writer
-at 32K and fast vision at 16K. It never sends tool schemas to peer models and
-unloads Ollama weights after each request by default. Pass `--keep-alive 2m`
-only for deliberate repeated calls to one specialist.
+Use `vision-fast` (the base 35B's own projector) for all image work — it
+is the only vision lane (VL-8B and VL-30B escalation lanes pruned). Research/
+writer cap at 32K.
+No tool schemas reach peers. Ollama weights unload after every request by
+default; pass `--keep-alive 2m` only for deliberate repeated calls.
