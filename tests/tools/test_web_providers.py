@@ -302,6 +302,11 @@ class TestUnconfiguredErrorEnvelopeParity:
         monkeypatch.setattr(web_tools, "_firecrawl_client", None, raising=False)
         monkeypatch.setattr(web_tools, "_firecrawl_client_config", None, raising=False)
         monkeypatch.setattr(web_tools, "_ddgs_package_importable", lambda: False)
+        # wigolo is keyless like ddgs: neutralize its binary probe so a real
+        # local install doesn't make the "unconfigured" state searchable.
+        import plugins.web.wigolo.provider as wigolo_provider
+
+        monkeypatch.setattr(wigolo_provider, "_resolve_binary", lambda: "")
         monkeypatch.setattr(web_tools, "_load_web_config", lambda: {})
 
         result = json.loads(web_tools.web_search_tool("hello world", limit=3))
