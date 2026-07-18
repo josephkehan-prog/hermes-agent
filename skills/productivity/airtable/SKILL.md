@@ -16,6 +16,8 @@ metadata:
 
 # Airtable — Bases, Tables & Records
 
+> **Free alternative:** Airtable is paid SaaS past free tier. Self-hosted open-source: NocoDB (github.com/nocodb/nocodb, ★64k) or Baserow. For simple local tables, SQLite + `dbx` tools suffice.
+
 Work with Airtable's REST API directly via `curl` using the `terminal` tool. No MCP server, no OAuth flow, no Python SDK — just `curl` and a personal access token.
 
 ## Prerequisites

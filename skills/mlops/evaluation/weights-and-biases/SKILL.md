@@ -14,6 +14,8 @@ metadata:
 
 # Weights & Biases: ML Experiment Tracking & MLOps
 
+> **Free alternative:** W&B is SaaS. Local-first free alternatives: MLflow (self-hosted), TensorBoard, aim.
+
 ## When to Use This Skill
 
 Use Weights & Biases (W&B) when you need to:
