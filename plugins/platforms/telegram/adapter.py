@@ -548,7 +548,70 @@ except (TypeError, ValueError):
 # Telegram endpoints are unreachable. Bounding start_polling() prevents the
 # reconnect ladder from stalling indefinitely and allows the heartbeat loop to
 # trigger its own recovery path. Refs: NousResearch/hermes-agent#59614
-_UPDATER_START_TIMEOUT = 30.0
+try:
+    _UPDATER_START_TIMEOUT = float(os.getenv("HERMES_TELEGRAM_UPDATER_START_TIMEOUT", "30.0"))
+except (TypeError, ValueError):
+    _UPDATER_START_TIMEOUT = 30.0
+# Cadence of the polling health-monitor loop (_polling_heartbeat): how often it
+# probes get_me() on the general request path, and how long each probe may run
+# before the path is declared dead. Env-overridable, same helper-mirroring
+# rationale as the _UPDATER_* timeouts above.
+try:
+    _POLLING_HEARTBEAT_INTERVAL = float(os.getenv("HERMES_TELEGRAM_POLLING_HEARTBEAT_INTERVAL", "90.0"))
+except (TypeError, ValueError):
+    _POLLING_HEARTBEAT_INTERVAL = 90.0
+try:
+    _POLLING_PROBE_TIMEOUT = float(os.getenv("HERMES_TELEGRAM_POLLING_PROBE_TIMEOUT", "15.0"))
+except (TypeError, ValueError):
+    _POLLING_PROBE_TIMEOUT = 15.0
+# Webhook-mode health probe (_webhook_heartbeat). After a reconnect, sleep this
+# long so a healthy dispatch cycle can complete, then probe the bot endpoint
+# with a tight timeout. _WEBHOOK_PROBE_TIMEOUT is intentionally distinct from
+# the polling heartbeat's probe timeout above. Env-overridable, same
+# helper-mirroring rationale as the _UPDATER_* timeouts.
+try:
+    _WEBHOOK_HEARTBEAT_PROBE_DELAY = float(os.getenv("HERMES_TELEGRAM_WEBHOOK_HEARTBEAT_PROBE_DELAY", "60.0"))
+except (TypeError, ValueError):
+    _WEBHOOK_HEARTBEAT_PROBE_DELAY = 60.0
+try:
+    _WEBHOOK_PROBE_TIMEOUT = float(os.getenv("HERMES_TELEGRAM_WEBHOOK_PROBE_TIMEOUT", "10.0"))
+except (TypeError, ValueError):
+    _WEBHOOK_PROBE_TIMEOUT = 10.0
+# Upper bound (seconds) for the exponential backoff between Telegram init
+# connect retries: the delay is min(2 ** attempt, this). Env-overridable, same
+# helper-mirroring rationale as the _UPDATER_* timeouts above.
+try:
+    _INIT_BACKOFF_MAX_SECONDS = float(os.getenv("HERMES_TELEGRAM_INIT_BACKOFF_MAX", "15.0"))
+except (TypeError, ValueError):
+    _INIT_BACKOFF_MAX_SECONDS = 15.0
+# Number of attempts for the message-send retry loop (network errors, flood
+# control). Env-overridable, same helper-mirroring rationale as the
+# _UPDATER_* timeouts above.
+try:
+    _SEND_RETRY_ATTEMPTS = int(os.getenv("HERMES_TELEGRAM_SEND_RETRY_ATTEMPTS", "3"))
+except (TypeError, ValueError):
+    _SEND_RETRY_ATTEMPTS = 3
+# Base delay and per-attempt increment (seconds) for the polling-conflict
+# retry ladder in _handle_polling_conflict: delay = base + count * increment.
+# Env-overridable, same helper-mirroring rationale as the _UPDATER_* timeouts
+# above.
+try:
+    _POLLING_CONFLICT_BASE_DELAY = float(os.getenv("HERMES_TELEGRAM_CONFLICT_BASE_DELAY", "10.0"))
+except (TypeError, ValueError):
+    _POLLING_CONFLICT_BASE_DELAY = 10.0
+try:
+    _POLLING_CONFLICT_DELAY_INCREMENT = float(os.getenv("HERMES_TELEGRAM_CONFLICT_DELAY_INCREMENT", "10.0"))
+except (TypeError, ValueError):
+    _POLLING_CONFLICT_DELAY_INCREMENT = 10.0
+# Telegram Bot API max caption length (characters) for media messages
+# (photo/video/audio/voice/document/animation and media groups). Captions
+# longer than this are silently truncated to this bound before sending.
+_TELEGRAM_CAPTION_LIMIT = 1024
+# Telegram document size caps used to gate media downloads. The public
+# api.telegram.org Bot API caps getFile at 20MB; a locally-hosted
+# telegram-bot-api server (opted into via extra.base_url) raises that to 2GB.
+_MAX_DOC_BYTES_PUBLIC = 20 * 1024 * 1024  # Telegram Bot API document limit for the public api.telegram.org
+_MAX_DOC_BYTES_LOCAL = 2 * 1024 * 1024 * 1024  # limit when using a local Bot API server
 # A generation is not healthy until the dedicated getUpdates request returns
 # successfully. This exceeds a normal long-poll cycle for healthy idle bots.
 _POLLING_PROGRESS_TIMEOUT = 60.0
@@ -2642,7 +2705,10 @@ class TelegramAdapter(BasePlatformAdapter):
         connectivity, but cannot heal polling health. Connectivity failures
         enter the guarded recovery ladder; auth/validation errors do not churn.
         """
-        PROBE_TIMEOUT = 10
+        # Env-tunable probe timeout (fork knob); upstream reworked this method to
+        # a generation-bound progress.wait() and dropped the fixed pre-probe
+        # sleep, so _WEBHOOK_HEARTBEAT_PROBE_DELAY no longer gates here.
+        PROBE_TIMEOUT = _WEBHOOK_PROBE_TIMEOUT
         if getattr(self, "_polling_teardown_started", False):
             return
         if generation is None:

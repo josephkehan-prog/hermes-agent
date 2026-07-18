@@ -3054,6 +3054,37 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
                                 for phrase in _SSE_CONN_PHRASES
                             )
 
+                    # Some OpenAI-compatible LOCAL servers (Ollama, LM Studio,
+                    # llama-cpp) accept stream=True but close the SSE response
+                    # without yielding a chunk or finish_reason. Repeating the
+                    # same streaming request only reproduces the empty response,
+                    # so mark streaming unsupported for this agent session and
+                    # let the main retry loop use the already-supported
+                    # non-streaming path immediately (fork behavior).
+                    #
+                    # A zero-chunk stream from a REMOTE provider (OpenRouter,
+                    # Anthropic, etc.) is a different failure: a transient
+                    # upstream drop that a fresh connection routinely recovers.
+                    # Those must fall through to the transient-retry ladder
+                    # below (upstream behavior), so gate the completed-empty
+                    # short-circuit on a local endpoint. This is the signal
+                    # that distinguishes the two look-alike zero-chunk cases:
+                    # local completed-empty (short-circuit, no stream retries)
+                    # vs remote zero-chunk (EmptyStreamError, retried 3x).
+                    _is_completed_empty_stream = (
+                        "empty stream with no finish_reason" in str(e).lower()
+                        and bool(agent.base_url)
+                        and is_local_endpoint(agent.base_url)
+                    )
+                    if _is_completed_empty_stream:
+                        agent._disable_streaming = True
+                        logger.warning(
+                            "Provider completed an empty stream; switching this "
+                            "agent session to non-streaming requests."
+                        )
+                        result["error"] = e
+                        return
+
                     if (
                         _is_timeout
                         or _is_conn_err
