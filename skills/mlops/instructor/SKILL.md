@@ -86,6 +86,21 @@ user = client.chat.completions.create(
 )
 ```
 
+### Local endpoint (llama-server, no API key)
+
+Point instructor at the local llama-swap proxy — any OpenAI-compatible client works:
+
+```python
+client = instructor.from_openai(
+    OpenAI(base_url="http://localhost:1235/v1", api_key="no-key-required")
+)
+user = client.chat.completions.create(
+    model="ornith-uncensored",  # Qwen3.6 default; or "qwen3.6-think" for the reasoning route
+    response_model=User,
+    messages=[{"role": "user", "content": "Extract: Alice, 25, alice@email.com"}],
+)
+```
+
 ## Core Concepts
 
 ### 1. Response Models (Pydantic)

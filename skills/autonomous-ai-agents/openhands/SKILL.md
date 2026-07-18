@@ -45,6 +45,14 @@ For Claude-native, prefer `claude-code`. For OpenAI-native, prefer `codex`. For 
 
    `LLM_MODEL` uses LiteLLM's full slug. When the provider is OpenRouter the slug is doubly-prefixed: `openrouter/<vendor>/<model>` (e.g. `openrouter/anthropic/claude-sonnet-4.5`). For native Anthropic: `anthropic/claude-sonnet-4-5`. For native OpenAI: `openai/gpt-4o-mini`.
 
+   Local (llama-swap, no cloud key) — use the `openai/` LiteLLM prefix pointed at the local proxy:
+
+   ```
+   export LLM_MODEL=openai/ornith-uncensored          # Qwen3.6 default; or openai/qwen3.6-think
+   export LLM_API_KEY=no-key-required
+   export LLM_BASE_URL=http://localhost:1235/v1
+   ```
+
 3. Suppress the startup banner so JSON output isn't preceded by ASCII art:
 
    ```
