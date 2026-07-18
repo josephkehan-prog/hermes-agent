@@ -1,0 +1,7 @@
+name: web-wigolo
+version: 1.0.0
+description: "wigolo local-first web search and content extraction via the wigolo CLI — no API key required. Requires the wigolo binary on PATH."
+author: NousResearch
+kind: backend
+provides_web_providers:
+  - wigolo
