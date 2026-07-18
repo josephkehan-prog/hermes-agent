@@ -158,13 +158,15 @@ def fetch_discovery_listings(
     to_ts = _date_to_unix(to_date) + 86400
     from urllib.parse import urlencode
 
+    _front_page_qs = urlencode({"tags": "front_page", "hitsPerPage": str(limit)})
+    _story_qs = urlencode({
+        "tags": "story",
+        "numericFilters": f"created_at_i>{from_ts},created_at_i<{to_ts}",
+        "hitsPerPage": str(limit),
+    })
     urls = [
-        f"{ALGOLIA_SEARCH_URL}?{urlencode({'tags': 'front_page', 'hitsPerPage': str(limit)})}",
-        f"{ALGOLIA_SEARCH_URL}?{urlencode({
-            'tags': 'story',
-            'numericFilters': f'created_at_i>{from_ts},created_at_i<{to_ts}',
-            'hitsPerPage': str(limit),
-        })}",
+        f"{ALGOLIA_SEARCH_URL}?{_front_page_qs}",
+        f"{ALGOLIA_SEARCH_URL}?{_story_qs}",
     ]
     hits: list[dict[str, Any]] = []
     errors: list[str] = []
