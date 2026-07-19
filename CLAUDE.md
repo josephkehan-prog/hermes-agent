@@ -163,6 +163,16 @@ subagents (leaf vs orchestrator roles).
   A new *core* tool needs explicit justification — it costs schema tokens on
   every API call and widens the rebase gap against `origin` (Nous upstream).
 
+## Local runtime (this machine)
+
+This checkout is the **dev copy** — the running gateway is the live install at
+`~/.hermes/hermes-agent` (launchd `ai.hermes.gateway`). Live logs:
+`~/.hermes/logs/`. Restart: `launchctl kickstart -k gui/501/ai.hermes.gateway`
+(never `kill` — launchd respawns). Local models are served by llama-swap on
+`localhost:1235` (roster + config: `~/mac/Hermes/llama-swap/config.yaml`).
+Deploy flow (dev → live) and runtime triage notes: `~/mac/Hermes/CLAUDE.md`
+and `~/mac/Hermes/claude-Hermes.md`.
+
 ## Verification
 
 After changes: `scripts/run_tests.sh <relevant test path>`, then `ruff check .`
