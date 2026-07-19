@@ -512,16 +512,15 @@ class SkillRetriever:
         top_score = fused[0][1]
 
         # Confidence check: top-1 must exceed floor (filter pure noise only).
-        # The floor assumes all three layers contribute. When the embedding
-        # layer is unavailable, the maximum achievable fused score drops to
-        # (W_FTS5 + W_SYN) / (RRF_K + 1) ≈ 0.0131, below the full floor of
-        # 0.015 — the gate would be unreachable. Scale the floor by the
-        # active layer weight so degraded mode still requires FTS5 and
-        # synonym agreement, but can actually pass.
-        active_weight = _RRF_W_FTS5 + _RRF_W_SYN + (
-            _RRF_W_EMB if self._emb_matrix is not None else 0.0
-        )
-        confidence_floor = _CONFIDENCE_THRESHOLD * active_weight
+        # The floor is calibrated so a hit needs the two lexical layers
+        # (FTS5 + synonyms) to agree at top rank — their combined rank-0
+        # contribution is (W_FTS5 + W_SYN) / (RRF_K + 1) ≈ 0.0131. The
+        # embedding layer adds recall on top rather than being required:
+        # with the original full floor of 0.015, a top hit missing from
+        # the embedding top-k was gated even when both lexical layers
+        # ranked it first (and without embeddings the gate was unreachable
+        # entirely). Empirically noise queries fuse below ~0.011.
+        confidence_floor = _CONFIDENCE_THRESHOLD * (_RRF_W_FTS5 + _RRF_W_SYN)
         if top_score < confidence_floor:
             logger.debug(
                 "Skill retriever: top-1 score %.4f < floor %.4f, no signal",

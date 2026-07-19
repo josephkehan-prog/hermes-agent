@@ -79,3 +79,6 @@ retrieval-routing:
   - which retrieval
   - search backend
   - retrieval backend
+  - 搜索引擎
+  - 检索策略
+  - 检索路由
