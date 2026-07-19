@@ -66,7 +66,10 @@ def _on_pre_llm_call(*, user_message: str = "", **_kwargs) -> dict | None:
                 injection = (
                     f"## Auto-loaded Skill: {skill_name}\n"
                     f"[System note: This skill was automatically matched "
-                    f"via hard trigger. Use its instructions directly.]\n\n"
+                    f"via hard trigger. Use its instructions directly. "
+                    f"If it clearly does not fit the request, disregard it "
+                    f"and route yourself: browse the skills directory or "
+                    f"follow the retrieval-routing policy skill.]\n\n"
                     f"{content}"
                 )
 
@@ -81,7 +84,10 @@ def _on_pre_llm_call(*, user_message: str = "", **_kwargs) -> dict | None:
             "## Skill Retrieval Hint\n"
             "[System note: The following skills may be relevant to this query. "
             "Use your judgment — load via skill_view() if useful, "
-            "or ignore and answer directly if none fit.]\n\n"
+            "or ignore and answer directly if none fit. "
+            "If none fit but the task needs external knowledge, follow the "
+            "retrieval-routing policy: wigolo for web, duckduckgo-search as "
+            "last resort.]\n\n"
             + "\n".join(f"- {name}" for name in skills)
         )
 

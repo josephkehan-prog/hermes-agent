@@ -69,3 +69,13 @@ duckduckgo-search:
   - ddg
   - free search
   - news search
+
+retrieval-routing:
+  - routing policy
+  - search policy
+  - retrieval priority
+  - retrieval strategy
+  - which search
+  - which retrieval
+  - search backend
+  - retrieval backend
