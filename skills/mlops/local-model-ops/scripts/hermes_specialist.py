@@ -67,13 +67,13 @@ ROUTES: dict[str, Route] = {
     ),
     "think": Route(
         "swap",
-        "qwen3.6-think",
+        "ornith-uncensored",
         65536,
         "Reason carefully, then provide a concise final answer.",
     ),
     "controller": Route(
         "swap",
-        "agents-a1",
+        "qwen3-coder",
         65536,
         "Plan and coordinate the task. Do not claim tool actions that were not performed.",
     ),

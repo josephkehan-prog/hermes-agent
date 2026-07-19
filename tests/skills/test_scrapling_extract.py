@@ -1,4 +1,4 @@
-"""Tests for skills/scrapling/scripts/extract.py — no network, no external services."""
+"""Tests for skills/research/scrapling/scripts/extract.py — no network, no external services."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = REPO_ROOT / "skills" / "scrapling" / "scripts" / "extract.py"
+SCRIPT = REPO_ROOT / "skills" / "research" / "scrapling" / "scripts" / "extract.py"
 
 
 def _load_script_module():

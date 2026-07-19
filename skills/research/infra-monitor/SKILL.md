@@ -101,29 +101,29 @@ validation errors.
 
 | Task | Model | Endpoint | Why |
 |------|-------|----------|-----|
-| Deterministic snapshot-diffing (e.g. "extract the {added, removed} record set as JSON from this diff output") | **agent1** | Ollama `http://localhost:11434/api/chat`, `"options": {"temperature": 0}` | Temperature 0 for repeatable structured output on a diff that's already structured — use this to reformat/summarize into a downstream schema, not to re-derive the diff itself |
+| Deterministic snapshot-diffing (e.g. "extract the {added, removed} record set as JSON from this diff output") | **qwen3-coder** | llama-swap `http://localhost:1235/v1/chat/completions`, `"temperature": 0` | Temperature 0 for repeatable structured output on a diff that's already structured — use this to reformat/summarize into a downstream schema, not to re-derive the diff itself |
 | "Is this drift benign or suspicious" triage narrative (e.g. "a new A record appeared and the old one is gone — is this a migration or a hijack?") | **ornith** | llama-swap `http://localhost:1235/v1/chat/completions`, `"chat_template_kwargs": {"enable_thinking": false}` | Reasoning model with thinking disabled for fast, terse synthesis over the diff + ASN context |
 
 ```python
 import json
 import urllib.request
 
-# agent1: deterministic diff reformatting, temperature 0
+# qwen3-coder: deterministic diff reformatting, temperature 0
 payload = {
-    "model": "hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest",
+    "model": "qwen3-coder",
     "messages": [
         {"role": "system", "content": "Extract structured data as JSON only. No prose, no markdown fences."},
         {"role": "user", "content": f"Reformat this infra diff into {{severity, summary}} rows.\n\n{diff_output}"},
     ],
-    "options": {"temperature": 0},
+    "temperature": 0,
     "stream": False,
 }
 req = urllib.request.Request(
-    "http://localhost:11434/api/chat",
+    "http://localhost:1235/v1/chat/completions",
     data=json.dumps(payload).encode(),
     headers={"Content-Type": "application/json"},
 )
-result = json.loads(urllib.request.urlopen(req, timeout=120).read())["message"]["content"]
+result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][0]["message"]["content"]
 ```
 
 ```python
@@ -151,7 +151,7 @@ result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][
 Verify wiring before relying on it:
 
 ```bash
-curl -s http://localhost:11434/api/tags | grep -o '"hf.co/InternScience/Agents-A1[^"]*"'
+curl -s http://localhost:1235/v1/models | grep -o '"qwen3-coder"'
 curl -s http://localhost:1235/v1/models | grep -o '"ornith-uncensored"'
 ```
 

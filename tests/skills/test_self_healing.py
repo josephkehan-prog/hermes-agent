@@ -348,7 +348,7 @@ class TestLocalModelCheck:
 
     def test_run_local_model_check_reports_reachable(self, monkeypatch):
         monkeypatch.setattr(selfheal, "_fetch_loopback", lambda port, path, timeout: {"ok": True, "status": 200})
-        result = selfheal.run_local_model_check({"id": "c1", "type": "local_model", "name": "agent1"})
+        result = selfheal.run_local_model_check({"id": "c1", "type": "local_model", "name": "coder"})
         assert result["ok"] is True
 
     def test_run_local_model_check_reports_unreachable(self, monkeypatch):
@@ -387,7 +387,7 @@ class TestStandaloneInvocation:
 
 @pytest.mark.skip(reason="live local service test — run manually")
 class TestLiveStatus:
-    def test_status_reports_agent1_and_ornith(self, capsys):
+    def test_status_reports_coder_and_ornith(self, capsys):
         exit_code = selfheal.cmd_status(argparse.Namespace())
         assert exit_code == 0
-        assert "agent1" in capsys.readouterr().out
+        assert "coder" in capsys.readouterr().out

@@ -15,7 +15,7 @@ metadata:
 ## Boundary
 
 Produce dramatic scripts and adaptation packets. Use Cydonia only for bounded
-creative drafting; keep Agents-A1 responsible for files, format checks,
+creative drafting; keep qwen3-coder responsible for files, format checks,
 continuity, approvals, and delivery. Route prose manuscripts to Quill's genre
 cascade and final video production to Director.
 

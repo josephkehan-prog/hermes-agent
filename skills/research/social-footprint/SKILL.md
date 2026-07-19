@@ -104,7 +104,7 @@ not bundled here).
    vs 404 (no Gravatar). Useful as a cheap secondary signal that an address
    is real and actively used somewhere.
 4. **Collate and narrate** — for a run that touches several usernames/
-   permutations, use the model wiring below: agent1 to collate the raw
+   permutations, use the model wiring below: qwen3-coder to collate the raw
    JSON results deterministically, ornith to write the human-readable
    footprint narrative.
 
@@ -118,29 +118,29 @@ python3 SKILL_DIR/scripts/footprint.py gravatar test@example.com
 
 | Task | Model | Endpoint | Why |
 |------|-------|----------|-----|
-| Deterministic result collation (merge username/email/gravatar JSON into one structured record) | **agent1** | Ollama `http://localhost:11434/api/chat`, `"options": {"temperature": 0}` | Temperature 0 for repeatable structured output |
+| Deterministic result collation (merge username/email/gravatar JSON into one structured record) | **qwen3-coder** | llama-swap `http://localhost:1235/v1/chat/completions`, `"temperature": 0` | Temperature 0 for repeatable structured output |
 | Footprint narrative (turn collated results into a readable summary for the user) | **ornith** | llama-swap `http://localhost:1235/v1/chat/completions`, `"chat_template_kwargs": {"enable_thinking": false}` | Reasoning model with thinking disabled for fast, terse narrative |
 
 ```python
 import json
 import urllib.request
 
-# agent1: deterministic collation, temperature 0
+# qwen3-coder: deterministic collation, temperature 0
 payload = {
-    "model": "hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest",
+    "model": "qwen3-coder",
     "messages": [
         {"role": "system", "content": "Merge these footprint results into one JSON record. No prose, no markdown fences."},
         {"role": "user", "content": f"Combine username, email-permute, and gravatar results:\n\n{raw_results_json}"},
     ],
-    "options": {"temperature": 0},
+    "temperature": 0,
     "stream": False,
 }
 req = urllib.request.Request(
-    "http://localhost:11434/api/chat",
+    "http://localhost:1235/v1/chat/completions",
     data=json.dumps(payload).encode(),
     headers={"Content-Type": "application/json"},
 )
-result = json.loads(urllib.request.urlopen(req, timeout=120).read())["message"]["content"]
+result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][0]["message"]["content"]
 ```
 
 ```python
@@ -162,7 +162,7 @@ result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][
 Verify wiring before relying on it:
 
 ```bash
-curl -s http://localhost:11434/api/tags | grep -o '"hf.co/InternScience/Agents-A1[^"]*"'
+curl -s http://localhost:1235/v1/models | grep -o '"qwen3-coder"'
 curl -s http://localhost:1235/v1/models | grep -o '"ornith-uncensored"'
 ```
 

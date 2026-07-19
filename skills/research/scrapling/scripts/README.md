@@ -6,7 +6,7 @@ run local-model extraction.
 ```bash
 python3 extract.py 'https://example.com'                              # raw text
 python3 extract.py 'https://example.com' --css '.article'              # scoped (needs scrapling)
-python3 extract.py 'https://example.com' --model agent1                # structured JSON, temp 0
+python3 extract.py 'https://example.com' --model qwen3-coder                # structured JSON, temp 0
 python3 extract.py 'https://example.com' --model ornith --instruction "Summarize this"
 ```
 

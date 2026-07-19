@@ -18,7 +18,7 @@ metadata:
 ## Boundary
 
 Own one genre manuscript from premise through continuity-checked chapters and
-assembled delivery. Use Agents-A1 for planning, files, approvals, and review;
+assembled delivery. Use qwen3-coder for planning, files, approvals, and review;
 use Cydonia only as a no-tool prose engine. Quill retains short fiction, scenes,
 dialogue, and general revision outside a manuscript-scale genre workflow.
 
@@ -43,7 +43,7 @@ reader promise and use at most two secondary contract sections.
    IDs before drafting.
 3. Draft one chapter at a time through Cydonia `think:false`. Give it only the
    chapter brief and continuity facts needed for that unit.
-4. Have Agents-A1 check genre promises, causality, voice, timeline, unresolved
+4. Have qwen3-coder check genre promises, causality, voice, timeline, unresolved
    threads, and chapter obligations. Accept or revise before updating canon.
 5. Run continuity checks after each arc or ten chapters, whichever comes first.
 6. Assemble the manuscript, run a full consistency and repetition pass, then
@@ -67,7 +67,7 @@ path, and final consistency findings.
 
 - [ ] Every chapter satisfies its outline entry and primary genre promise
 - [ ] Character, place, rule, clue, timeline, and thread IDs remain consistent
-- [ ] Cydonia remained no-tool and Agents-A1 controlled files and approvals
+- [ ] Cydonia remained no-tool and qwen3-coder controlled files and approvals
 - [ ] All unresolved threads are intentionally resolved, deferred, or logged
 - [ ] Repetition, pacing, and voice passes were completed after assembly
 - [ ] Chapter count, word count, manuscript path, and limitations are reported

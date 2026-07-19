@@ -37,7 +37,7 @@ code, commands, or tool decisions.
 1. Fix POV, tense, tone, canon, boundaries, and acceptance target.
 2. Use Cydonia in `think:false` mode. Use creative temperature for a first
    draft; use a fixed seed and lower temperature for continuity-sensitive edits.
-3. Keep Agents-A1 responsible for files, approvals, and continuity checks.
+3. Keep qwen3-coder responsible for files, approvals, and continuity checks.
 4. Update the story bible only after the user accepts a draft.
 5. Use `humanizer` only after content is correct. For manuscript-scale work,
    route through `genre-writer-cascade`; invoke exactly one standby writer by

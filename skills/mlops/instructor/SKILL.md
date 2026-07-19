@@ -95,7 +95,7 @@ client = instructor.from_openai(
     OpenAI(base_url="http://localhost:1235/v1", api_key="no-key-required")
 )
 user = client.chat.completions.create(
-    model="ornith-uncensored",  # Qwen3.6 default; or "qwen3.6-think" for the reasoning route
+    model="ornith-uncensored",  # Qwen3.6 base (prompt for step-by-step reasoning when needed)
     response_model=User,
     messages=[{"role": "user", "content": "Extract: Alice, 25, alice@email.com"}],
 )

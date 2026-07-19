@@ -74,29 +74,29 @@ Exit codes: 0 if at least one source succeeded, 2 if all three failed.
 
 | Task | Model | Endpoint | Why |
 |------|-------|----------|-----|
-| Deterministic number extraction / table assembly (e.g. "pull symbol, price, 24h change into a clean table from this snapshot JSON") | **agent1** | Ollama `http://localhost:11434/api/chat`, `"options": {"temperature": 0}` | Temperature 0 for repeatable structured output |
+| Deterministic number extraction / table assembly (e.g. "pull symbol, price, 24h change into a clean table from this snapshot JSON") | **qwen3-coder** | llama-swap `http://localhost:1235/v1/chat/completions`, `"temperature": 0` | Temperature 0 for repeatable structured output |
 | Overall market-mood / notable-signals narrative (e.g. "given this Fear & Greed reading, these coin moves, and these trending prediction markets, what's the read?") | **ornith** | llama-swap `http://localhost:1235/v1/chat/completions`, `"chat_template_kwargs": {"enable_thinking": false}` | Fast, terse takes without a slow reasoning trace |
 
 ```python
 import json
 import urllib.request
 
-# agent1: deterministic table assembly, temperature 0
+# qwen3-coder: deterministic table assembly, temperature 0
 payload = {
-    "model": "hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest",
+    "model": "qwen3-coder",
     "messages": [
         {"role": "system", "content": "Extract structured data as JSON only. No prose, no markdown fences."},
         {"role": "user", "content": f"Assemble a {{symbol, price, change_24h}} table from this pulse snapshot.\n\n{snapshot_json}"},
     ],
-    "options": {"temperature": 0},
+    "temperature": 0,
     "stream": False,
 }
 req = urllib.request.Request(
-    "http://localhost:11434/api/chat",
+    "http://localhost:1235/v1/chat/completions",
     data=json.dumps(payload).encode(),
     headers={"Content-Type": "application/json"},
 )
-result = json.loads(urllib.request.urlopen(req, timeout=120).read())["message"]["content"]
+result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][0]["message"]["content"]
 ```
 
 ```python
@@ -118,7 +118,7 @@ result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][
 Verify wiring before relying on it:
 
 ```bash
-curl -s http://localhost:11434/api/tags | grep -o '"hf.co/InternScience/Agents-A1[^"]*"'
+curl -s http://localhost:1235/v1/models | grep -o '"qwen3-coder"'
 curl -s http://localhost:1235/v1/models | grep -o '"ornith-uncensored"'
 ```
 

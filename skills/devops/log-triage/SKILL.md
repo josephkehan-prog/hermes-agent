@@ -84,29 +84,29 @@ narrative synthesis.
 
 | Task | Model | Endpoint | Why |
 |---|---|---|---|
-| Deterministic error-line extraction / field-parsing (e.g. "pull the request ID and endpoint out of each clustered example line as structured JSON") | **agent1** (`hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest`) | Ollama, `http://localhost:11434/api/chat` | Temperature 0 for repeatable structured output |
+| Deterministic error-line extraction / field-parsing (e.g. "pull the request ID and endpoint out of each clustered example line as structured JSON") | **qwen3-coder** (`qwen3-coder`) | llama-swap, `http://localhost:1235/v1/chat/completions` | Temperature 0 for repeatable structured output |
 | Incident-narrative synthesis (e.g. "given this summary JSON, what happened and what's the likely root cause") | **ornith** (`ornith-uncensored`) | llama-swap, `http://localhost:1235/v1/chat/completions` | Reasoning model; disable thinking with `chat_template_kwargs: {"enable_thinking": false}` for fast, terse output |
 
 ```python
 import json
 import urllib.request
 
-# agent1: pull structured fields out of clustered error examples, temperature 0
+# qwen3-coder: pull structured fields out of clustered error examples, temperature 0
 payload = {
-    "model": "hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest",
+    "model": "qwen3-coder",
     "messages": [
         {"role": "system", "content": "Extract fields from each log line as JSON only. No prose, no markdown fences."},
         {"role": "user", "content": f"Extract from these clustered errors:\n\n{clusters_json}"},
     ],
-    "options": {"temperature": 0},
+    "temperature": 0,
     "stream": False,
 }
 req = urllib.request.Request(
-    "http://localhost:11434/api/chat",
+    "http://localhost:1235/v1/chat/completions",
     data=json.dumps(payload).encode(),
     headers={"Content-Type": "application/json"},
 )
-result = json.loads(urllib.request.urlopen(req, timeout=120).read())["message"]["content"]
+result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][0]["message"]["content"]
 ```
 
 ```python
@@ -128,8 +128,8 @@ result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][
 **Verify wiring before relying on it:**
 
 ```bash
-# agent1 (Ollama, deterministic extraction)
-curl -s http://localhost:11434/api/tags | grep -o 'Agents-A1[^"]*'
+# qwen3-coder (llama-swap, deterministic extraction)
+curl -s http://localhost:1235/v1/models | grep -o '"qwen3-coder"'
 # ornith (llama-swap, reasoning synthesis)
 curl -s http://localhost:1235/v1/models | grep -o 'ornith-uncensored'
 ```

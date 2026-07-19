@@ -20,26 +20,28 @@ metadata:
 One command, seven roles. `hermes-specialist` routes a single bounded, no-tool
 request to the right local model and unloads Ollama weights afterward.
 
+**Model-agnostic naming:** role→route mapping is centralized in
+`~/mac/Hermes/models.yaml` (BASE, CODER, CONTROLLER, EXTRACT, RESEARCH, WRITER,
+RERANK, EMBED). Skills/scripts should reference ROLE names, not route IDs, so a
+stack swap needs no skill edits. Resolve with `python3 bin/hermes_models.py
+--resolve CODER` or source the generated `models.env`.
+
 ## Which role? (decision table)
 
 | Task looks like… | Role | Model | Context cap |
 |---|---|---|---|
 | Ordinary chat, editing, JSON, tool calls | *(no specialist — default route)* | Qwen3.6 35B-A3B ablit (`ornith-uncensored`, kept warm, ~95 tok/s) | 128K |
-| Hard reasoning, deliberate multi-step thought | `think` | Qwen3.6 35B ablit, bounded reasoning | 128K |
-| Coding task handed off as one prompt | `code` | Qwen3.6 35B ablit main route | 64K policy |
-| Multi-step agent / tool controller | `controller` | Agents-A1 34.7B (swap-on-demand) — ⚠ NOT abliterated | 160K |
+| Hard reasoning, deliberate multi-step thought | `think` | Qwen3.6 35B ablit base (`ornith-uncensored`), hybrid reasoning on prompt | 128K |
+| Coding task handed off as one prompt | `code` | Qwen3.6 35B base (`ornith-uncensored`) — best raw code quality + vision | 64K policy |
+| Multi-step agent / tool controller | `controller` | Qwen3-Coder (`qwen3-coder`, swap-on-demand) | 160K |
+| Structured extraction — JSON/fields, verbatim, deterministic | `extract` | Qwen3.6 35B base (`ornith-uncensored`), temp 0 | 64K policy |
 | Describe / OCR / analyze an image, first pass | `vision-fast` | Qwen3.6 35B base (has vision) | 128K |
 | Evidence synthesis, claims + confidence + caveats | `research` | Qwythos 9B ablit | 32K |
 | Creative prose, scenes, fiction | `writer` | Cydonia 24B v4 heretic | 32K |
 
 Vision: `vision-fast` = the base 35B model's own projector (free, already warm) — the only vision lane. The abliterated VL-8B (2026-07-17) and Qwen3-VL 30B (2026-07-18) escalation lanes were both pruned; the base handles all image work now.
 
-⚠ **Agents-A1 (`controller`) is the only big model with intact safety training —
-it refuses.** Verified 2026-07-17: it answers dual-use security questions
-(SQL injection with example payload, authorized-pentest framing) but refuses
-NSFW/explicit content generation. Use it as an executor for tool/agent loops,
-not as a content generator. For an uncensored response route to an abliterated
-model instead: default 35B or `writer` (Cydonia heretic).
+The `think` route now shares the base `ornith-uncensored` weights (hybrid reasoning enabled on the prompt); the separate `qwen3.6-think` route was removed from the stack.
 
 ## Commands
 

@@ -34,8 +34,9 @@ conduct broad research, or implement production code beyond a necessary test fix
 ## Orchestration Workflow
 
 1. Capture the authoritative pixels or render before making a claim.
-2. Use Qwen3-VL in non-thinking mode for observation, OCR, coordinates, and
-   concise descriptions; do not ask it to invent missing visual evidence.
+2. Use the local **vision lane** (the `vision-fast` specialist role — the base
+   model's own projector) for observation, OCR, coordinates, and concise
+   descriptions; do not ask it to invent missing visual evidence.
 3. Separate observations from inferences and attach a screenshot or file path.
 4. Repeat the same deterministic action after any fix and compare evidence.
 5. Route asset creation to Canvas and code changes to Vanguard.

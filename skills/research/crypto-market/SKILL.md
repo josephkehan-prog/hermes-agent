@@ -107,29 +107,29 @@ this isn't possible by design and isn't a missing feature.
 
 | Task | Model | Endpoint | Why |
 |------|-------|----------|-----|
-| Deterministic price/field extraction (e.g. "pull price, 24h change, market cap as JSON from this CoinGecko response") | **agent1** | Ollama `http://localhost:11434/api/chat`, `"options": {"temperature": 0}` | Temperature 0 for repeatable structured output |
+| Deterministic price/field extraction (e.g. "pull price, 24h change, market cap as JSON from this CoinGecko response") | **qwen3-coder** | llama-swap `http://localhost:1235/v1/chat/completions`, `"temperature": 0` | Temperature 0 for repeatable structured output |
 | Market-sentiment / "risk read" triage (e.g. "given this Fear & Greed value and these trending coins, what's the read?") | **ornith** | llama-swap `http://localhost:1235/v1/chat/completions`, `"chat_template_kwargs": {"enable_thinking": false}` | Fast, terse takes without a slow reasoning trace |
 
 ```python
 import json
 import urllib.request
 
-# agent1: deterministic normalization, temperature 0
+# qwen3-coder: deterministic normalization, temperature 0
 payload = {
-    "model": "hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest",
+    "model": "qwen3-coder",
     "messages": [
         {"role": "system", "content": "Extract structured data as JSON only. No prose, no markdown fences."},
         {"role": "user", "content": f"Extract {{price, change_24h, market_cap}} from this CoinGecko record.\n\n{record_text}"},
     ],
-    "options": {"temperature": 0},
+    "temperature": 0,
     "stream": False,
 }
 req = urllib.request.Request(
-    "http://localhost:11434/api/chat",
+    "http://localhost:1235/v1/chat/completions",
     data=json.dumps(payload).encode(),
     headers={"Content-Type": "application/json"},
 )
-result = json.loads(urllib.request.urlopen(req, timeout=120).read())["message"]["content"]
+result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][0]["message"]["content"]
 ```
 
 ```python
@@ -151,7 +151,7 @@ result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][
 Verify wiring before relying on it:
 
 ```bash
-curl -s http://localhost:11434/api/tags | grep -o '"hf.co/InternScience/Agents-A1[^"]*"'
+curl -s http://localhost:1235/v1/models | grep -o '"qwen3-coder"'
 curl -s http://localhost:1235/v1/models | grep -o '"ornith-uncensored"'
 ```
 

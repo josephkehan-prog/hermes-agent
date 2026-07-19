@@ -55,7 +55,7 @@ test-harness, teardown, or code repair to Vanguard as a second handoff.
 
 1. State the requested outcome and the one ambiguity that affects routing.
 2. Retrieve local evidence first; use web discovery only for current facts.
-3. Use deterministic Agents-A1 routing. When evidence remains materially
+3. Use deterministic qwen3-coder routing. When evidence remains materially
    ambiguous, hand the reasoning problem to Vanguard or Mythos instead of
    widening this profile.
 4. Route engineering to Vanguard, visual inspection to Hawkeye, evidence

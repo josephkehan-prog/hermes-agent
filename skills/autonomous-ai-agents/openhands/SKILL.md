@@ -48,7 +48,7 @@ For Claude-native, prefer `claude-code`. For OpenAI-native, prefer `codex`. For 
    Local (llama-swap, no cloud key) — use the `openai/` LiteLLM prefix pointed at the local proxy:
 
    ```
-   export LLM_MODEL=openai/ornith-uncensored          # Qwen3.6 default; or openai/qwen3.6-think
+   export LLM_MODEL=openai/ornith-uncensored          # Qwen3.6 base; or openai/qwen3-coder for agentic coding
    export LLM_API_KEY=no-key-required
    export LLM_BASE_URL=http://localhost:1235/v1
    ```

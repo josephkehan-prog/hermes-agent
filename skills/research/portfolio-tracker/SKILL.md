@@ -79,29 +79,29 @@ python3 scripts/portfolio.py value scripts/sample-holdings.json --vs eur
 
 | Task | Model | Endpoint | Why |
 |------|-------|----------|-----|
-| Deterministic valuation math + table formatting (e.g. "given these holdings and this CoinGecko price payload, compute per-holding and total value as a JSON table") | **agent1** (`hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest`) | Ollama, `http://localhost:11434/api/chat`, `"options": {"temperature": 0}` | Temperature 0 for repeatable arithmetic and formatting — this is math, not creative synthesis |
+| Deterministic valuation math + table formatting (e.g. "given these holdings and this CoinGecko price payload, compute per-holding and total value as a JSON table") | **qwen3-coder** (`qwen3-coder`) | llama-swap, `http://localhost:1235/v1/chat/completions`, `"temperature": 0` | Temperature 0 for repeatable arithmetic and formatting — this is math, not creative synthesis |
 | Portfolio risk/concentration/rebalance read (e.g. "given this valuation table, how concentrated is this portfolio and what would you flag for rebalancing?") | **ornith** (`ornith-uncensored`) | llama-swap, `http://localhost:1235/v1/chat/completions`, `"chat_template_kwargs": {"enable_thinking": false}` | Fast, terse takes without a slow reasoning trace |
 
 ```python
 import json
 import urllib.request
 
-# agent1: deterministic valuation math, temperature 0
+# qwen3-coder: deterministic valuation math, temperature 0
 payload = {
-    "model": "hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest",
+    "model": "qwen3-coder",
     "messages": [
         {"role": "system", "content": "Compute per-holding value (amount * price) and a total. JSON only, no prose, no markdown fences."},
         {"role": "user", "content": f"Value these holdings against this price payload:\n\n{holdings_and_prices_json}"},
     ],
-    "options": {"temperature": 0},
+    "temperature": 0,
     "stream": False,
 }
 req = urllib.request.Request(
-    "http://localhost:11434/api/chat",
+    "http://localhost:1235/v1/chat/completions",
     data=json.dumps(payload).encode(),
     headers={"Content-Type": "application/json"},
 )
-result = json.loads(urllib.request.urlopen(req, timeout=120).read())["message"]["content"]
+result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][0]["message"]["content"]
 ```
 
 ```python
@@ -123,7 +123,7 @@ result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][
 Verify wiring before relying on it:
 
 ```bash
-curl -s http://localhost:11434/api/tags | grep -o '"hf.co/InternScience/Agents-A1[^"]*"'
+curl -s http://localhost:1235/v1/models | grep -o '"qwen3-coder"'
 curl -s http://localhost:1235/v1/models | grep -o '"ornith-uncensored"'
 ```
 

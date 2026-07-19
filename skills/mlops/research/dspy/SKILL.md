@@ -317,7 +317,7 @@ Point DSPy at the local llama-swap proxy via `api_base` — no cloud key:
 
 ```python
 lm = dspy.OpenAI(
-    model="ornith-uncensored",        # Qwen3.6 default; or "qwen3.6-think"
+    model="ornith-uncensored",        # Qwen3.6 base (prompt for step-by-step reasoning when needed)
     api_base="http://localhost:1235/v1",
     api_key="no-key-required",
     max_tokens=1000,

@@ -57,7 +57,7 @@ def test_routes_preserve_specialization_and_context_budgets():
     assert module.ROUTES["vision-fast"].context == 16384
     assert module.ROUTES["research"].context == 32768
     assert module.ROUTES["writer"].context == 32768
-    assert module.ROUTES["controller"].model == "agents-a1"
+    assert module.ROUTES["controller"].model == "qwen3-coder"
 
 
 def test_ollama_payload_is_tool_free_non_thinking_and_unloads(monkeypatch):

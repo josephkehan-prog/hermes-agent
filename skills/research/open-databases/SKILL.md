@@ -111,7 +111,7 @@ stdlib `sqlite3` when it's absent — never install it silently.
 
 ## Model Wiring
 
-For research workflows that need to normalize or synthesize across these sources, two local endpoints are wired: **agent1** (Ollama, temperature 0) for deterministic field extraction/normalization, and **ornith** (llama-swap, thinking disabled) for cross-source synthesis and reconciliation — see the `scrapling` skill for the full pattern. Endpoint URLs, request payloads, and a verify-wiring check: read `references/model-wiring.md` when a research task needs to normalize or reconcile records across sources.
+For research workflows that need to normalize or synthesize across these sources, two local endpoints are wired: **qwen3-coder** (llama-swap, temperature 0) for deterministic field extraction/normalization, and **ornith** (llama-swap, thinking disabled) for cross-source synthesis and reconciliation — see the `scrapling` skill for the full pattern. Endpoint URLs, request payloads, and a verify-wiring check: read `references/model-wiring.md` when a research task needs to normalize or reconcile records across sources.
 
 ## Pitfalls
 

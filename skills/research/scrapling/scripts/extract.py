@@ -3,11 +3,11 @@
 
 Fetches with scrapling.fetchers.Fetcher when scrapling is importable, else
 falls back to urllib with an honest User-Agent. Text can be piped through a
-local model for structured extraction (agent1, via Ollama) or analysis
+local model for structured extraction (qwen3-coder, via llama-swap) or analysis
 (ornith, via llama-swap).
 
 Usage:
-    python3 extract.py <url> [--css SELECTOR] [--model agent1|ornith|none]
+    python3 extract.py <url> [--css SELECTOR] [--model qwen3-coder|ornith|none]
 
 stdlib only; scrapling is an optional import.
 """
@@ -26,10 +26,8 @@ MAX_RESPONSE_BYTES = 10_000_000
 ALLOWED_SCHEMES = {"http", "https"}
 USER_AGENT = "Mozilla/5.0 (compatible; hermes-scrapling-extract/1.1)"
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
-OLLAMA_MODEL = "hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest"
-
 LLAMA_SWAP_URL = "http://localhost:1235/v1/chat/completions"
+EXTRACT_MODEL = "qwen3-coder"
 LLAMA_SWAP_MODEL = "ornith-uncensored"
 
 try:
@@ -181,19 +179,19 @@ def _post_json(url, payload):
         sys.exit(2)
 
 
-def call_agent1(text, instruction):
-    """Deterministic structured JSON extraction via Ollama, temperature 0."""
+def call_extract_model(text, instruction):
+    """Deterministic structured JSON extraction via llama-swap, temperature 0."""
     payload = {
-        "model": OLLAMA_MODEL,
+        "model": EXTRACT_MODEL,
         "messages": [
             {"role": "system", "content": "Extract structured data as JSON only. No prose, no markdown fences."},
             {"role": "user", "content": f"{instruction}\n\n---\n{text}"},
         ],
-        "options": {"temperature": 0},
+        "temperature": 0,
         "stream": False,
     }
-    response = _post_json(OLLAMA_URL, payload)
-    return response["message"]["content"]
+    response = _post_json(LLAMA_SWAP_URL, payload)
+    return response["choices"][0]["message"]["content"]
 
 
 def call_ornith(text, instruction):
@@ -214,9 +212,9 @@ def build_parser():
     parser.add_argument("--css", default=None, help="CSS selector to scope extraction (requires scrapling)")
     parser.add_argument(
         "--model",
-        choices=["agent1", "ornith", "none"],
+        choices=["qwen3-coder", "ornith", "none"],
         default="none",
-        help="agent1 = structured JSON (Ollama, temp 0); ornith = analysis/summary (llama-swap); none = raw text",
+        help="qwen3-coder = structured JSON (llama-swap, temp 0); ornith = analysis/summary (llama-swap); none = raw text",
     )
     parser.add_argument(
         "--instruction",
@@ -240,8 +238,8 @@ def main():
     if args.model == "none":
         print(text)
         return
-    if args.model == "agent1":
-        print(call_agent1(text, args.instruction))
+    if args.model == "qwen3-coder":
+        print(call_extract_model(text, args.instruction))
     else:
         print(call_ornith(text, args.instruction))
 

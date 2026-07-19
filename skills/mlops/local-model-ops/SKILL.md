@@ -16,8 +16,8 @@ metadata:
 # Local Model Ops
 
 Run these exact commands. Do not use cloud APIs. Two serving lanes:
-- llama-swap (`localhost:1235`): persistent Agents-A1 controller plus swap-on-demand Qwen3.6 daily and thinking routes.
-- Ollama (`localhost:11434`): Qwen3-VL, Qwythos, Cydonia, embeddings, and other peer models.
+- llama-swap (`localhost:1235`): preloaded `ornith-uncensored` Qwen3.6 daily base plus swap-on-demand `qwen3-coder` controller route.
+- Ollama (`localhost:11434`): Qwythos, Cydonia, embeddings, and other peer models (also reachable on `:1235` via llama-swap peer passthrough).
 
 ## 1. What is loaded / running?
 
@@ -36,8 +36,8 @@ memory_pressure -Q       # look at "System-wide memory free percentage"
 ```
 
 Rules on this 64GB Mac:
-- Agents-A1 is the persistent controller; its two q8 KV slots are intentional.
-- Abliterated Qwen3.6 27B VL Q6 uses about 22-24GB including runtime overhead and replaces Agents-A1 in llama-swap until the next controller request.
+- `ornith-uncensored` (Qwen3.6 35B-A3B ablit) is the preloaded, kept-warm daily base.
+- `qwen3-coder` is the swap-on-demand controller route; it replaces `ornith-uncensored` in llama-swap until the next base request, then swaps back.
 - Avoid loading multiple large Ollama peers while an image or model-generation job is active.
 - Fallback check: `vm_stat | head -5` — "Pages free" x 16384 = free bytes.
 
@@ -50,7 +50,7 @@ ollama ps                 # confirm it is gone
 curl -s localhost:11434/api/generate -d '{"model":"<model>","keep_alive":"1m"}'
 ```
 
-Do not use `ollama stop` for Agents-A1 or Qwen3.6; llama-swap owns them. Query `localhost:1235/v1/models` and let it swap them on demand.
+Do not use `ollama stop` for `ornith-uncensored` or `qwen3-coder`; llama-swap owns them. Query `localhost:1235/v1/models` and let it swap them on demand.
 
 ## 4. Health checks (quick completion test)
 
@@ -60,7 +60,7 @@ curl -s localhost:11434/api/generate -d '{"model":"<model>","prompt":"hi","strea
 
 # llama-server
 curl -s localhost:1235/v1/chat/completions -H 'Content-Type: application/json' \
-  -d '{"model":"agents-a1","messages":[{"role":"user","content":"hi"}],"max_tokens":64,"chat_template_kwargs":{"enable_thinking":false}}' | head -c 300
+  -d '{"model":"qwen3-coder","messages":[{"role":"user","content":"hi"}],"max_tokens":64}' | head -c 300
 ```
 
 Reply with text = healthy. Empty/error = see step 5.
@@ -81,17 +81,17 @@ ollama stop <model>       # unload it
 memory_pressure -Q        # confirm free % recovered
 ```
 
-Port :1235 is llama-swap (launchd `com.josephhan.llama-swap`, KeepAlive). If it is down, inspect `/tmp/llama-swap.log` before restarting it and notify the user before the service interruption. A first request after swapping Agents-A1 and Qwen3.6 can take 20-60 seconds. `curl localhost:1235/v1/models` reports loaded/unloaded state.
+Port :1235 is llama-swap (launchd `com.josephhan.llama-swap`, KeepAlive). If it is down, inspect `/tmp/llama-swap.log` before restarting it and notify the user before the service interruption. A first request after swapping between `ornith-uncensored` and `qwen3-coder` can take 20-60 seconds. `curl localhost:1235/v1/models` reports loaded/unloaded state.
 
 ## Qwen3.6 route policy
 
-`ornith-uncensored` is retained only as the compatibility ID for the non-thinking abliterated Qwen3.6 route. Use it for JSON, tool calls, editing, and ordinary chat. `qwen3.6-think` uses the same abliterated Q6 weights with a 512-token preserved reasoning budget; allow at least 1024 output tokens so the final answer is not crowded out.
+`ornith-uncensored` is retained as the compatibility ID for the abliterated Qwen3.6 base route. Use it for JSON, tool calls, editing, and ordinary chat. The former separate `qwen3.6-think` route was removed; deliberate reasoning (`think`) now runs on the same `ornith-uncensored` base weights with hybrid reasoning enabled on the prompt — allow at least 1024 output tokens so the final answer is not crowded out.
 
 ```json
 {"model":"ornith-uncensored","messages":[...],"max_tokens":512}
 ```
 
-Agents-A1 keeps its bounded controller reasoning. For Qwythos and Cydonia, use Ollama's native `/api/chat` with `think:false`; their OpenAI-compatible endpoints must not receive tool schemas. Cap Cydonia at 32K context and use it only as a prose engine behind Agents-A1.
+`qwen3-coder` is the swap-on-demand controller route. For Qwythos and Cydonia, use Ollama's native `/api/chat` with `think:false`; their OpenAI-compatible endpoints must not receive tool schemas. Cap Cydonia at 32K context and use it only as a prose engine behind the controller.
 
 ## Specialist harness
 

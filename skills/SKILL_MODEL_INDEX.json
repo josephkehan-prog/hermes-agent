@@ -1,0 +1,1614 @@
+{
+ "skills": [
+  {
+   "skill": "apple/apple-notes",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Manage Apple Notes via memo CLI: create, search, edit."
+  },
+  {
+   "skill": "apple/apple-reminders",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Apple Reminders via remindctl: add, list, complete."
+  },
+  {
+   "skill": "apple/findmy",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Track Apple devices/AirTags via FindMy.app on macOS."
+  },
+  {
+   "skill": "apple/imessage",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Send and receive iMessages/SMS via the imsg CLI on macOS."
+  },
+  {
+   "skill": "apple/signal",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Send and receive Signal messages via signal-cli."
+  },
+  {
+   "skill": "autonomous-ai-agents/antigravity-cli",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Operate the Antigravity CLI (agy): plugins, auth, sandbox."
+  },
+  {
+   "skill": "autonomous-ai-agents/blackbox",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Delegate coding tasks to the Blackbox AI CLI."
+  },
+  {
+   "skill": "autonomous-ai-agents/claude-code",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Delegate coding to Claude Code CLI (features, PRs)."
+  },
+  {
+   "skill": "autonomous-ai-agents/codex",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Delegate coding to OpenAI Codex CLI (features, PRs)."
+  },
+  {
+   "skill": "autonomous-ai-agents/grok",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Delegate coding to xAI Grok Build CLI (features, PRs)."
+  },
+  {
+   "skill": "autonomous-ai-agents/hermes-agent",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Configure, extend, or contribute to Hermes Agent."
+  },
+  {
+   "skill": "autonomous-ai-agents/opencode",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Delegate coding to OpenCode CLI (features, PR review)."
+  },
+  {
+   "skill": "autonomous-ai-agents/openhands",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Delegate coding to OpenHands CLI (model-agnostic, LiteLLM)."
+  },
+  {
+   "skill": "autonomous-ai-agents/war-room-specialist-cascade",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Route War Room requests to hidden niche profiles."
+  },
+  {
+   "skill": "blockchain/evm",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Read-only EVM client: wallets, tokens, gas across 8 chains."
+  },
+  {
+   "skill": "blockchain/hyperliquid",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Hyperliquid market data, account history, trade review."
+  },
+  {
+   "skill": "blockchain/solana",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Query Solana wallets, tokens, NFTs with USD prices."
+  },
+  {
+   "skill": "computer-use",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Drive the desktop in the background via computer_use."
+  },
+  {
+   "skill": "computer-use/browser-first",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Prefer the browser toolset over computer_use for web."
+  },
+  {
+   "skill": "creative/architecture-diagram",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Dark-themed SVG architecture/cloud/infra diagrams as HTML."
+  },
+  {
+   "skill": "creative/ascii-art",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "ASCII art: pyfiglet, cowsay, boxes, image-to-ascii."
+  },
+  {
+   "skill": "creative/ascii-video",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "ASCII video: convert video/audio to colored ASCII MP4/GIF."
+  },
+  {
+   "skill": "creative/baoyu-infographic",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Infographics: 21 layouts x 21 styles (\u4fe1\u606f\u56fe, \u53ef\u89c6\u5316)."
+  },
+  {
+   "skill": "creative/blender-mcp",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Control Blender via the blender-mcp addon and bpy."
+  },
+  {
+   "skill": "creative/canvas-local-visual-production",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Render a visual brief locally and verify the image."
+  },
+  {
+   "skill": "creative/claude-design",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Design one-off HTML artifacts (landing, deck, prototype)."
+  },
+  {
+   "skill": "creative/comfyui",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Generate images, video, audio with ComfyUI workflows."
+  },
+  {
+   "skill": "creative/creative-production-bundle",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Route a creative brief across visual media specialists."
+  },
+  {
+   "skill": "creative/cydonia-creative-writing",
+   "tags": [
+    "model:cydonia",
+    "model:qwen3-coder"
+   ],
+   "what": "Draft and revise fiction with the local Cydonia model."
+  },
+  {
+   "skill": "creative/design-md",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Author/validate/export Google's DESIGN.md token spec files."
+  },
+  {
+   "skill": "creative/excalidraw",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Hand-drawn Excalidraw JSON diagrams (arch, flow, seq)."
+  },
+  {
+   "skill": "creative/flux-local",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Generate images locally with FLUX.1 dev or schnell."
+  },
+  {
+   "skill": "creative/genre-novel-production",
+   "tags": [
+    "model:cydonia",
+    "model:qwen3-coder"
+   ],
+   "what": "Write genre novels with Cydonia and continuity checks."
+  },
+  {
+   "skill": "creative/genre-writer-cascade",
+   "tags": [
+    "model:cydonia"
+   ],
+   "what": "Select the matching standby genre profile for Quill."
+  },
+  {
+   "skill": "creative/humanizer",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Humanize text: strip AI-isms and add real voice."
+  },
+  {
+   "skill": "creative/kanban-video-orchestrator",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Run a multi-agent video pipeline on Hermes Kanban."
+  },
+  {
+   "skill": "creative/manim-video",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Manim CE animations: 3Blue1Brown math/algo videos."
+  },
+  {
+   "skill": "creative/manuscript-continuity-ledger",
+   "tags": [
+    "model:cydonia"
+   ],
+   "what": "Build and audit manuscript continuity artifacts."
+  },
+  {
+   "skill": "creative/novel-generator",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Generate full novels autonomously via Claude or Codex."
+  },
+  {
+   "skill": "creative/p5js",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "p5.js sketches: gen art, shaders, interactive, 3D."
+  },
+  {
+   "skill": "creative/popular-web-designs",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "54 real design systems (Stripe, Linear, Vercel) as HTML/CSS."
+  },
+  {
+   "skill": "creative/pretext",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Build text-as-geometry browser demos with pretext."
+  },
+  {
+   "skill": "creative/quill-story-production",
+   "tags": [
+    "model:cydonia",
+    "model:qwen3-coder"
+   ],
+   "what": "Draft and revise fiction with Cydonia as Quill."
+  },
+  {
+   "skill": "creative/screenplay-production",
+   "tags": [
+    "model:cydonia",
+    "model:qwen3-coder"
+   ],
+   "what": "Write and revise screenplays with local Cydonia."
+  },
+  {
+   "skill": "creative/sketch",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Throwaway HTML mockups: 2-3 design variants to compare."
+  },
+  {
+   "skill": "creative/songwriting-and-ai-music",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Songwriting craft and Suno AI music prompts."
+  },
+  {
+   "skill": "creative/touchdesigner-mcp",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Control TouchDesigner via twozero MCP for visuals."
+  },
+  {
+   "skill": "data-science/jupyter-live-kernel",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Iterative Python via live Jupyter kernel (hamelnb)."
+  },
+  {
+   "skill": "devops/changelog",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Build a Keep-a-Changelog CHANGELOG.md from git history."
+  },
+  {
+   "skill": "devops/cli",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Run 150+ AI apps via the inference.sh CLI (infsh)."
+  },
+  {
+   "skill": "devops/cron-schedule",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Write, read, fix, or explain cron expressions."
+  },
+  {
+   "skill": "devops/dependency-audit",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Audit deps for staleness and CVEs with local scanners."
+  },
+  {
+   "skill": "devops/docker-management",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Manage Docker containers, images, and Compose stacks."
+  },
+  {
+   "skill": "devops/dockerfile-lint",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Lint a Dockerfile for security, correctness, and size."
+  },
+  {
+   "skill": "devops/env-audit",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Check env vars for missing, unused, or drifted keys."
+  },
+  {
+   "skill": "devops/git-hygiene",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Keep a repo clean of secrets, big files, bad commits."
+  },
+  {
+   "skill": "devops/hermes-s6-container-supervision",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Edit the s6-overlay tree in the Hermes Docker image."
+  },
+  {
+   "skill": "devops/log-triage",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Parse and cluster log files for incident triage."
+  },
+  {
+   "skill": "devops/pi-webfetch",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Fetch URLs as markdown, text, or HTML for pi."
+  },
+  {
+   "skill": "devops/reliability-operations-bundle",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Coordinate a reliability response from signal to fix."
+  },
+  {
+   "skill": "devops/self-healing",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Monitor, detect, and remediate local service health."
+  },
+  {
+   "skill": "devops/sentinel-security-assurance",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Audit a codebase or runtime for security risks."
+  },
+  {
+   "skill": "devops/sentry-incident-response",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Diagnose and recover from a runtime incident."
+  },
+  {
+   "skill": "devops/watchers",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Poll RSS, JSON APIs, and GitHub with watermark dedup."
+  },
+  {
+   "skill": "dogfood",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Exploratory QA of web apps: find bugs, evidence, reports."
+  },
+  {
+   "skill": "duckduckgo-search",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Free DuckDuckGo web search, no API key needed."
+  },
+  {
+   "skill": "email/agentmail",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Give the agent its own email inbox via AgentMail."
+  },
+  {
+   "skill": "email/himalaya",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Himalaya CLI: IMAP/SMTP email from terminal."
+  },
+  {
+   "skill": "finance/3-statement-model",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Build integrated 3-statement Excel models."
+  },
+  {
+   "skill": "finance/comps-analysis",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Build comparable company analysis in Excel."
+  },
+  {
+   "skill": "finance/dcf-model",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Build DCF valuation models in Excel."
+  },
+  {
+   "skill": "finance/excel-author",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Build auditable Excel workbooks with openpyxl."
+  },
+  {
+   "skill": "finance/lbo-model",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Build leveraged buyout (LBO) models in Excel."
+  },
+  {
+   "skill": "finance/merger-model",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Build accretion/dilution merger models in Excel."
+  },
+  {
+   "skill": "finance/pptx-author",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Build PowerPoint decks with python-pptx."
+  },
+  {
+   "skill": "finance/prediction-market-analysis",
+   "tags": [
+    "model:qwen3-coder"
+   ],
+   "what": "Find mispriced Polymarket outcomes with local LLMs."
+  },
+  {
+   "skill": "finance/stocks",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Stock quotes, history, search, compare, crypto via Yahoo."
+  },
+  {
+   "skill": "github/codebase-inspection",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Inspect codebases w/ pygount: LOC, languages, ratios."
+  },
+  {
+   "skill": "github/forge-github-delivery",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Carry one GitHub change to a merge-ready handoff."
+  },
+  {
+   "skill": "github/github-auth",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "GitHub auth setup: HTTPS tokens, SSH keys, gh CLI login."
+  },
+  {
+   "skill": "github/github-code-review",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Review PRs: diffs, inline comments via gh or REST."
+  },
+  {
+   "skill": "github/github-issues",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Create, triage, label, assign GitHub issues via gh or REST."
+  },
+  {
+   "skill": "github/github-maintainer-bundle",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Maintain a GitHub repo across the full lifecycle."
+  },
+  {
+   "skill": "github/github-pr-workflow",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "GitHub PR lifecycle: branch, commit, open, CI, merge."
+  },
+  {
+   "skill": "github/github-repo-management",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Clone/create/fork repos; manage remotes, releases."
+  },
+  {
+   "skill": "github/workspace-extension-integration",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Adopt external repos as hermes plugins or tools."
+  },
+  {
+   "skill": "health/fitness-nutrition",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Plan gym workouts and track nutrition macros."
+  },
+  {
+   "skill": "hermes-desktop-plugins",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Write desktop app plugins that add UI panes and commands."
+  },
+  {
+   "skill": "mcp/fastmcp",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Build and deploy MCP servers with FastMCP in Python."
+  },
+  {
+   "skill": "media/audiobook-narration-production",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Produce local audiobook narration with Kokoro."
+  },
+  {
+   "skill": "media/chatterbox-tts",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Local TTS with voice cloning via Chatterbox MLX."
+  },
+  {
+   "skill": "media/composer-audio-production",
+   "tags": [
+    "model:qwen3-embed"
+   ],
+   "what": "Compose and produce local music and audio assets."
+  },
+  {
+   "skill": "media/director-video-production",
+   "tags": [
+    "model:cydonia"
+   ],
+   "what": "Produce local video from brief to final artifact."
+  },
+  {
+   "skill": "media/gif-search",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Search/download GIFs from Tenor via curl + jq."
+  },
+  {
+   "skill": "media/hawkeye-visual-evidence",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Inspect UIs and images for visual evidence."
+  },
+  {
+   "skill": "media/heartmula",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "HeartMuLa: Suno-like song generation from lyrics + tags."
+  },
+  {
+   "skill": "media/image-edit",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Edit images locally with sips or ImageMagick."
+  },
+  {
+   "skill": "media/media-production-bundle",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Produce a coordinated multi-format media package."
+  },
+  {
+   "skill": "media/previsualization-production",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Turn a script into storyboards and animatics."
+  },
+  {
+   "skill": "media/songsee",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Audio spectrograms/features (mel, chroma, MFCC) via CLI."
+  },
+  {
+   "skill": "media/transcript-caption-production",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Transcribe local audio to timestamped captions."
+  },
+  {
+   "skill": "media/youtube-content",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "YouTube transcripts to summaries, threads, blogs."
+  },
+  {
+   "skill": "meta/skill-factory",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Generate reusable Hermes skills from workflows."
+  },
+  {
+   "skill": "migration/openclaw-migration",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Migrate an OpenClaw setup into Hermes Agent."
+  },
+  {
+   "skill": "mlops/chroma",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Store and search embeddings with Chroma."
+  },
+  {
+   "skill": "mlops/clip",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Zero-shot image classification and search with CLIP."
+  },
+  {
+   "skill": "mlops/evaluation/lm-evaluation-harness",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "lm-eval-harness: benchmark LLMs (MMLU, GSM8K, etc.)."
+  },
+  {
+   "skill": "mlops/evaluation/weights-and-biases",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "W&B: log ML experiments, sweeps, model registry, dashboards."
+  },
+  {
+   "skill": "mlops/guidance",
+   "tags": [
+    "model:ornith-uncensored"
+   ],
+   "what": "Constrain LLM output with grammars via Guidance."
+  },
+  {
+   "skill": "mlops/huggingface-hub",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "HuggingFace hf CLI: search/download/upload models, datasets."
+  },
+  {
+   "skill": "mlops/huggingface-tokenizers",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Fast tokenization with HuggingFace Tokenizers."
+  },
+  {
+   "skill": "mlops/inference/llama-cpp",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "llama.cpp local GGUF inference + HF Hub model discovery."
+  },
+  {
+   "skill": "mlops/inference/vllm",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "vLLM: high-throughput LLM serving, OpenAI API, quantization."
+  },
+  {
+   "skill": "mlops/instructor",
+   "tags": [
+    "model:ornith-uncensored"
+   ],
+   "what": "Extract Pydantic-validated data from LLMs with Instructor."
+  },
+  {
+   "skill": "mlops/lambda-labs",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Run ML workloads on Lambda Labs GPU cloud."
+  },
+  {
+   "skill": "mlops/llava",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Conversational image understanding with LLaVA."
+  },
+  {
+   "skill": "mlops/local-ai-lifecycle-bundle",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Manage the local model lifecycle end to end."
+  },
+  {
+   "skill": "mlops/local-model-audit",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Verify whether a project's local ML mode works."
+  },
+  {
+   "skill": "mlops/local-model-ops",
+   "tags": [
+    "model:cydonia",
+    "model:ornith-uncensored",
+    "model:qwen3-coder",
+    "model:qwythos",
+    "role:code",
+    "role:controller",
+    "role:research",
+    "role:think",
+    "role:vision-fast",
+    "role:writer"
+   ],
+   "what": "Operate Hermes local inference on this Mac."
+  },
+  {
+   "skill": "mlops/modal",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "On-demand serverless GPU cloud for ML workloads."
+  },
+  {
+   "skill": "mlops/models/audiocraft",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "AudioCraft: MusicGen text-to-music, AudioGen text-to-sound."
+  },
+  {
+   "skill": "mlops/models/segment-anything",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "SAM: zero-shot image segmentation via points, boxes, masks."
+  },
+  {
+   "skill": "mlops/nemo-curator",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "GPU-accelerated data curation for LLM training."
+  },
+  {
+   "skill": "mlops/pinecone",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Managed vector database for RAG and semantic search."
+  },
+  {
+   "skill": "mlops/pytorch-fsdp",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Fully Sharded Data Parallel training with PyTorch."
+  },
+  {
+   "skill": "mlops/pytorch-lightning",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "High-level PyTorch training with the Trainer class."
+  },
+  {
+   "skill": "mlops/rag-retrieval",
+   "tags": [
+    "model:bge-m3",
+    "model:nomic",
+    "model:qwen3-embed",
+    "model:qwen3-rerank",
+    "model:reranker"
+   ],
+   "what": "Local RAG retrieval with embeddings and reranking."
+  },
+  {
+   "skill": "mlops/research/dspy",
+   "tags": [
+    "model:ornith-uncensored"
+   ],
+   "what": "DSPy: declarative LM programs, auto-optimize prompts, RAG."
+  },
+  {
+   "skill": "mlops/saelens",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Train and analyze Sparse Autoencoders with SAELens."
+  },
+  {
+   "skill": "mlops/slime",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "LLM RL post-training with slime (Megatron+SGLang)."
+  },
+  {
+   "skill": "mlops/specialist-routing",
+   "tags": [
+    "model:cydonia",
+    "model:ornith-uncensored",
+    "model:qwen3-coder",
+    "model:qwythos",
+    "role:code",
+    "role:controller",
+    "role:extract",
+    "role:research",
+    "role:think",
+    "role:vision-fast",
+    "role:writer"
+   ],
+   "what": "Route a task to the right local specialist model."
+  },
+  {
+   "skill": "note-taking/obsidian",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Read, search, create, and edit notes in the Obsidian vault."
+  },
+  {
+   "skill": "orca-cli",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Operate Orca worktrees, terminals, and browser."
+  },
+  {
+   "skill": "orchestration",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Multi-agent coordination with messages and DAGs."
+  },
+  {
+   "skill": "osint-investigation",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Public-records OSINT investigation framework."
+  },
+  {
+   "skill": "payments/mpp-agent",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Pay HTTP 402 APIs via Machine Payments Protocol (MPP)."
+  },
+  {
+   "skill": "payments/stripe-link-cli",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Agent payments via Stripe Link \u2014 cards, SPT, approvals."
+  },
+  {
+   "skill": "productivity/airtable",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Airtable REST API via curl. Records CRUD, filters, upserts."
+  },
+  {
+   "skill": "productivity/archivist-knowledge-pipeline",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Turn documents into one canonical knowledge artifact."
+  },
+  {
+   "skill": "productivity/career-campaign-bundle",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Run an end-to-end job application campaign."
+  },
+  {
+   "skill": "productivity/cover-letter",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Draft a 4-paragraph cover letter for a job posting."
+  },
+  {
+   "skill": "productivity/csv-insights",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Summarize, filter, and aggregate CSV or TSV files."
+  },
+  {
+   "skill": "productivity/google-workspace",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Gmail, Calendar, Drive, Docs, Sheets via gws CLI or Python."
+  },
+  {
+   "skill": "productivity/here-now",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Publish static sites and store files on here.now."
+  },
+  {
+   "skill": "productivity/ics-calendar",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Create an .ics calendar file or event invite."
+  },
+  {
+   "skill": "productivity/interview-prep",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Prep for a teaching-role interview from a posting."
+  },
+  {
+   "skill": "productivity/job-search-tracking",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Track job applications and watch listings locally."
+  },
+  {
+   "skill": "productivity/knowledge-workflow-bundle",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Capture and transform knowledge across documents."
+  },
+  {
+   "skill": "productivity/maps",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Geocode, POIs, routes, timezones via OpenStreetMap/OSRM."
+  },
+  {
+   "skill": "productivity/memento-flashcards",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Spaced-repetition flashcards with agent grading."
+  },
+  {
+   "skill": "productivity/nano-pdf",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Edit PDF text/typos/titles via nano-pdf CLI (NL prompts)."
+  },
+  {
+   "skill": "productivity/notion",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Notion API + ntn CLI: pages, databases, markdown, Workers."
+  },
+  {
+   "skill": "productivity/ocr-and-documents",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Extract text from PDFs/scans (pymupdf, marker-pdf)."
+  },
+  {
+   "skill": "productivity/petdex",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Install and select animated petdex mascots for Hermes."
+  },
+  {
+   "skill": "productivity/powerpoint",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Create, read, edit .pptx decks, slides, notes, templates."
+  },
+  {
+   "skill": "productivity/resume-tailor",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Tailor a resume to a specific job posting."
+  },
+  {
+   "skill": "productivity/structured-document-extraction",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Extract JSON fields and tables from documents."
+  },
+  {
+   "skill": "productivity/teams-meeting-pipeline",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Operate the Teams meeting summary pipeline."
+  },
+  {
+   "skill": "productivity/time-tracking",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Start, stop, and report time in a local ledger."
+  },
+  {
+   "skill": "research/agent-reach",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Search the web and 15 platforms via routed backends."
+  },
+  {
+   "skill": "research/arxiv",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Search arXiv papers by keyword, author, category, or ID."
+  },
+  {
+   "skill": "research/bioinformatics",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Gateway to 400+ bioinformatics skills on demand."
+  },
+  {
+   "skill": "research/blogwatcher",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Monitor blogs and RSS/Atom feeds via blogwatcher-cli tool."
+  },
+  {
+   "skill": "research/crypto-market",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Keyless crypto market data and public wallet lookups."
+  },
+  {
+   "skill": "research/darwinian-evolver",
+   "tags": [
+    "model:ornith-uncensored"
+   ],
+   "what": "Evolve prompts/regex/SQL/code with Imbue's evolution loop."
+  },
+  {
+   "skill": "research/deal-hunting",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Hunt software and hardware deals from free RSS feeds."
+  },
+  {
+   "skill": "research/drug-discovery",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Drug discovery assistant for compound analysis."
+  },
+  {
+   "skill": "research/ethical-investigation-bundle",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Authorized OSINT investigations with evidence control."
+  },
+  {
+   "skill": "research/evidence-research-bundle",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Answer research questions with cited web evidence."
+  },
+  {
+   "skill": "research/gitnexus-explorer",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Index a codebase into a GitNexus knowledge graph."
+  },
+  {
+   "skill": "research/infra-monitor",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Monitor domain infrastructure drift over time."
+  },
+  {
+   "skill": "research/last30days",
+   "tags": [
+    "model:reranker"
+   ],
+   "what": "Research what people say about a topic in 30 days."
+  },
+  {
+   "skill": "research/llm-wiki",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Karpathy's LLM Wiki: build/query interlinked markdown KB."
+  },
+  {
+   "skill": "research/market-pulse",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Keyless crypto + prediction-market snapshot dashboard."
+  },
+  {
+   "skill": "research/multi-source-investigation",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Cross-database investigation with evidence validation."
+  },
+  {
+   "skill": "research/mythos-evidence-synthesis",
+   "tags": [
+    "model:qwythos"
+   ],
+   "what": "Reconcile multiple sources into a cited brief."
+  },
+  {
+   "skill": "research/network-recon",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Keyless DNS and infrastructure reconnaissance."
+  },
+  {
+   "skill": "research/open-databases",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Query free keyless public research databases."
+  },
+  {
+   "skill": "research/osint-reconnaissance",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Digital footprint OSINT via Sherlock and Google Dorks."
+  },
+  {
+   "skill": "research/parallel-cli",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Parallel CLI for web search, research, and enrichment."
+  },
+  {
+   "skill": "research/platform-scrape-research",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Scrape one platform on a topic into a report."
+  },
+  {
+   "skill": "research/polymarket",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Query Polymarket: markets, prices, orderbooks, history."
+  },
+  {
+   "skill": "research/portfolio-tracker",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Keyless crypto portfolio valuation from a holdings file."
+  },
+  {
+   "skill": "research/prediction-markets-ai",
+   "tags": [
+    "model:qwen3-coder"
+   ],
+   "what": "Find mispriced prediction markets with local LLMs."
+  },
+  {
+   "skill": "research/quick-summary",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Summarize or extract key points from text."
+  },
+  {
+   "skill": "research/research-paper-writing",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Write ML papers for NeurIPS/ICML/ICLR: design\u2192submit."
+  },
+  {
+   "skill": "research/scrapling",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Scrapling web scraping with stealth and crawling."
+  },
+  {
+   "skill": "research/social-footprint",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Keyless username and email footprint recon."
+  },
+  {
+   "skill": "research/watch-notify",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "Watch a URL for changes and push an alert."
+  },
+  {
+   "skill": "research/wildcard-triage-routing",
+   "tags": [
+    "model:qwen3-coder"
+   ],
+   "what": "Scope a request and route to a War Room specialist."
+  },
+  {
+   "skill": "research/workspace-rag",
+   "tags": [
+    "model:nomic"
+   ],
+   "what": "Local semantic search over Hermes workspace notes."
+  },
+  {
+   "skill": "security/1password",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Set up and use the 1Password CLI (op) for secrets."
+  },
+  {
+   "skill": "security/credit-card-investigation",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Investigate leaked card data with BIN/IIN lookups."
+  },
+  {
+   "skill": "security/dark-web-monitor",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Watch the dark web and export threat-intel feeds."
+  },
+  {
+   "skill": "security/dark-web-osint",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Search, fetch, and analyze .onion sites for OSINT."
+  },
+  {
+   "skill": "security/maigret",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "OSINT username search across networks via Maigret."
+  },
+  {
+   "skill": "security/oss-forensics",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Forensic supply-chain investigation of GitHub repos."
+  },
+  {
+   "skill": "security/sherlock",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "OSINT username search across networks via Sherlock."
+  },
+  {
+   "skill": "security/tor-fetch",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Fetch a webpage over Tor, including .onion sites."
+  },
+  {
+   "skill": "smart-home/openhue",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Control Philips Hue lights, scenes, rooms via OpenHue CLI."
+  },
+  {
+   "skill": "social-media/scrapecreators",
+   "tags": [
+    "model:ornith-uncensored",
+    "model:qwen3-coder"
+   ],
+   "what": "ScrapeCreators API for social profiles (paid key)."
+  },
+  {
+   "skill": "social-media/xurl",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "X/Twitter via xurl CLI: post, search, DM, media, v2 API."
+  },
+  {
+   "skill": "software-development/code-wiki",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Generate wiki docs + Mermaid diagrams for any codebase."
+  },
+  {
+   "skill": "software-development/git-bisect",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Find the commit that introduced a regression."
+  },
+  {
+   "skill": "software-development/hermes-agent-skill-authoring",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Create, revise, validate, and bundle Hermes repo skills."
+  },
+  {
+   "skill": "software-development/node-inspect-debugger",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Debug Node.js via --inspect + Chrome DevTools Protocol CLI."
+  },
+  {
+   "skill": "software-development/plan",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Write an actionable markdown plan, no execution."
+  },
+  {
+   "skill": "software-development/python-debugpy",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Debug Python: pdb REPL + debugpy remote (DAP)."
+  },
+  {
+   "skill": "software-development/regex-craft",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Write, fix, test, or explain a regular expression."
+  },
+  {
+   "skill": "software-development/repo-location-discovery",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Verify where a project lives before writing files."
+  },
+  {
+   "skill": "software-development/requesting-code-review",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Pre-commit review: security scan, quality gates, auto-fix."
+  },
+  {
+   "skill": "software-development/rest-graphql-debug",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Debug REST/GraphQL APIs: status codes, auth, schemas, repro."
+  },
+  {
+   "skill": "software-development/simplify-code",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Parallel 3-agent cleanup of recent code changes."
+  },
+  {
+   "skill": "software-development/software-delivery-bundle",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Route a software change through each delivery stage."
+  },
+  {
+   "skill": "software-development/spike",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Throwaway experiments to validate an idea before build."
+  },
+  {
+   "skill": "software-development/sql-review",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Review a SQL statement for correctness and safety."
+  },
+  {
+   "skill": "software-development/stacktrace-triage",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Localize where a stack trace or traceback fails."
+  },
+  {
+   "skill": "software-development/subagent-driven-development",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Execute plans via delegate_task subagents (2-stage review)."
+  },
+  {
+   "skill": "software-development/systematic-debugging",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "4-phase root cause debugging: understand bugs before fixing."
+  },
+  {
+   "skill": "software-development/test-driven-development",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "TDD: enforce RED-GREEN-REFACTOR, tests before code."
+  },
+  {
+   "skill": "software-development/vanguard-engineering-ops",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Own multi-step engineering and local-model ops."
+  },
+  {
+   "skill": "web-development/cloudflare-temporary-deploy",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Deploy a Worker live, no account, via wrangler --temporary."
+  },
+  {
+   "skill": "web-development/page-agent",
+   "tags": [
+    "model:ornith-uncensored"
+   ],
+   "what": "Embed alibaba/page-agent in-page GUI agent in a web app."
+  },
+  {
+   "skill": "yuanbao",
+   "tags": [
+    "agnostic"
+   ],
+   "what": "Yuanbao (\u5143\u5b9d) groups: @mention users, query info/members."
+  }
+ ]
+}

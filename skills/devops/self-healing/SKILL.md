@@ -53,7 +53,7 @@ it always fires on a failing check.
 | Type | What it checks | Backing |
 |---|---|---|
 | `http` | Any HTTP(S) endpoint's reachability/status/body substring | `tools.uptime_check_tool.check_url` — same SSRF guard as `watch-notify` (rejects loopback/private targets by design; **not** for checking your own localhost services, see `local_model` below) |
-| `local_model` | agent1 (`:11434`) or ornith (`:1235`) reachability | A narrow, hardcoded-allowlist loopback fetch (fixed host/port/path per name, never runbook-supplied) — the one place this script calls `urlopen` directly, because `check_url`'s guard structurally can't reach loopback. See `scripts/selfheal.py`'s module docstring for the full rationale. |
+| `local_model` | coder (`:1235`) or ornith (`:1235`) reachability | A narrow, hardcoded-allowlist loopback fetch (fixed host/port/path per name, never runbook-supplied) — the one place this script calls `urlopen` directly, because `check_url`'s guard structurally can't reach loopback. See `scripts/selfheal.py`'s module docstring for the full rationale. |
 | `process` | Is a process alive matching a pattern | `pgrep -f <pattern>` via `subprocess.run` (list-args, no shell) |
 | `disk` | Free space % on a path | `shutil.disk_usage` |
 | `load` | 1-minute load average | `os.getloadavg()` (POSIX only — no Windows support, hence `platforms: [linux, macos]` above) |
@@ -85,7 +85,7 @@ runs.
 {
   "name": "local-model-watchdog",
   "checks": [
-    {"id": "agent1-up", "type": "local_model", "name": "agent1"},
+    {"id": "coder-up", "type": "local_model", "name": "coder"},
     {"id": "worker-alive", "type": "process", "pattern": "hermes-worker"},
     {"id": "disk-free", "type": "disk", "path": "/", "min_free_pct": 10},
     {"id": "load-ok", "type": "load", "max_1min": 8.0}
@@ -93,7 +93,7 @@ runs.
   "remediations": [
     {"check_id": "worker-alive", "action": "restart", "command": ["systemctl", "restart", "hermes-worker"]},
     {"check_id": "disk-free", "action": "clear-temp", "path": "/tmp/hermes-scratch", "pattern": "*.tmp"},
-    {"check_id": "agent1-up", "action": "alert-only", "topic": "hermes-selfheal-<random>", "message": "agent1 down"}
+    {"check_id": "coder-up", "action": "alert-only", "topic": "hermes-selfheal-<random>", "message": "coder down"}
   ]
 }
 ```
@@ -130,29 +130,29 @@ of reading `check`'s table by hand:
 
 | Task | Model | Endpoint | Why |
 |---|---|---|---|
-| Deterministic status-table parsing/summarizing (e.g. "collapse this batch of `check` runs across N runbooks into one JSON list of failing checks") | **agent1** (`hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest`) | Ollama, `http://localhost:11434/api/chat` | Temperature 0 for repeatable structured output |
+| Deterministic status-table parsing/summarizing (e.g. "collapse this batch of `check` runs across N runbooks into one JSON list of failing checks") | **qwen3-coder** (`qwen3-coder`) | llama-swap, `http://localhost:1235/v1/chat/completions` | Temperature 0 for repeatable structured output |
 | "Should I remediate / what's the root cause" triage (e.g. "disk-free failed and load-ok failed together — is clear-temp the right call, or is something else eating disk?") | **ornith** (`ornith-uncensored`) | llama-swap, `http://localhost:1235/v1/chat/completions` | Reasoning model; disable thinking with `chat_template_kwargs: {"enable_thinking": false}` for fast, terse output |
 
 ```python
 import json
 import urllib.request
 
-# agent1: summarize a batch of check results, temperature 0
+# qwen3-coder: summarize a batch of check results, temperature 0
 payload = {
-    "model": "hf.co/InternScience/Agents-A1-Q4_K_M-GGUF:latest",
+    "model": "qwen3-coder",
     "messages": [
         {"role": "system", "content": "List which checks are failing as JSON only. No prose, no markdown fences."},
         {"role": "user", "content": f"Summarize:\n\n{results_json}"},
     ],
-    "options": {"temperature": 0},
+    "temperature": 0,
     "stream": False,
 }
 req = urllib.request.Request(
-    "http://localhost:11434/api/chat",
+    "http://localhost:1235/v1/chat/completions",
     data=json.dumps(payload).encode(),
     headers={"Content-Type": "application/json"},
 )
-result = json.loads(urllib.request.urlopen(req, timeout=120).read())["message"]["content"]
+result = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][0]["message"]["content"]
 ```
 
 ```python
@@ -175,7 +175,7 @@ Verify wiring before relying on it (or just run `python3 selfheal.py
 status`, which checks both endpoints directly):
 
 ```bash
-curl -s http://localhost:11434/api/tags | grep -o '"hf.co/InternScience/Agents-A1[^"]*"'
+curl -s http://localhost:1235/v1/models | grep -o '"qwen3-coder"'
 curl -s http://localhost:1235/v1/models | grep -o '"ornith-uncensored"'
 ```
 
@@ -207,7 +207,7 @@ curl -s http://localhost:1235/v1/models | grep -o '"ornith-uncensored"'
   catalog above for the intended path). Don't try to work around the guard
   for a generic `http` check; add a well-known local service to
   `LOCAL_MODEL_ENDPOINTS` in `scripts/selfheal.py` instead if you need to
-  extend past agent1/ornith.
+  extend past coder/ornith.
 - **`load` checks don't work on Windows**: `os.getloadavg()` isn't
   available there (`platforms: [linux, macos]` above is not a formality).
 - **ntfy topic privacy**: same as `watch-notify` — `alert-only`'s `topic`

@@ -15,8 +15,9 @@ metadata:
 ## Boundary
 
 Convert authoritative document pixels into schema-valid records. Use the
-existing Qwen3-VL observation lane; do not install NuExtract or another model
-without swap approval. Route general visual QA to Hawkeye and canonical
+existing local **vision lane** (the `vision-fast` specialist role — the base
+model's own projector); do not install NuExtract or another model without swap
+approval. Route general visual QA to Hawkeye and canonical
 knowledge packaging to Archivist.
 
 ## Routing Table
@@ -31,7 +32,7 @@ knowledge packaging to Archivist.
 
 1. Define the target JSON schema, field types, required fields, page scope, and null policy before inference.
 2. Render each source page deterministically and retain page/image paths.
-3. Use OCR for literal text, then Qwen3-VL for layout relationships and bounded field mapping.
+3. Use OCR for literal text, then the vision lane (`vision-fast` role) for layout relationships and bounded field mapping.
 4. Require source page and evidence text for every non-null field.
 5. Parse the JSON, validate types/enums/required fields, and reject extra keys.
 6. Reinspect low-confidence or contradictory fields against source pixels.

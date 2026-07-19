@@ -6,7 +6,7 @@
 python3 selfheal.py check example.json          # run checks, report only
 python3 selfheal.py run example.json             # dry-run: prints what WOULD remediate
 python3 selfheal.py run example.json --confirm   # actually remediate gated actions
-python3 selfheal.py status                       # agent1/ornith/disk/load snapshot
+python3 selfheal.py status                       # coder/ornith/disk/load snapshot
 ```
 
 No deps, no API keys. HTTP checks route through `tools.uptime_check_tool`

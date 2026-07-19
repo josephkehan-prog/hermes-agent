@@ -1,7 +1,7 @@
 {
   "name": "local-model-watchdog",
   "checks": [
-    {"id": "agent1-up", "type": "local_model", "name": "agent1"},
+    {"id": "coder-up", "type": "local_model", "name": "coder"},
     {"id": "ornith-up", "type": "local_model", "name": "ornith"},
     {"id": "worker-alive", "type": "process", "pattern": "hermes-worker"},
     {"id": "disk-free", "type": "disk", "path": "/", "min_free_pct": 10},

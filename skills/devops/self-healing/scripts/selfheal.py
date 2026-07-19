@@ -9,7 +9,7 @@ Subcommands:
         Run every check; for each failing check with a matching remediation,
         execute it (--confirm) or print what would run (dry-run, default).
     status
-        Quick local health snapshot: agent1 (:11434) / ornith (:1235)
+        Quick local health snapshot: coder (:1235) / ornith (:1235)
         reachability, disk free % on /, 1-minute load average. Read-only,
         always exits 0.
 
@@ -19,7 +19,7 @@ Runbook-driven `http` checks (arbitrary, caller-supplied URLs) go through
 reads, redirect re-validation) — this script never calls urlopen on a
 caller-supplied URL directly. `local_model` checks and `status` are the one
 documented exception: they only ever target a hardcoded allowlist of two
-loopback endpoints (agent1/ornith, fixed host+port+path, not derived from
+loopback endpoints (coder/ornith, fixed host+port+path, not derived from
 runbook input), so they use a narrow loopback-only fetcher instead — see
 `_fetch_loopback`. The generic SSRF guard exists to stop an attacker- or
 runbook-influenced URL from reaching loopback/metadata addresses; a fixed,
@@ -84,7 +84,7 @@ _CHECK_REQUIRED_FIELDS = {
 # skill. Names are validated against this dict; ports/paths never come from
 # runbook input, so this stays a narrow, non-parameterized loopback target.
 LOCAL_MODEL_ENDPOINTS = {
-    "agent1": {"port": 11434, "path": "/api/tags"},
+    "coder": {"port": 1235, "path": "/v1/models"},
     "ornith": {"port": 1235, "path": "/v1/models"},
 }
 
@@ -415,7 +415,7 @@ def cmd_run(args):
 
 def cmd_status(args):
     rows = [
-        {"id": "agent1(:11434)", **check_local_model("agent1")},
+        {"id": "coder(:1235)", **check_local_model("coder")},
         {"id": "ornith(:1235)", **check_local_model("ornith")},
     ]
     try:
