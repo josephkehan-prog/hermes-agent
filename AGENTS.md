@@ -611,70 +611,27 @@ hermes_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
 
 ### What skins customize
 
-| Element | Skin Key | Used By |
-|---------|----------|---------|
-| Banner panel border | `colors.banner_border` | `banner.py` |
-| Banner panel title | `colors.banner_title` | `banner.py` |
-| Banner section headers | `colors.banner_accent` | `banner.py` |
-| Banner dim text | `colors.banner_dim` | `banner.py` |
-| Banner body text | `colors.banner_text` | `banner.py` |
-| Response box border | `colors.response_border` | `cli.py` |
-| Spinner faces (waiting) | `spinner.waiting_faces` | `display.py` |
-| Spinner faces (thinking) | `spinner.thinking_faces` | `display.py` |
-| Spinner verbs | `spinner.thinking_verbs` | `display.py` |
-| Spinner wings (optional) | `spinner.wings` | `display.py` |
-| Tool output prefix | `tool_prefix` | `display.py` |
-| Per-tool emojis | `tool_emojis` | `display.py` → `get_tool_emoji()` |
-| Agent name | `branding.agent_name` | `banner.py`, `cli.py` |
-| Welcome message | `branding.welcome` | `cli.py` |
-| Response box label | `branding.response_label` | `cli.py` |
-| Prompt symbol | `branding.prompt_symbol` | `cli.py` |
+Skin keys → consumers: `colors.banner_{border,title,accent,dim,text}` +
+`colors.response_border` (`banner.py`/`cli.py`); `spinner.{waiting_faces,
+thinking_faces,thinking_verbs,wings}`, `tool_prefix`, per-tool `tool_emojis`
+(`display.py`); `branding.{agent_name,welcome,response_label,prompt_symbol}`
+(`banner.py`/`cli.py`).
 
 ### Built-in skins
 
-- `default` — Classic Hermes gold/kawaii (the current look)
-- `ares` — Crimson/bronze war-god theme with custom spinner wings
-- `mono` — Clean grayscale monochrome
-- `slate` — Cool blue developer-focused theme
-
-### Adding a built-in skin
-
-Add to `_BUILTIN_SKINS` dict in `hermes_cli/skin_engine.py`:
-
-```python
-"mytheme": {
-    "name": "mytheme",
-    "description": "Short description",
-    "colors": { ... },
-    "spinner": { ... },
-    "branding": { ... },
-    "tool_prefix": "┊",
-},
-```
+`default` (Hermes gold/kawaii), `ares` (crimson/bronze), `mono` (grayscale),
+`slate` (cool blue). Add one via the `_BUILTIN_SKINS` dict in
+`hermes_cli/skin_engine.py` (same keys as above + `name`/`description`).
 
 ### User skins (YAML)
 
-Users create `~/.hermes/skins/<name>.yaml`:
+Drop `~/.hermes/skins/<name>.yaml` with any subset of the keys above:
 
 ```yaml
 name: cyberpunk
-description: Neon-soaked terminal theme
-
-colors:
-  banner_border: "#FF00FF"
-  banner_title: "#00FFFF"
-  banner_accent: "#FF1493"
-
-spinner:
-  thinking_verbs: ["jacking in", "decrypting", "uploading"]
-  wings:
-    - ["⟨⚡", "⚡⟩"]
-
-branding:
-  agent_name: "Cyber Agent"
-  response_label: " ⚡ Cyber "
-
-tool_prefix: "▏"
+colors: {banner_border: "#FF00FF"}
+spinner: {thinking_verbs: ["jacking in", "decrypting"]}
+branding: {agent_name: "Cyber Agent"}
 ```
 
 Activate with `/skin cyberpunk` or `display.skin: cyberpunk` in config.yaml.
@@ -1004,18 +961,14 @@ workers spawned by the dispatcher drive it via a dedicated `kanban_*`
 toolset so their schema footprint is zero when they're not inside a
 kanban task.
 
-- **CLI:** `hermes_cli/kanban.py` wires `hermes kanban` with verbs
-  `init`, `create`, `list` (alias `ls`), `show`, `assign`, `link`,
-  `unlink`, `comment`, `attach`, `attachments`, `attach-rm`, `complete`,
-  `block`, `unblock`, `archive`, `tail`, plus less-commonly-used `watch`,
-  `stats`, `runs`, `log`, `assignees`, `heartbeat`, `notify-*`,
-  `dispatch`, `daemon`, `gc`.
+- **CLI:** `hermes_cli/kanban.py` wires `hermes kanban` (verbs: `init`,
+  `create`, `list`/`ls`, `show`, `assign`, `link`, `comment`, `attach`,
+  `complete`, `block`, `archive`, `tail`, `dispatch`, `daemon`, `gc`, …
+  — see `hermes kanban -h`).
 - **Worker/orchestrator toolset:** `tools/kanban_tools.py` exposes
-  `kanban_show`, `kanban_complete`, `kanban_block`, `kanban_heartbeat`,
-  `kanban_comment`, `kanban_create`, `kanban_link`, `kanban_attach`,
-  `kanban_attach_url`, `kanban_attachments`; profiles that explicitly
-  enable the `kanban` toolset outside a dispatcher-spawned task also get
-  `kanban_list` and `kanban_unblock` for board routing.
+  `kanban_*` tools (show/complete/block/heartbeat/comment/create/link/
+  attach…); profiles that explicitly enable the `kanban` toolset outside
+  a dispatcher-spawned task also get `kanban_list` + `kanban_unblock`.
 - **Dispatcher:** long-lived loop that (default every 60s) reclaims
   stale claims, promotes ready tasks, atomically claims, and spawns
   assigned profiles. Runs **inside the gateway** by default via
@@ -1221,15 +1174,11 @@ unsets credentials, uses a temp `HERMES_HOME` per test, TZ=UTC, LANG=C.UTF-8.
 
 ### Where to place what tests
 
-The CI change classifier (`scripts/ci/classify_changes.py`) runs specific jobs based on what files changed. A Python test that asserts
-about the contents of `package.json`, `package-lock.json`, `.ts`/`.tsx`
-source, or any other JS-side artifact will not run on a PR that only touches
-those files. This means a regression can go green on a PR and red on `main` (where the
-classifier fails open and runs everything).
-
-Any test that reads or asserts about `package.json`,
-`package-lock.json`, `tsconfig.json`, `.ts`/`.tsx`/`.js`/`.mjs`/`.cjs`
-source files configuration belongs in the JS (vitest) test suite, not in `tests/*.py`.
+The CI change classifier (`scripts/ci/classify_changes.py`) picks jobs by
+changed files — a Python test asserting about JS-side artifacts won't run on
+a JS-only PR (green PR, red `main`, where the classifier fails open). Any
+test about `package.json`/`tsconfig.json`/`.ts`/`.tsx`/`.js` content belongs
+in the JS (vitest) suite, not `tests/*.py`.
 
 ### Don't write change-detector tests
 
@@ -1268,32 +1217,14 @@ A test that reads a source file's text is testing *the shape of the
 source code*, not its behavior. This is a hard antipattern, banned outright.
 Any test that reads a .py, .ts, .tsx, etc., file is suspect.
 
-**Why it's actively harmful, not just weak:**
+**Why it's actively harmful, not just weak:** it passes when the
+implementation is subtly broken yet fails when a correct refactor changes
+formatting or names (both failure directions wrong); it never executes the
+code path it claims to guard (false confidence); and it blocks refactors by
+failing on pure structural cleanup.
 
-- It passes when the implementation is subtly broken (the regex matches a
-  call site that exists but is wired wrong) and fails when a correct
-  refactor changes formatting, variable names, or control flow with
-  identical runtime behavior. Both directions of failure are wrong.
-- It can't be run against a built/bundled/minified artifact, so it silently
-  stops testing anything the moment code moves, gets renamed, or a
-  dependency reformats it.
-- It actively blocks refactors: reviewers see "keeps a pattern intact" tests
-  fail during pure structural cleanup with no behavior change, and either
-  hand-wave the failure (dangerous) or waste time updating regexes that add
-  nothing (waste).
-- It gives false confidence. a green suite full of source-regex tests
-  looks like coverage but has never once executed the code path it claims
-  to guard.
-
-**Do not write:**
-
-```ts
-const source = fs.readFileSync(path.join(__dirname, 'main.ts'), 'utf8')
-
-test('backend spawn hides the Windows console', () => {
-  assert.match(source, /spawn\(\s*backend\.command,\s*backend\.args[\s\S]{0,300}hiddenWindowsChildOptions/)
-})
-```
+**Do not write:** `fs.readFileSync('main.ts')` + `assert.match(source,
+/spawn\(...\)/)`-style regex assertions on source text.
 
 **Do write — extract the logic into a small pure/DI-testable function and
 call it for real:**
