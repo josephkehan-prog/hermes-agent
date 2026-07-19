@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Canonical guide
 
-`AGENTS.md` (repo root, ~1350 lines) is the authoritative development guide —
-contribution rubric, footprint ladder, per-subsystem deep dives, known
-pitfalls. Read it before non-trivial work. This file is the fast-start summary;
+`AGENTS.md` (repo root) is the authoritative development guide — contribution
+rubric, footprint ladder, hard rules, known pitfalls, testing policy.
+Per-subsystem deep dives live in `docs/dev/` (agent core, CLI, TUI, tools,
+configuration, skins, plugins, delegation, curator, cron, kanban). Read the
+relevant ones before non-trivial work. This file is the fast-start summary;
 AGENTS.md wins on any conflict.
 
 ## What Hermes is
