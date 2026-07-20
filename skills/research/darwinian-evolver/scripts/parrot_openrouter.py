@@ -36,10 +36,19 @@ DEFAULT_MODEL = os.environ.get("EVOLVER_MODEL", "openai/gpt-4o-mini")
 
 
 def _client() -> OpenAI:
-    key = os.environ.get("OPENROUTER_API_KEY")
+    # Backend is env-driven so the same driver hits OpenRouter, a local
+    # llama-server, or the Meridian Claude bridge with no code edit:
+    #   EVOLVER_BASE_URL  — OpenAI-compatible endpoint (default: OpenRouter)
+    #   EVOLVER_API_KEY   — key for that endpoint (falls back to OPENROUTER_API_KEY)
+    # Meridian (Claude):  EVOLVER_BASE_URL=http://127.0.0.1:3456/v1
+    #                     EVOLVER_API_KEY=x  EVOLVER_MODEL=claude-opus-4-8
+    # Local (no key):     EVOLVER_BASE_URL=http://127.0.0.1:1235/v1
+    #                     EVOLVER_API_KEY=x  EVOLVER_MODEL=ornith-uncensored
+    base_url = os.environ.get("EVOLVER_BASE_URL", "https://openrouter.ai/api/v1")
+    key = os.environ.get("EVOLVER_API_KEY") or os.environ.get("OPENROUTER_API_KEY")
     if not key:
-        sys.exit("OPENROUTER_API_KEY is not set")
-    return OpenAI(api_key=key, base_url="https://openrouter.ai/api/v1")
+        sys.exit("Set EVOLVER_API_KEY (or OPENROUTER_API_KEY). Local/Meridian: use any placeholder like 'x'.")
+    return OpenAI(api_key=key, base_url=base_url)
 
 
 def _prompt_llm(prompt: str) -> str:

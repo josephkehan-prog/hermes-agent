@@ -50,13 +50,37 @@ The skill ships a small `parrot_openrouter.py` driver that uses `OPENROUTER_API_
 via the OpenAI SDK, so any model on OpenRouter works. The upstream CLI itself
 hardcodes Anthropic and needs `ANTHROPIC_API_KEY`.
 
-## Local endpoint (no API key)
+## Choosing the LLM backend (env-driven, no code edit)
 
-Point the OpenRouter driver at Hermes' local llama-server instead: edit
-`parrot_openrouter.py`'s `_client()` to `OpenAI(base_url="http://localhost:1235/v1", api_key="no-key-required")`
-and set `EVOLVER_MODEL=openai/ornith-uncensored`. No key required. The upstream
-CLI (`uv run darwinian_evolver <problem>`) still hardcodes `ANTHROPIC_API_KEY`
-and can't be redirected this way — use the driver script for local models.
+The shipped driver + template read the backend from the environment — same
+script hits OpenRouter, the local llama-server, or the **Meridian Claude
+bridge**. Set:
+
+- `EVOLVER_BASE_URL` — OpenAI-compatible endpoint (default OpenRouter)
+- `EVOLVER_API_KEY` — key for it (any placeholder like `x` for local/Meridian)
+- `EVOLVER_MODEL` — model ID at that endpoint
+
+```bash
+# Meridian → Claude (best mutator quality; the :3456 bridge, provider Meridian-Claude)
+export EVOLVER_BASE_URL=http://127.0.0.1:3456/v1
+export EVOLVER_API_KEY=x
+export EVOLVER_MODEL=claude-opus-4-8        # or claude-sonnet-4-6 / claude-haiku-4-5
+
+# Local llama-server, no cloud, no key
+export EVOLVER_BASE_URL=http://127.0.0.1:1235/v1
+export EVOLVER_API_KEY=x
+export EVOLVER_MODEL=ornith-uncensored
+
+# OpenRouter (default if EVOLVER_BASE_URL unset)
+export OPENROUTER_API_KEY=sk-...
+export EVOLVER_MODEL=openai/gpt-4o-mini
+```
+
+The mutator is the quality bottleneck — it does the actual diagnosing and
+rewriting. **Claude via Meridian gives the strongest mutations**; the local
+model is the free/offline option; cheap OpenRouter models are fine for smoke
+tests. The upstream CLI (`uv run darwinian_evolver <problem>`) still hardcodes
+`ANTHROPIC_API_KEY` and ignores these vars — use the driver script instead.
 
 ## Install (One-Time)
 
