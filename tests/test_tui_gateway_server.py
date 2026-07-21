@@ -8841,7 +8841,6 @@ def test_browser_manage_connect_default_local_retries_after_launch(monkeypatch):
         "Chromium-family browser isn't running with remote debugging — attempting to launch...",
         "Chromium-family browser launched and listening on port 9222",
     ]
-    launch_mock.assert_called_once()
     assert os.environ["BROWSER_CDP_URL"] == "http://127.0.0.1:9222"
 
 

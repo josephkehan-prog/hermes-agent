@@ -55,6 +55,29 @@ LTX_ROOT: Path = Path.home() / "mac" / "Hermes" / "runtimes" / "ltx-video"
 LTX_PYTHON: Path = LTX_ROOT / ".venv" / "bin" / "python"
 LTX_ENTRY: Path = LTX_ROOT / "inference.py"
 LTX_CHECKPOINT: Path = LTX_ROOT / "checkpoints" / "ltxv-2b-0.9.8-distilled.safetensors"
+
+
+def _local_enabled() -> bool:
+    """Whether the user has opted into the local video backend.
+
+    A heavy on-device generator must not silently become the active backend
+    just because its runtime files exist on disk. The user opts in via
+    ``video_gen.local.enabled: true`` or by selecting ``video_gen.provider:
+    local``. Defaults to False (and never raises) so the picker/schema stay
+    honest on an unconfigured machine.
+    """
+    try:
+        from hermes_cli.config import load_config
+
+        cfg = load_config()
+        vg = cfg.get("video_gen", {})
+        if not isinstance(vg, dict):
+            return False
+        local = vg.get("local", {})
+        enabled = isinstance(local, dict) and bool(local.get("enabled"))
+        return enabled or vg.get("provider") == "local"
+    except Exception:  # noqa: BLE001 — availability probe must never raise
+        return False
 LTX_PIPELINE_CONFIG: str = "configs/hermes-ltxv-2b-0.9.8-distilled.yaml"
 
 MODEL_ID = "ltxv-2b-0.9.8-distilled"
@@ -129,7 +152,15 @@ class LocalVideoGenProvider(VideoGenProvider):
         return "Local (LTX-Video)"
 
     def is_available(self) -> bool:
-        """Cheap on-disk check only — no heavy import, no network."""
+        """On-disk runtime check gated on explicit opt-in. No import, no network.
+
+        Requires both the LTX runtime files AND the user opting in
+        (``video_gen.local.enabled`` / ``video_gen.provider: local``) — so the
+        provider never silently claims the picker/schema on a machine where the
+        runtime merely exists.
+        """
+        if not _local_enabled():
+            return False
         try:
             return (
                 LTX_PYTHON.is_file()

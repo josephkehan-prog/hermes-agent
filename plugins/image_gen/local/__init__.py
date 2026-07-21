@@ -43,6 +43,28 @@ logger = logging.getLogger(__name__)
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _SCRIPT_PATH = _REPO_ROOT / "skills" / "creative" / "flux-local" / "scripts" / "flux_one_shot.py"
 
+
+def _local_enabled() -> bool:
+    """Whether the user has opted into the local image backend.
+
+    A heavy on-device generator must not silently become the active backend
+    just because its script + libs exist. The user opts in via
+    ``image_gen.local.enabled: true`` or by selecting ``image_gen.provider:
+    local``. Defaults to False and never raises.
+    """
+    try:
+        from hermes_cli.config import load_config
+
+        cfg = load_config()
+        ig = cfg.get("image_gen", {})
+        if not isinstance(ig, dict):
+            return False
+        local = ig.get("local", {})
+        enabled = isinstance(local, dict) and bool(local.get("enabled"))
+        return enabled or ig.get("provider") == "local"
+    except Exception:  # noqa: BLE001 — availability probe must never raise
+        return False
+
 # Model catalog — ids match the flux-local SKILL.md table.
 _MODEL_DEV = "black-forest-labs/FLUX.1-dev"
 _MODEL_SCHNELL = "black-forest-labs/FLUX.1-schnell"
@@ -80,6 +102,8 @@ class LocalImageGenProvider(ImageGenProvider):
         # the diffusers backend the script imports. Gating on diffusers (via
         # find_spec, which does not import it) keeps the picker honest: a bare
         # checkout with the script but no image stack is NOT a usable provider.
+        if not _local_enabled():
+            return False
         if not shutil.which("python3") or not _SCRIPT_PATH.is_file():
             return False
         return importlib.util.find_spec("diffusers") is not None

@@ -1,6 +1,7 @@
 """Tests for hermes_cli.gateway."""
 
 import argparse
+import importlib
 import os
 import pty
 import signal
