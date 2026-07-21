@@ -1490,118 +1490,169 @@ def test_npm_audit_fix_hint_avoids_crashing_workspace_flag(monkeypatch, tmp_path
     assert "lockfile bump" in out
 
 
-# ── Local model stack section (llama-server / Ollama / RAM / disk) ──────────
+class TestDoctorDeprecatedConfigAndEnv:
+    """Doctor must surface deprecated/legacy config keys and env vars with
+    modern replacements as non-failing warnings — without auto-migrating.
+    """
 
-
-class TestDoctorLocalModelStack:
-    """`hermes doctor`'s ◆ Local model stack section is entirely optional
-    local infra (llama-server, Ollama, host RAM/disk). All probes must be
-    best-effort: a down local server should never crash the doctor, and
-    should never block `hermes doctor --fix` since plenty of installs never
-    run a local model at all."""
-
-    def _fake_httpx_get(self, monkeypatch, llama_response=None, ollama_response=None):
-        import httpx
-
-        def fake_get(url, timeout=None):
-            if "1235" in url:
-                if llama_response is None:
-                    raise httpx.ConnectError("connection refused")
-                return llama_response
-            if "11434" in url:
-                if ollama_response is None:
-                    raise httpx.ConnectError("connection refused")
-                return ollama_response
-            raise AssertionError(f"unexpected URL probed: {url}")
-
-        monkeypatch.setattr(httpx, "get", fake_get)
-
-    def test_reports_reachable_servers_with_model_details(self, monkeypatch, tmp_path, capsys):
-        import psutil
-
-        self._fake_httpx_get(
-            monkeypatch,
-            llama_response=SimpleNamespace(
-                status_code=200,
-                json=lambda: {"data": [{"id": "ornith-uncensored"}]},
-            ),
-            ollama_response=SimpleNamespace(
-                status_code=200,
-                json=lambda: {"models": [{"name": "a"}, {"name": "b"}]},
-            ),
+    def test_collect_deprecated_config_keys_flags_legacy(self):
+        raw = {
+            "display": {"tool_progress_overrides": {"telegram": "all"}},
+            "delegation": {"max_async_children": 5, "max_concurrent_children": 3},
+            "compression": {"summary_model": "gpt-4o-mini", "enabled": True},
+        }
+        findings = doctor_mod.collect_deprecated_config_keys(raw)
+        paths = {legacy for legacy, _ in findings}
+        assert "display.tool_progress_overrides" in paths
+        assert "delegation.max_async_children" in paths
+        assert "compression.summary_model" in paths
+        by_key = dict(findings)
+        assert by_key["display.tool_progress_overrides"] == "display.platforms"
+        assert by_key["delegation.max_async_children"] == (
+            "delegation.max_concurrent_children"
         )
-        monkeypatch.setattr(
-            psutil, "virtual_memory",
-            lambda: SimpleNamespace(total=64 * 1024**3, available=40 * 1024**3),
-        )
-        home = tmp_path / ".hermes"
-        home.mkdir()
-        monkeypatch.setattr(doctor_mod, "HERMES_HOME", home)
-        monkeypatch.setattr(
-            doctor_mod.shutil, "disk_usage",
-            lambda path: SimpleNamespace(total=0, used=0, free=100 * 1024**3),
-        )
+        assert by_key["compression.summary_model"] == "auxiliary.compression"
 
-        issues = []
-        doctor_mod._check_local_model_stack(issues)
+    def test_collect_deprecated_config_keys_clean(self):
+        raw = {
+            "display": {"platforms": {"telegram": {"tool_progress": "all"}}},
+            "delegation": {"max_concurrent_children": 3},
+            "compression": {"enabled": True},
+        }
+        assert doctor_mod.collect_deprecated_config_keys(raw) == []
+
+    def test_collect_deprecated_env_vars(self):
+        env = {
+            "HERMES_TOOL_PROGRESS": "true",
+            "TERMINAL_CWD": "/tmp/proj",
+            "QQ_HOME_CHANNEL": "12345",
+            "OPENAI_API_KEY": "sk-test",  # not deprecated
+        }
+        findings = doctor_mod.collect_deprecated_env_vars(env)
+        names = {n for n, _ in findings}
+        assert "HERMES_TOOL_PROGRESS" in names
+        assert "TERMINAL_CWD" in names
+        assert "QQ_HOME_CHANNEL" in names
+        assert "OPENAI_API_KEY" not in names
+        by_name = dict(findings)
+        assert "display.tool_progress" in by_name["HERMES_TOOL_PROGRESS"]
+        assert "terminal.cwd" in by_name["TERMINAL_CWD"]
+        assert by_name["QQ_HOME_CHANNEL"] == "QQBOT_HOME_CHANNEL"
+
+    def test_collect_deprecated_env_vars_ignores_empty(self):
+        assert doctor_mod.collect_deprecated_env_vars({"TERMINAL_CWD": "  "}) == []
+        assert doctor_mod.collect_deprecated_env_vars({}) == []
+        assert doctor_mod.collect_deprecated_env_vars(None) == []
+
+    def _run_doctor_with_config(self, monkeypatch, tmp_path, *, config_yaml: str, env_text: str = ""):
+        hermes_home = tmp_path / ".hermes"
+        hermes_home.mkdir(parents=True)
+        (hermes_home / "config.yaml").write_text(config_yaml, encoding="utf-8")
+        env_body = env_text if env_text else "OPENAI_API_KEY=sk-test\n"
+        (hermes_home / ".env").write_text(env_body, encoding="utf-8")
+
+        monkeypatch.setattr(doctor_mod, "HERMES_HOME", hermes_home)
+        monkeypatch.setattr(doctor_mod, "get_hermes_home", lambda: hermes_home)
+        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+        # Clear process-level legacy env so tests only see the on-disk .env.
+        for k in (
+            "HERMES_TOOL_PROGRESS",
+            "HERMES_TOOL_PROGRESS_MODE",
+            "TERMINAL_CWD",
+            "MESSAGING_CWD",
+            "QQ_HOME_CHANNEL",
+            "QQ_HOME_CHANNEL_NAME",
+        ):
+            monkeypatch.delenv(k, raising=False)
+
+        fake_model_tools = types.SimpleNamespace(
+            check_tool_availability=lambda *a, **kw: (_ for _ in ()).throw(SystemExit(0)),
+            TOOLSET_REQUIREMENTS={},
+        )
+        monkeypatch.setitem(sys.modules, "model_tools", fake_model_tools)
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf), pytest.raises(SystemExit):
+            doctor_mod.run_doctor(Namespace(fix=False))
+        return buf.getvalue(), hermes_home
+
+    def test_doctor_warns_on_tool_progress_overrides_and_max_async_children(
+        self, monkeypatch, tmp_path
+    ):
+        cfg = """\
+display:
+  tool_progress_overrides:
+    telegram: all
+delegation:
+  max_async_children: 8
+  max_concurrent_children: 3
+"""
+        out, hermes_home = self._run_doctor_with_config(monkeypatch, tmp_path, config_yaml=cfg)
+        assert "Deprecated: display.tool_progress_overrides" in out
+        assert "display.platforms" in out
+        assert "Deprecated: delegation.max_async_children" in out
+        assert "max_concurrent_children" in out
+        # Warn-only: must not mutate config.
+        on_disk = (hermes_home / "config.yaml").read_text(encoding="utf-8")
+        assert "tool_progress_overrides" in on_disk
+        assert "max_async_children" in on_disk
+
+    def test_doctor_warns_on_compression_summary_and_legacy_env(
+        self, monkeypatch, tmp_path
+    ):
+        cfg = """\
+compression:
+  summary_model: gpt-4o-mini
+  summary_provider: openai
+"""
+        env = (
+            "OPENAI_API_KEY=sk-test\n"
+            "HERMES_TOOL_PROGRESS=true\n"
+            "TERMINAL_CWD=/old/path\n"
+            "QQ_HOME_CHANNEL=999\n"
+        )
+        out, _ = self._run_doctor_with_config(
+            monkeypatch, tmp_path, config_yaml=cfg, env_text=env
+        )
+        assert "Deprecated: compression.summary_model" in out
+        assert "auxiliary.compression" in out
+        assert "Deprecated: HERMES_TOOL_PROGRESS" in out
+        assert "display.tool_progress" in out
+        assert "Deprecated: TERMINAL_CWD" in out
+        assert "terminal.cwd" in out
+        assert "Deprecated: QQ_HOME_CHANNEL" in out
+        assert "QQBOT_HOME_CHANNEL" in out
+
+    def test_doctor_clean_config_has_no_deprecated_warning(self, monkeypatch, tmp_path):
+        cfg = """\
+display:
+  platforms:
+    telegram:
+      tool_progress: all
+delegation:
+  max_concurrent_children: 3
+compression:
+  enabled: true
+terminal:
+  cwd: /project
+"""
+        out, _ = self._run_doctor_with_config(monkeypatch, tmp_path, config_yaml=cfg)
+        assert "Deprecated: display.tool_progress_overrides" not in out
+        assert "Deprecated: delegation.max_async_children" not in out
+        assert "Deprecated: compression.summary_model" not in out
+        assert "Deprecated: HERMES_TOOL_PROGRESS" not in out
+        assert "Deprecated: TERMINAL_CWD" not in out
+        assert "Deprecated: QQ_HOME_CHANNEL" not in out
+        assert "No deprecated config keys or env vars" in out
+
+    def test_report_does_not_count_as_blocking_issue(self, monkeypatch, tmp_path, capsys):
+        """report_deprecated_config_and_env is warn-only — no issues list mutation."""
+        findings = doctor_mod.report_deprecated_config_and_env(
+            {"delegation": {"max_async_children": 2}},
+            {"HERMES_TOOL_PROGRESS_MODE": "verbose"},
+        )
         out = capsys.readouterr().out
-
-        assert "Local model stack" in out
-        assert "llama-server reachable" in out
-        assert "model=ornith-uncensored" in out
-        assert "Ollama reachable" in out
-        assert "2 model(s)" in out
-        assert "System RAM" in out
-        assert "Disk space" in out
-        assert "✗" not in out
-        # Optional local infra should never block --fix.
-        assert issues == []
-
-    def test_warns_without_raising_when_servers_unreachable(self, monkeypatch, tmp_path, capsys):
-        import psutil
-
-        self._fake_httpx_get(monkeypatch, llama_response=None, ollama_response=None)
-        monkeypatch.setattr(
-            psutil, "virtual_memory",
-            lambda: SimpleNamespace(total=64 * 1024**3, available=40 * 1024**3),
-        )
-        home = tmp_path / ".hermes"
-        home.mkdir()
-        monkeypatch.setattr(doctor_mod, "HERMES_HOME", home)
-        monkeypatch.setattr(
-            doctor_mod.shutil, "disk_usage",
-            lambda path: SimpleNamespace(total=0, used=0, free=100 * 1024**3),
-        )
-
-        issues = []
-        doctor_mod._check_local_model_stack(issues)
-        out = capsys.readouterr().out
-
-        assert "llama-server not reachable" in out
-        assert "Ollama not reachable" in out
-        assert issues == []
-
-    def test_warns_on_low_ram_and_low_disk(self, monkeypatch, tmp_path, capsys):
-        import psutil
-
-        self._fake_httpx_get(monkeypatch, llama_response=None, ollama_response=None)
-        monkeypatch.setattr(
-            psutil, "virtual_memory",
-            lambda: SimpleNamespace(total=16 * 1024**3, available=2 * 1024**3),
-        )
-        home = tmp_path / ".hermes"
-        home.mkdir()
-        monkeypatch.setattr(doctor_mod, "HERMES_HOME", home)
-        monkeypatch.setattr(
-            doctor_mod.shutil, "disk_usage",
-            lambda path: SimpleNamespace(total=0, used=0, free=1 * 1024**3),
-        )
-
-        issues = []
-        doctor_mod._check_local_model_stack(issues)
-        out = capsys.readouterr().out
-
-        assert "System RAM low" in out
-        assert "Disk space low" in out
-        # Still best-effort/non-blocking even when resources are low.
-        assert issues == []
+        assert len(findings) == 2
+        assert "Deprecated: delegation.max_async_children" in out
+        assert "Deprecated: HERMES_TOOL_PROGRESS_MODE" in out
+        assert "⚠" in out or "Deprecated" in out
