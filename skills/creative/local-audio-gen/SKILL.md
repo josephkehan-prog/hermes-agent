@@ -17,11 +17,12 @@ metadata:
 # Local Audio Generation
 
 On-device audio generation via the workspace's local media lanes — no cloud
-key, no upload. Two lanes:
+key, no upload. Three lanes:
 
 - **Music** — ACE-Step XL (diffusers, MPS): tags/lyrics to a full WAV.
 - **Voice conversion** — Chatterbox VC (MLX): re-render existing speech in a
   target speaker's voice, preserving prosody/timing.
+- **Text-to-speech** — Piper (local VITS): text to narration WAV, no key.
 
 Both binaries live in the workspace bin dir and ship their own virtualenvs, so
 call them by absolute path. Set once:
@@ -35,8 +36,7 @@ HB=~/mac/Hermes/bin
 - User wants a song, jingle, background track, or instrumental → **music**.
 - User has a voice clip and wants it re-voiced as another speaker → **voice
   conversion**.
-- Text-to-speech (plain narration) is **not** covered here — no local TTS bin is
-  wired yet; use the configured `tts` provider for that.
+- User wants plain narration from text → **text-to-speech** (Piper).
 
 ## Lane A: Music (ACE-Step)
 
@@ -74,6 +74,39 @@ Flags: `--tags` (required — genre/mood/instrument prompt), `--lyrics` /
 - `--input` — audio whose content/prosody/timing is kept.
 - `--target` — 3–10s clean reference clip of the voice to convert into.
 - `--output` — result WAV.
+
+## Lane C: Text-to-Speech (Piper)
+
+Piper is a local neural VITS TTS — no key, no upload. The binary is on PATH
+(mise-managed) and a default voice ships at
+`~/.piper-voices/en_US-hfc_female-medium.onnx`.
+
+```bash
+echo "Hello from a fully local voice." \
+  | piper -m ~/.piper-voices/en_US-hfc_female-medium.onnx -f ./narration.wav
+```
+
+Hermes also has a built-in `piper` TTS provider, so the cleanest alignment is to
+make it the default voice instead of the cloud `edge` provider. In
+`~/.hermes/config.yaml`:
+
+```yaml
+tts:
+  provider: piper
+```
+
+Or wire an explicit local command provider (works for any local TTS binary):
+
+```yaml
+tts:
+  provider: piper-local
+  providers:
+    piper-local:
+      command: "piper -m ~/.piper-voices/en_US-hfc_female-medium.onnx -f {output_path} < {input_path}"
+```
+
+(That config edit is a deploy-time change to the live Hermes config, not part of
+this skill.)
 
 ## Runtime note (RAM)
 
