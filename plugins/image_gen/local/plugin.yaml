@@ -1,0 +1,5 @@
+name: local
+version: 1.0.0
+description: "Local on-device image generation via the flux-local skill (FLUX.1 dev/schnell/fp8, diffusers/MPS) — no cloud key."
+author: Hermes Agent
+kind: backend

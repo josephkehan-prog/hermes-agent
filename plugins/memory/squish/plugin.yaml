@@ -1,0 +1,12 @@
+name: squish
+version: 1.0.0
+description: "Shared-brain memory via the Squish CLI (workspace-wide agent memory)."
+author: Hermes Agent
+kind: memory
+external_dependencies:
+  - name: squish
+    install: "Vendored with agent-hub (agentic-os/hub/vendor/node_modules/squish-memory)"
+    check: "squish --version"
+hooks:
+  - on_memory_write
+  - on_pre_compress
