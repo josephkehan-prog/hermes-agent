@@ -14,6 +14,7 @@ declines reference images.
 
 from __future__ import annotations
 
+import importlib.util
 import logging
 import shutil
 import subprocess
@@ -74,9 +75,14 @@ class LocalImageGenProvider(ImageGenProvider):
         return "Local (FLUX/MLX)"
 
     def is_available(self) -> bool:
-        # Cheap: no heavy imports, no network. Available only when a python3
-        # interpreter is on PATH and the flux-local script exists on disk.
-        return bool(shutil.which("python3")) and _SCRIPT_PATH.is_file()
+        # Cheap: no heavy imports, no network. "Available" means the runtime can
+        # actually generate — a python3 interpreter, the flux-local script, AND
+        # the diffusers backend the script imports. Gating on diffusers (via
+        # find_spec, which does not import it) keeps the picker honest: a bare
+        # checkout with the script but no image stack is NOT a usable provider.
+        if not shutil.which("python3") or not _SCRIPT_PATH.is_file():
+            return False
+        return importlib.util.find_spec("diffusers") is not None
 
     def list_models(self) -> List[Dict[str, Any]]:
         return [
