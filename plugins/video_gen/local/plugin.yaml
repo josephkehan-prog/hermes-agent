@@ -1,0 +1,5 @@
+name: local
+version: 1.0.0
+description: On-device text-to-video via the local LTX-Video runtime (no cloud key).
+author: Hermes Agent
+kind: backend

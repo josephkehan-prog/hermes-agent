@@ -1,0 +1,8 @@
+name: squish
+version: 1.0.0
+description: "Shared-brain memory via the Squish CLI (workspace-wide agent memory)."
+author: Hermes Agent
+kind: memory
+hooks:
+  - on_memory_write
+  - on_pre_compress
